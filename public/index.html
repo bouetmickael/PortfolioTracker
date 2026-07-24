@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a73e8">
+  <title>Portfolio Tracker</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="icons/icon-192.png">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Portfolio">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+
+  <header class="header">
+    <h1>Portfolio</h1>
+    <div class="header-actions">
+      <button id="refreshBtn" class="btn-icon" title="Actualiser" aria-label="Actualiser">R</button>
+      <button id="userMenuBtn" class="btn-icon" title="Menu utilisateur" aria-label="Menu utilisateur">U</button>
+    </div>
+  </header>
+
+  <div id="userMenu" class="dropdown-menu">
+    <div class="user-info">
+      <div id="userName" class="user-name">Chargement...</div>
+      <div id="userEmail" class="user-email"></div>
+    </div>
+    <hr>
+    <button onclick="logout()" class="menu-item">Deconnexion</button>
+  </div>
+
+  <section class="stats-container">
+    <div class="stat-card">
+      <div class="stat-label">Total</div>
+      <div class="stat-value" id="statTotal">-</div>
+    </div>
+    <div class="stat-card stat-success">
+      <div class="stat-label">Hausse</div>
+      <div class="stat-value" id="statHausse">-</div>
+    </div>
+    <div class="stat-card stat-danger">
+      <div class="stat-label">Baisse</div>
+      <div class="stat-value" id="statBaisse">-</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>Valeurs suivies</h2>
+      <button id="addValeurBtn" class="btn-icon-small" aria-label="Ajouter une valeur">+</button>
+    </div>
+    <div id="valeursListe" class="valeurs-liste">
+      <div class="loader-inline">
+        <div class="spinner-small"></div>
+        <span>Chargement...</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-header">
+      <h2>Alertes actives</h2>
+    </div>
+    <div id="alertesListe" class="alertes-liste">
+      <div class="loader-inline">
+        <div class="spinner-small"></div>
+        <span>Chargement...</span>
+      </div>
+    </div>
+  </section>
+
+  <button id="fab" class="fab" title="Ajouter une valeur" aria-label="Ajouter une valeur">
+    <span class="icon-large">+</span>
+  </button>
+
+  <div id="modalAddValeur" class="modal">
+    <div class="modal-backdrop" onclick="closeAllModals()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Ajouter une valeur</h3>
+        <button class="btn-close" onclick="closeAllModals()" aria-label="Fermer">X</button>
+      </div>
+      <div class="modal-body">
+        <label class="label">Ticker</label>
+        <input
+          type="text"
+          id="inputTicker"
+          placeholder="Ex: AAPL, MC.PA, BNP.PA"
+          class="input"
+          autocomplete="off"
+        >
+        <small class="help-text">
+          US: AAPL, MSFT | Euronext Paris: MC.PA, BNP.PA
+        </small>
+
+        <label class="label">Type</label>
+        <select id="selectType" class="input">
+          <option value="Action">Action</option>
+          <option value="Warrant">Warrant</option>
+        </select>
+
+        <label class="label">Nom (optionnel)</label>
+        <input
+          type="text"
+          id="inputNom"
+          placeholder="Ex: Apple Inc."
+          class="input"
+        >
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeAllModals()" class="btn btn-secondary">Annuler</button>
+        <button onclick="ajouterValeur()" class="btn btn-primary">Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalCreateAlerte" class="modal">
+    <div class="modal-backdrop" onclick="closeAllModals()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Creer une alerte</h3>
+        <button class="btn-close" onclick="closeAllModals()" aria-label="Fermer">X</button>
+      </div>
+      <div class="modal-body">
+        <label class="label">Ticker</label>
+        <input
+          type="text"
+          id="inputTickerAlerte"
+          class="input"
+          readonly
+        >
+
+        <label class="label">Seuil haut (optionnel)</label>
+        <input
+          type="number"
+          id="inputSeuilHaut"
+          placeholder="Ex: 200"
+          class="input"
+          step="0.01"
+        >
+        <small class="help-text">Notification si le cours depasse ce seuil</small>
+
+        <label class="label">Seuil bas (optionnel)</label>
+        <input
+          type="number"
+          id="inputSeuilBas"
+          placeholder="Ex: 150"
+          class="input"
+          step="0.01"
+        >
+        <small class="help-text">Notification si le cours passe sous ce seuil</small>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeAllModals()" class="btn btn-secondary">Annuler</button>
+        <button onclick="creerAlerte()" class="btn btn-primary">Creer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalGraphique" class="modal modal-large">
+    <div class="modal-backdrop" onclick="closeAllModals()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="graphiqueTitre">Graphique</h3>
+        <button class="btn-close" onclick="closeAllModals()" aria-label="Fermer">X</button>
+      </div>
+      <div class="modal-body">
+        <div class="periode-selector">
+          <button class="btn-periode active" data-period="1D">1J</button>
+          <button class="btn-periode" data-period="1W">1S</button>
+          <button class="btn-periode" data-period="1M">1M</button>
+          <button class="btn-periode" data-period="1Y">1A</button>
+          <button class="btn-periode" data-period="MAX">Max</button>
+        </div>
+        <div id="graphiqueContainer">
+          <canvas id="chartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <div id="loader" class="loader hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <script src="firebase-config.js"></script>
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
