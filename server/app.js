@@ -13,6 +13,15 @@ app.set('trust proxy', process.env.TRUST_PROXY === 'true');
 
 app.use(express.json());
 
+// 'auto' : le cookie est marque secure uniquement quand la requete est
+// arrivee via le listener HTTPS (voir server/index.js, qui peut demarrer un
+// serveur HTTP et un serveur HTTPS en parallele sur le meme port respectif).
+// COOKIE_SECURE permet de forcer explicitement true/false si necessaire
+// (ex. derriere un reverse proxy externe qui termine le TLS lui-meme).
+let secureCookie = 'auto';
+if (process.env.COOKIE_SECURE === 'true') secureCookie = true;
+if (process.env.COOKIE_SECURE === 'false') secureCookie = false;
+
 app.use(
   session({
     name: 'connect.sid',
@@ -22,7 +31,7 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.COOKIE_SECURE === 'true',
+      secure: secureCookie,
       maxAge: 30 * 24 * 60 * 60 * 1000
     }
   })

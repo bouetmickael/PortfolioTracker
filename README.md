@@ -134,13 +134,40 @@ de l'add-on.
 ### Mettre a jour l'add-on plus tard
 
 Repeter l'etape 3 (`rsync`/`scp`) pour ecraser les fichiers avec une version
-plus recente du depot, puis dans l'add-on : onglet **Info** > **Reconstruire**
-(rebuild), qui reconstruit l'image Docker a partir des fichiers mis a jour.
+plus recente du depot, incrementer `version` dans `config.yaml` (sinon le
+Supervisor ne propose pas de mise a jour), puis dans l'add-on : onglet
+**Info** > **Reconstruire** (rebuild).
 
-Pour un acces distant securise (HTTPS) sans toucher a la configuration
-existante de Home Assistant, la solution la plus simple est un tunnel
-sortant (ex. Cloudflare Tunnel) qui expose ce port sur un sous-domaine, sans
-ouvrir de port entrant ni gerer de certificat manuellement.
+### Acces externe en HTTPS (ex. si vous utilisez deja DuckDNS + Let's Encrypt)
+
+Si Home Assistant utilise deja l'add-on officiel **DuckDNS** (avec
+generation automatique d'un certificat Let's Encrypt stocke dans `/ssl`),
+Portfolio Tracker peut reutiliser ce meme certificat plutot que d'en generer
+un second : c'est le meme nom de domaine, un certificat TLS est valable pour
+n'importe quel port de ce domaine.
+
+1. Dans l'onglet **Configuration** de l'add-on Portfolio Tracker, activer
+   `https_enabled` et verifier `https_port` (8443 par defaut), `ssl_certfile`
+   et `ssl_keyfile` (par defaut `fullchain.pem`/`privkey.pem`, les noms
+   standards utilises par l'add-on DuckDNS ; ajuster uniquement si votre
+   configuration `http:` dans `configuration.yaml` de Home Assistant
+   reference des noms de fichiers differents pour `ssl_certificate`/`ssl_key`)
+2. Redemarrer l'add-on
+3. Sur votre routeur, rediriger un port externe (ex. 8443) vers le port
+   `https_port` choisi, sur l'adresse IP locale du Raspberry Pi (procedure
+   identique a celle deja utilisee pour rediriger le port 443 vers Home
+   Assistant)
+4. L'application est alors accessible sur `https://mykeul.duckdns.org:8443`
+   (remplacer par votre propre domaine DuckDNS et le port choisi)
+
+L'acces local en HTTP (`http://<ip-du-pi>:3000`) continue de fonctionner en
+parallele, sans rien configurer de plus : les deux serveurs (HTTP et HTTPS)
+tournent simultanement dans le meme add-on.
+
+Si vous ne passez pas par l'add-on officiel DuckDNS (Home Assistant Cloud,
+reverse proxy externe, autre certificat), cette methode ne s'applique pas
+telle quelle : demander de l'aide en precisant comment le certificat actuel
+est obtenu.
 
 ## Installation : Docker Compose (serveur Linux generique, pas HAOS)
 

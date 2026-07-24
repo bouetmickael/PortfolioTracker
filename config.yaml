@@ -1,5 +1,5 @@
 name: "Portfolio Tracker"
-version: "1.0.0"
+version: "1.1.0"
 slug: "portfolio_tracker"
 description: "Suivi de portefeuille (actions et warrants), sans Firebase"
 url: "https://github.com/bouetmickael/PortfolioTracker"
@@ -11,12 +11,19 @@ startup: services
 boot: auto
 map:
   - data:rw
+  - ssl:ro
 ports:
   3000/tcp: 3000
+  8443/tcp: 8443
 ports_description:
-  3000/tcp: "Interface web Portfolio Tracker"
+  3000/tcp: "Interface web en HTTP (reseau local)"
+  8443/tcp: "Interface web en HTTPS (acces externe, si https_enabled active)"
 options:
   session_secret: ""
+  https_enabled: false
+  https_port: 8443
+  ssl_certfile: fullchain.pem
+  ssl_keyfile: privkey.pem
   smtp_host: ""
   smtp_port: 587
   smtp_secure: false
@@ -25,6 +32,10 @@ options:
   mail_from: ""
 schema:
   session_secret: str?
+  https_enabled: bool?
+  https_port: port?
+  ssl_certfile: str?
+  ssl_keyfile: str?
   smtp_host: str?
   smtp_port: port?
   smtp_secure: bool?

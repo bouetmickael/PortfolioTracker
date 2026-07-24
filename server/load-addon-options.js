@@ -17,6 +17,10 @@ const OPTIONS_PATH = process.env.ADDON_OPTIONS_PATH || '/data/options.json';
 
 const OPTION_TO_ENV = {
   session_secret: 'SESSION_SECRET',
+  https_enabled: 'HTTPS_ENABLED',
+  https_port: 'HTTPS_PORT',
+  ssl_certfile: 'SSL_CERTFILE',
+  ssl_keyfile: 'SSL_KEYFILE',
   smtp_host: 'SMTP_HOST',
   smtp_port: 'SMTP_PORT',
   smtp_secure: 'SMTP_SECURE',
