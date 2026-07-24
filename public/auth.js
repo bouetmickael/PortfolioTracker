@@ -83,21 +83,9 @@ window.logout = async function logout() {
 async function checkAuthAndRedirect() {
   const isLoginPage = window.location.pathname.includes('login.html');
 
+  let res;
   try {
-    const res = await apiFetch('/api/auth/me');
-
-    if (res.ok) {
-      if (isLoginPage) {
-        window.location.href = '/';
-        return null;
-      }
-      return res.json();
-    }
-
-    if (!isLoginPage) {
-      window.location.href = '/login.html';
-    }
-    return null;
+    res = await apiFetch('/api/auth/me');
   } catch (error) {
     console.error('Erreur verification session:', error);
     if (!isLoginPage) {
@@ -105,6 +93,19 @@ async function checkAuthAndRedirect() {
     }
     return null;
   }
+
+  if (res.ok) {
+    if (isLoginPage) {
+      window.location.href = '/';
+      return null;
+    }
+    return res.json();
+  }
+
+  if (!isLoginPage) {
+    window.location.href = '/login.html';
+  }
+  return null;
 }
 
 if (window.location.pathname.includes('login.html')) {

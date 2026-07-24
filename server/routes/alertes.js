@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { normalizeTicker } = require('../ticker');
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const ticker = (req.body.ticker || '').trim().toUpperCase();
+  const ticker = normalizeTicker(req.body.ticker);
   const seuilHaut = req.body.seuilHaut ? Number(req.body.seuilHaut) : null;
   const seuilBas = req.body.seuilBas ? Number(req.body.seuilBas) : null;
 

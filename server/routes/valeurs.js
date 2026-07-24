@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { normalizeTicker } = require('../ticker');
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const ticker = (req.body.ticker || '').trim().toUpperCase();
+  const ticker = normalizeTicker(req.body.ticker);
   const type = req.body.type === 'Warrant' ? 'Warrant' : 'Action';
   const nom = (req.body.nom || '').trim();
 
@@ -53,7 +54,7 @@ router.post('/', (req, res) => {
 });
 
 router.delete('/:ticker', (req, res) => {
-  const ticker = req.params.ticker.toUpperCase();
+  const ticker = normalizeTicker(req.params.ticker);
 
   db.prepare('DELETE FROM valeurs WHERE user_id = ? AND ticker = ?').run(req.session.userId, ticker);
   db.prepare('DELETE FROM alertes WHERE user_id = ? AND ticker = ?').run(req.session.userId, ticker);
