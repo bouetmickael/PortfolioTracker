@@ -6,12 +6,10 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/3 — revue de dette technique obligatoire à la prochaine session (METHOD.md §0.2)**
-
-Troisième session de développement sous le cycle décrit par `METHOD.md`
-(2026-07-24, voir `TODO.md`). Aucune revue de dette technique n'a eu lieu
-à ce jour : la session suivante doit être le cycle de revue (§0.2), pas la
-Session B ci-dessous, avant de continuer la fonctionnalité en cours.
+**0/3** — revue de dette technique effectuée le 2026-07-24 (première
+revue du projet, voir `CLAUDE.md` § Historique des revues de dette
+technique et `TODO.md`). La prochaine session reprend la fonctionnalité
+en cours (Session B ci-dessous).
 
 ## Fonctionnalité en cours
 
@@ -35,9 +33,6 @@ partage RW de section entre utilisateurs. Découpage :
   `GET /api/users`, contrôle d'accès, modale de partage, amendement
   explicite de `BUSINESS_RULES.md` (isolation stricte), tests d'accès
   croisé entre deux comptes.
-
-**Ordre imposé par METHOD.md §0.2 : la revue de dette technique (3/3)
-passe avant la Session B.**
 
 ## Backlog produit
 

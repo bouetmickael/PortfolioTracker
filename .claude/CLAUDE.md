@@ -78,6 +78,46 @@ variables d'environnement, vérification).
 
 ## Historique des revues de dette technique
 
-Aucune revue effectuée à ce jour (compteur `BACKLOG.md` à 0/3). Chaque
-revue future (cycle `METHOD.md` §0.2) doit ajouter ici une entrée : date,
-portée, correctifs appliqués, correctifs reportés.
+### 2026-07-24 — Revue n°1 (première revue du projet)
+
+- **Portée** : diff cumulé depuis le tout premier commit du dépôt jusqu'à
+  `HEAD` (`git diff 527d37d..HEAD`), c'est-à-dire l'intégralité du code
+  applicatif actuel (`server/`, `public/`, hors `public/vendor/` et
+  `.claude/*.md`) — aucune revue n'ayant eu lieu avant celle-ci. Outillage
+  utilisé : `/simplify` (4 agents de revue en parallèle : réutilisation,
+  simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement inchangé,
+  vérifiés par un parcours API réel — register/login/CRUD valeurs et
+  alertes/logout sur un serveur local) :
+  - `GET /api/auth/me` (`server/routes/auth.js`) utilise désormais le
+    middleware partagé `requireAuth` au lieu de dupliquer la vérification
+    de session en ligne.
+  - Extraction de `normalizeTicker()` (`server/ticker.js`), utilisée dans
+    `server/routes/valeurs.js` et `server/routes/alertes.js` à la place de
+    trois occurrences séparées de `trim().toUpperCase()`.
+  - Simplification de `checkAuthAndRedirect` (`public/auth.js`) : une
+    seule branche de redirection au lieu de la dupliquer dans le chemin
+    `!res.ok` et dans le `catch`.
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - Format de réponse API en map (`toValeursMap`/`toAlertesMap`) hérité de
+    Firebase Realtime Database, immédiatement reconverti en tableau côté
+    client (`public/app.js`) — changer la forme de la réponse API est un
+    changement de contrat, pas une simplification locale.
+  - Liste des alertes toujours rendue en manipulation DOM directe
+    (`displayAlertes`/`createAlerteCard` dans `public/app.js`), à côté de
+    la liste des valeurs déjà migrée sur le store Alpine — extension du
+    store envisageable mais hors périmètre d'un correctif à risque faible.
+  - Logique de récupération Yahoo Finance dupliquée entre
+    `server/jobs/prices.js` et `server/routes/chart.js` (URL, fetch,
+    validation de `chart.result` chacun avec sa propre garde).
+  - Appels réseau/SMTP séquentiels dans les jobs `server/jobs/prices.js`
+    et `server/jobs/alerts.js` (boucle `for...await` sur des tickers/
+    alertes indépendants) — passer en parallèle changerait le
+    comportement sous charge (risque de blocage par Yahoo Finance).
+  - Absence de cache sur `GET /api/chart/:ticker` (chaque ouverture de
+    graphique refait un appel Yahoo Finance identique).
+  - Absence de middleware Express centralisé de gestion d'erreurs
+    (`chart.js` est la seule route avec un `try/catch` ; `valeurs.js` et
+    `alertes.js` n'en ont pas et retomberaient sur la page d'erreur HTML
+    par défaut d'Express en cas d'erreur inattendue).

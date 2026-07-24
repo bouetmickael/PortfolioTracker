@@ -165,3 +165,35 @@ en sessions dans `BACKLOG.md`.
   session. Conformément à `METHOD.md` §0.2, la session suivante doit être
   la revue de dette technique obligatoire, avant de reprendre avec la
   Session B (sections + drag-and-drop) du plan en cours.
+
+## 2026-07-24 — Revue de dette technique n°1
+
+Compteur `BACKLOG.md` à 3/3 : cycle de revue obligatoire (`METHOD.md`
+§0.2), première revue du projet (aucune n'avait eu lieu jusqu'ici). Détail
+complet (portée, correctifs appliqués, correctifs reportés) consigné dans
+`CLAUDE.md` § Historique des revues de dette technique — non dupliqué ici.
+
+- **Méthode** : `/simplify` sur `git diff 527d37d..HEAD` (diff cumulé
+  depuis le premier commit, soit l'intégralité du code applicatif actuel,
+  `server/`/`public/` hors vendor) — 4 agents de revue en parallèle
+  (réutilisation, simplification, efficacité, altitude).
+- **Appliqué** : `GET /api/auth/me` utilise `requireAuth` au lieu d'une
+  vérification de session dupliquée ; extraction de `normalizeTicker()`
+  (`server/ticker.js`) réutilisée dans `routes/valeurs.js` et
+  `routes/alertes.js` ; simplification de `checkAuthAndRedirect`
+  (`public/auth.js`, une seule branche de redirection).
+- **Vérification** : `node --check` sur tous les fichiers modifiés ;
+  serveur Express lancé localement (SQLite de test) et parcours API réel
+  (register, login, `GET /me` avec/sans session, `POST`/`GET`/`DELETE`
+  `/api/valeurs` et `/api/alertes` avec ticker en minuscules/espaces) —
+  réponses identiques à avant les correctifs (ticker normalisé en
+  `AAPL`, mêmes codes HTTP, mêmes formes de réponse JSON).
+- **Reporté** (documenté dans `CLAUDE.md`, pas traité cette session) :
+  format de réponse API en map hérité de Firebase, liste des alertes non
+  migrée sur le store Alpine, duplication de la logique de fetch Yahoo
+  Finance entre `jobs/prices.js` et `routes/chart.js`, appels réseau/SMTP
+  séquentiels dans les jobs cron, absence de cache sur
+  `GET /api/chart/:ticker`, absence de middleware d'erreur Express
+  centralisé.
+- Compteur `BACKLOG.md` réinitialisé à 0/3. Prochaine session : reprise de
+  la Session B (sections + drag-and-drop) du plan en cours.
