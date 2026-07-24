@@ -1,0 +1,146 @@
+# ARCHITECTURE.md — Stack technique, couches, conventions
+
+> Fichier propriétaire de tout ce qui concerne la stack technique telle
+> qu'implémentée, le découpage en couches, l'arborescence réelle du code et
+> les conventions de développement. Voir `CLAUDE.md` pour le point d'entrée
+> et `DOCKER.md` pour le déploiement.
+
+## 1. Stack technique réelle
+
+- **Backend** : Node.js (>=20), Express 4, CommonJS (`require`/`module.exports`,
+  pas d'ESM, pas de TypeScript, pas de bundler/transpileur).
+- **Base de données** : SQLite via `better-sqlite3` (accès synchrone, fichier
+  unique, mode `WAL`, `foreign_keys = ON`).
+- **Sessions** : `express-session`, store en mémoire du process (par défaut de
+  la librairie, pas de store externe — voir §4 Points de vigilance).
+- **Authentification** : comptes locaux email/mot de passe, hash `bcryptjs`.
+  Pas d'OAuth/Google (retiré lors de la migration hors Firebase, voir
+  `TODO.md`).
+- **Tâches planifiées** : `node-cron` (deux jobs toutes les 2 minutes, voir
+  §3).
+- **Email** : `nodemailer` (SMTP optionnel).
+- **Configuration** : `dotenv` (mode Docker Compose) ou traduction de
+  `/data/options.json` (mode Home Assistant Add-on) — voir
+  `server/load-addon-options.js` et `DOCKER.md`.
+- **Frontend** : PWA en JavaScript vanilla (aucun framework — pas de React/
+  Vue/etc.), pas de build step, chargée directement par le navigateur.
+  Manipulation du DOM directe (`document.getElementById`, `innerHTML`).
+- **Graphiques** : Chart.js 4.4.0, chargé depuis un CDN (`jsdelivr`) dans
+  `public/index.html`, pas de dépendance npm côté frontend.
+- **Communication frontend/backend** : polling HTTP classique (`fetch`)
+  toutes les 30 secondes (`public/app.js`), pas de WebSocket/SSE. Cookie de
+  session (`connect.sid`, `httpOnly`, `sameSite=lax`).
+- **Tests** : aucun framework de test n'est configuré à ce jour (pas de
+  script `test` dans `server/package.json`, pas de fichier de test dans le
+  dépôt). À compléter si une session doit introduire des tests (voir
+  `METHOD.md` §0.1 étape 3).
+
+## 2. Arborescence réelle
+
+```
+.
+├── Dockerfile                    # image commune aux deux modes de déploiement
+├── docker-compose.yml            # packaging Linux générique (non-HAOS)
+├── config.yaml, repository.yaml  # manifeste Home Assistant Add-on
+├── .env.example                  # variables d'environnement (mode Docker Compose)
+├── public/                       # frontend (PWA), servi tel quel par express.static
+│   ├── index.html                # écran principal (valeurs, alertes, graphique)
+│   ├── login.html                # écran de connexion/inscription
+│   ├── api.js                    # wrapper fetch minimal (apiFetch)
+│   ├── auth.js                   # connexion/inscription/déconnexion, garde de page
+│   ├── app.js                    # logique applicative principale, polling, CRUD, Chart.js
+│   ├── styles.css                # feuille de style unique (voir DESIGN.md)
+│   ├── sw.js                     # service worker (cache offline des assets statiques)
+│   ├── manifest.json             # manifeste PWA
+│   └── icons/                    # icônes PWA (192/512, provisoires — voir DESIGN.md)
+└── server/                       # backend Node.js + Express
+    ├── index.js                  # bootstrap : dotenv, options add-on, écoute HTTP(+HTTPS), cron
+    ├── app.js                    # application Express (session, montage des routes, static)
+    ├── db.js                     # ouverture SQLite + schéma (CREATE TABLE IF NOT EXISTS)
+    ├── mailer.js                 # envoi d'email (SMTP optionnel, no-op sinon)
+    ├── load-addon-options.js     # traduction /data/options.json -> variables d'environnement
+    ├── middleware/auth.js        # requireAuth (garde de session sur les routes API)
+    ├── routes/
+    │   ├── auth.js                # /api/auth (register, login, logout, me)
+    │   ├── valeurs.js              # /api/valeurs (CRUD des valeurs suivies)
+    │   ├── alertes.js              # /api/alertes (CRUD des alertes de seuil)
+    │   └── chart.js                 # /api/chart/:ticker (historique Yahoo Finance)
+    └── jobs/
+        ├── prices.js               # mise à jour des cours (cron 2 min)
+        └── alerts.js                # vérification + envoi des alertes (cron 2 min)
+```
+
+## 3. Découpage en couches et flux
+
+1. `server/index.js` charge `.env`/`options.json`, démarre le serveur HTTP
+   (et HTTPS si `HTTPS_ENABLED=true` avec certificats présents dans
+   `SSL_DIR`), puis planifie `updatePrices` et `checkAlerts` toutes les
+   2 minutes (`node-cron`, timezone `Europe/Paris`).
+2. `server/app.js` construit l'application Express : session cookie,
+   montage des routeurs sous `/api/*`, puis sert `public/` en statique
+   (`express.static`) pour tout le reste.
+3. Chaque route sous `/api/valeurs` et `/api/alertes` passe par
+   `middleware/auth.js` (`requireAuth`) qui exige `req.session.userId` ; le
+   filtrage par `user_id` est fait explicitement dans chaque requête SQL
+   (voir `BUSINESS_RULES.md`).
+4. `server/jobs/prices.js` interroge l'endpoint public non officiel
+   `query1.finance.yahoo.com` pour chaque ticker distinct en base et met à
+   jour `cours`/`variation`/`volume` ; `server/routes/chart.js` interroge le
+   même endpoint pour l'historique par période (1J/1S/1M/1A/Max).
+5. `server/jobs/alerts.js` relit les alertes actives jointes aux valeurs et
+   déclenche un email (`mailer.js`) quand un seuil est franchi (logique
+   anti-répétition, voir `BUSINESS_RULES.md`).
+6. Le frontend (`public/app.js`) ne consomme que l'API `/api/*` en polling
+   HTTP toutes les 30 secondes ; aucune donnée n'est poussée par le
+   serveur.
+
+## 4. Conventions de code observées
+
+- **CommonJS partout**, pas d'import ESM, pas de classes — style
+  fonctionnel simple (fonctions + `module.exports`).
+- **Conversion snake_case (SQLite) → camelCase (API JSON)** faite
+  explicitement dans chaque route via une petite fonction de mapping
+  (`toValeursMap`, `toAlertesMap`, `toPublicUser`) plutôt que par un ORM ou
+  un mapper générique — respecter ce style si de nouvelles routes sont
+  ajoutées.
+- **Langue** : commentaires et messages utilisateur (UI, erreurs API) en
+  français. Les identifiants de code mélangent français (les noms du
+  domaine métier n'ayant pas d'équivalent naturel : `valeurs`, `alertes`,
+  `ticker`, `cours`, `seuil`, ainsi que des fonctions comme
+  `ajouterValeur`, `chargerAlertes`, `creerAlerte`) et anglais (termes
+  techniques génériques : `requireAuth`, `toPublicUser`, `updatePrices`).
+  Il n'y a pas de règle stricte imposée par le code existant : respecter le
+  style déjà en place dans le fichier édité plutôt que d'en imposer un
+  nouveau.
+- **Pas d'accents ni de caractères spéciaux dans les chaînes de code**
+  (commentaires, logs, messages) : le code existant est écrit sans accents
+  (`Demarrage`, `deja`, `cree_le`) — convention à respecter par cohérence
+  avec le style déjà en place, y compris dans les identifiants SQL
+  (`cree_le`, `derniere_maj`).
+- **Aucun émoji ni symbole spécial** dans le code, les commentaires, les
+  chaînes de caractères ou le HTML (confirmé par un prompt de session
+  passé, voir `TODO.md`).
+
+## 5. Points de vigilance techniques connus
+
+- **Source de cours (Yahoo Finance)** : `server/jobs/prices.js` et
+  `server/routes/chart.js` appellent `query1.finance.yahoo.com`, un
+  endpoint public non officiel et non contractuel, connu pour changer de
+  comportement sans préavis (cookie/crumb de session, 401/429, format JSON
+  modifié) et bloquer plus agressivement les IP de datacenter que les
+  requêtes navigateur. En cas d'échec, l'erreur est loguée et **rien n'est
+  écrit en base** (voir `BUSINESS_RULES.md`, règle « pas de valeur
+  inventée »). Migration recommandée si le problème redevient récurrent :
+  Alpha Vantage, Financial Modeling Prep ou Twelve Data (clé API gratuite
+  avec quotas) — non fait à ce jour (choix explicite lors de la migration
+  hors Firebase : traiter un problème à la fois).
+- **Store de session en mémoire** : `express-session` utilise son store par
+  défaut (en mémoire du process). Un redémarrage du conteneur déconnecte
+  tous les utilisateurs. C'est un compromis accepté pour un usage
+  personnel à 2-3 utilisateurs, pas un bug à corriger en ajoutant un store
+  externe (Redis, etc.) sans que ce soit devenu un vrai problème d'usage.
+- **SQLite et stockage persistant** : base = fichier unique
+  (`/data/portfolio.db` dans le conteneur, `DB_PATH` en dehors de Docker).
+  Sauvegarde = copier ce fichier (le service peut rester démarré, SQLite
+  gère les accès concurrents via WAL). Voir `DOCKER.md` pour le mappage du
+  volume selon le mode de déploiement.
