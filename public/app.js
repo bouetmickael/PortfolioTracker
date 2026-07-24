@@ -9,6 +9,13 @@ let valeursPollInterval = null;
 let alertesPollInterval = null;
 let chartInstance = null;
 
+document.addEventListener('alpine:init', () => {
+  Alpine.store('portfolio', {
+    valeurs: [],
+    chargee: false
+  });
+});
+
 // ========================================
 // INITIALISATION
 // ========================================
@@ -110,27 +117,9 @@ async function chargerAlertes() {
 // ========================================
 
 function displayValeurs(valeurs) {
-  const container = document.getElementById('valeursListe');
-  container.innerHTML = '';
-
-  const valeursArray = Object.entries(valeurs);
-
-  if (valeursArray.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <p>Aucune valeur suivie</p>
-        <button onclick="openModal('modalAddValeur')" class="btn btn-primary">
-          Ajouter une valeur
-        </button>
-      </div>
-    `;
-    return;
-  }
-
-  valeursArray.forEach(([ticker, valeur]) => {
-    const card = createValeurCard(ticker, valeur);
-    container.appendChild(card);
-  });
+  const store = Alpine.store('portfolio');
+  store.valeurs = Object.entries(valeurs).map(([ticker, valeur]) => ({ ticker, ...valeur }));
+  store.chargee = true;
 }
 
 function avatarInitiales(ticker) {
@@ -144,44 +133,6 @@ function avatarCouleur(ticker) {
   }
   const teinte = Math.abs(hash) % 360;
   return `hsl(${teinte}, 55%, 45%)`;
-}
-
-function createValeurCard(ticker, valeur) {
-  const div = document.createElement('div');
-  div.className = 'valeur-row';
-  div.onclick = () => openGraphique(ticker);
-
-  const variation = valeur.variation || 0;
-  const variationClass = variation >= 0 ? 'success' : 'danger';
-  const variationSign = variation >= 0 ? '+' : '';
-
-  const derniereMaj = valeur.derniereMaj
-    ? new Date(valeur.derniereMaj).toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    : '-';
-
-  div.innerHTML = `
-    <div class="valeur-avatar" style="background: ${avatarCouleur(ticker)}">${avatarInitiales(ticker)}</div>
-    <div class="valeur-main">
-      <div class="valeur-nom">${valeur.nom || ticker}</div>
-      <div class="valeur-sousligne">${ticker} &middot; ${valeur.type || 'Action'}</div>
-      <div class="valeur-footer">
-        MAJ: ${derniereMaj}${valeur.volume ? ` &middot; Vol: ${formatVolume(valeur.volume)}` : ''}
-      </div>
-    </div>
-    <div class="valeur-chiffres">
-      <div class="valeur-cours">${formatCours(valeur.cours)}</div>
-      <div class="valeur-variation ${variationClass}">${variationSign}${variation.toFixed(2)}%</div>
-    </div>
-    <div class="valeur-actions">
-      <button class="btn-icon-small" onclick="event.stopPropagation(); openAlerteModal('${ticker}')" title="Creer alerte" aria-label="Creer alerte">A</button>
-      <button class="btn-icon-small" onclick="event.stopPropagation(); supprimerValeur('${ticker}')" title="Supprimer" aria-label="Supprimer">X</button>
-    </div>
-  `;
-
-  return div;
 }
 
 function displayAlertes(alertes) {
@@ -591,6 +542,17 @@ function formatVolume(volume) {
   }
 
   return volume.toString();
+}
+
+function formatHeure(timestamp) {
+  if (!timestamp) return '-';
+  return new Date(timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatVariation(variation) {
+  const v = variation || 0;
+  const signe = v >= 0 ? '+' : '';
+  return `${signe}${v.toFixed(2)}%`;
 }
 
 // ========================================

@@ -22,9 +22,17 @@
 - **Configuration** : `dotenv` (mode Docker Compose) ou traduction de
   `/data/options.json` (mode Home Assistant Add-on) — voir
   `server/load-addon-options.js` et `DOCKER.md`.
-- **Frontend** : PWA en JavaScript vanilla (aucun framework — pas de React/
-  Vue/etc.), pas de build step, chargée directement par le navigateur.
-  Manipulation du DOM directe (`document.getElementById`, `innerHTML`).
+- **Frontend** : PWA en JavaScript vanilla + Alpine.js (v3, `public/vendor/
+  alpine.min.js`, vendorisé localement — pas de CDN, pas de build step,
+  pas de React/Vue/bundler). Choix motivé par le build de l'add-on qui
+  s'exécute sur le Raspberry Pi lui-même (voir `DOCKER.md`) : Alpine
+  s'installe comme un simple `<script defer>`, sans pipeline npm côté
+  frontend. Le store central `Alpine.store('portfolio', ...)` (déclaré
+  dans `public/app.js` via l'évènement `alpine:init`) pilote le rendu
+  réactif (`x-for`/`x-show`/`x-text`) de la liste des valeurs suivies ;
+  le reste de l'UI (alertes, modales, stats) reste en manipulation DOM
+  directe (`document.getElementById`, `innerHTML`) tant qu'il n'a pas
+  été migré à son tour.
 - **Graphiques** : Chart.js 4.4.0, chargé depuis un CDN (`jsdelivr`) dans
   `public/index.html`, pas de dépendance npm côté frontend.
 - **Communication frontend/backend** : polling HTTP classique (`fetch`)
@@ -52,7 +60,9 @@
 │   ├── styles.css                # feuille de style unique (voir DESIGN.md)
 │   ├── sw.js                     # service worker (cache offline des assets statiques)
 │   ├── manifest.json             # manifeste PWA
-│   └── icons/                    # icônes PWA (192/512, provisoires — voir DESIGN.md)
+│   ├── icons/                    # icônes PWA (192/512, provisoires — voir DESIGN.md)
+│   └── vendor/                   # librairies tierces vendorisées (pas de CDN, pas de npm cote frontend)
+│       └── alpine.min.js          # Alpine.js v3, rendu réactif de la liste des valeurs suivies
 └── server/                       # backend Node.js + Express
     ├── index.js                  # bootstrap : dotenv, options add-on, écoute HTTP(+HTTPS), cron
     ├── app.js                    # application Express (session, montage des routes, static)

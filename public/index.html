@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Portfolio">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 </head>
-<body>
+<body x-data>
 
   <header class="header">
     <div class="header-titre">
@@ -58,9 +58,33 @@
       <button id="addValeurBtn" class="btn-icon-small" aria-label="Ajouter une valeur">+</button>
     </div>
     <div id="valeursListe" class="valeurs-liste">
-      <div class="loader-inline">
+      <div class="loader-inline" x-show="!$store.portfolio.chargee">
         <div class="spinner-small"></div>
         <span>Chargement...</span>
+      </div>
+      <template x-for="valeur in $store.portfolio.valeurs" :key="valeur.ticker">
+        <div class="valeur-row" @click="openGraphique(valeur.ticker)">
+          <div class="valeur-avatar" :style="{ background: avatarCouleur(valeur.ticker) }" x-text="avatarInitiales(valeur.ticker)"></div>
+          <div class="valeur-main">
+            <div class="valeur-nom" x-text="valeur.nom || valeur.ticker"></div>
+            <div class="valeur-sousligne" x-text="valeur.ticker + ' · ' + (valeur.type || 'Action')"></div>
+            <div class="valeur-footer" x-text="'MAJ: ' + formatHeure(valeur.derniereMaj) + (valeur.volume ? ' · Vol: ' + formatVolume(valeur.volume) : '')"></div>
+          </div>
+          <div class="valeur-chiffres">
+            <div class="valeur-cours" x-text="formatCours(valeur.cours)"></div>
+            <div class="valeur-variation" :class="(valeur.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(valeur.variation)"></div>
+          </div>
+          <div class="valeur-actions">
+            <button class="btn-icon-small" @click.stop="openAlerteModal(valeur.ticker)" title="Creer alerte" aria-label="Creer alerte">A</button>
+            <button class="btn-icon-small" @click.stop="supprimerValeur(valeur.ticker)" title="Supprimer" aria-label="Supprimer">X</button>
+          </div>
+        </div>
+      </template>
+      <div class="empty-state" x-show="$store.portfolio.chargee && $store.portfolio.valeurs.length === 0">
+        <p>Aucune valeur suivie</p>
+        <button @click="openModal('modalAddValeur')" class="btn btn-primary">
+          Ajouter une valeur
+        </button>
       </div>
     </div>
   </section>
@@ -194,6 +218,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script defer src="vendor/alpine.min.js"></script>
 
   <script src="api.js"></script>
   <script src="auth.js"></script>

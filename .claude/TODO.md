@@ -116,3 +116,52 @@ Deuxième session de développement sous le cycle `METHOD.md` (compteur
   session (Claude Code sur le web) n'a pas accès au Pi de l'utilisateur.
   Vérification limitée à `node --check` sur les fichiers serveur/JS
   modifiés et à la capture d'écran ci-dessus.
+
+## 2026-07-24 — Session A : socle Alpine.js (refonte ergonomie)
+
+Troisième session de développement sous le cycle `METHOD.md` (compteur
+`BACKLOG.md` : 2/3 -> 3/3, revue de dette technique obligatoire à la
+session suivante). Première étape d'un plan multi-sessions approuvé par
+l'utilisateur pour une refonte ergonomique majeure (drag-and-drop,
+sections, badges d'alerte, partage RW de section) — voir le plan complet
+dans `/root/.claude/plans/fluttering-spinning-swing.md` et le découpage
+en sessions dans `BACKLOG.md`.
+
+- **Choix technique** : Alpine.js (v3.15.12) plutôt que React/Preact,
+  vendorisé localement (`public/vendor/alpine.min.js`, téléchargé depuis
+  `registry.npmjs.org` — `cdn.jsdelivr.net` est bloqué par la politique
+  réseau de cet environnement de session, contournement sans impact sur
+  le choix technique lui-même). Raison principale : le build de l'add-on
+  Home Assistant s'exécute sur le Raspberry Pi lui-même, un pipeline
+  npm/bundler y serait disproportionné ; Alpine s'installe comme un
+  simple `<script defer>`, sans build step, compatible avec les fonctions
+  globales/`onclick=` déjà en place.
+- **Migration (Session A uniquement)** : la liste des valeurs suivies
+  (`#valeursListe` dans `public/index.html`) passe d'un rendu impératif
+  (`innerHTML` reconstruit en entier à chaque poll de 30s, fonction
+  `createValeurCard` supprimée) à un rendu réactif Alpine (`x-for` sur
+  `Alpine.store('portfolio').valeurs`, store déclaré dans `public/app.js`
+  via l'évènement `alpine:init`). Aucun changement fonctionnel visible
+  (parité stricte voulue pour cette première session, isoler le risque de
+  migration du risque fonctionnel) — mêmes classes CSS, même structure de
+  ligne. Effet de bord positif : le texte (nom, ticker) passe de
+  `innerHTML` (template string interpolée) à `x-text` (`textContent`),
+  ce qui supprime au passage une surface d'injection HTML théorique sur
+  ces champs.
+  `public/sw.js` : ajout de `vendor/alpine.min.js` à la liste de cache
+  offline (`CACHE_NAME` bump v2 -> v3). `ARCHITECTURE.md` mis à jour
+  (stack frontend, arborescence).
+- **Vérification** : `node --check` sur `app.js` ; test de bout en bout
+  réel (pas seulement une maquette statique) — serveur Express lancé
+  localement avec une base SQLite de test, utilisateur créé et connecté
+  via l'API, 3 valeurs ajoutées, puis parcours Playwright dans un
+  vrai navigateur (login réel, capture d'écran, clic sur une ligne
+  -> ouverture du graphique, clic sur le bouton `A` -> ouverture de la
+  modale d'alerte avec `stopPropagation` toujours effectif, pas d'erreur
+  console liée au changement). Les seules erreurs console observées
+  viennent de Yahoo Finance / Chart.js CDN bloqués par la politique
+  réseau de cet environnement, sans rapport avec la migration Alpine.
+- **Rappel important** : le compteur `BACKLOG.md` atteint 3/3 avec cette
+  session. Conformément à `METHOD.md` §0.2, la session suivante doit être
+  la revue de dette technique obligatoire, avant de reprendre avec la
+  Session B (sections + drag-and-drop) du plan en cours.
