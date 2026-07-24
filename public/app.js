@@ -369,6 +369,22 @@ async function openGraphique(ticker) {
   });
 }
 
+function formatGraphiqueLabel(dateStr, period) {
+  const date = new Date(dateStr);
+
+  if (period === '1D') {
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  if (period === '1W') {
+    const jour = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    const heure = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return `${jour} ${heure}`;
+  }
+
+  return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
+}
+
 async function chargerGraphique(ticker, period) {
   const container = document.getElementById('graphiqueContainer');
   container.innerHTML = '<div class="loader-inline"><div class="spinner-small"></div></div>';
@@ -383,9 +399,7 @@ async function chargerGraphique(ticker, period) {
     const result = await res.json();
     const data = result.data;
 
-    const labels = data.map((d) =>
-      new Date(d.date).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
-    );
+    const labels = data.map((d) => formatGraphiqueLabel(d.date, period));
     const prices = data.map((d) => d.close);
 
     container.innerHTML = '<canvas id="chartCanvas"></canvas>';
