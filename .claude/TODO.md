@@ -88,3 +88,31 @@ un seul point precis est remonté (le reste n'a pas été signalé).
   manuelle SSH/rsync, alors que l'utilisateur utilise désormais le
   magasin d'add-ons Home Assistant (dépôt ajouté par URL) — voir
   `BACKLOG.md`.
+
+## 2026-07-24 — Finalisation du redesign de la liste des valeurs, README
+
+Deuxième session de développement sous le cycle `METHOD.md` (compteur
+`BACKLOG.md` : 1/3 -> 2/3).
+
+- **Finalisation du redesign de la liste des valeurs** (session
+  précédente marquée WIP, en attente de revue visuelle) : à partir d'une
+  capture d'écran fournie par l'utilisateur, le nom de la valeur devient
+  la première ligne (`.valeur-nom`, en avant, remplace le ticker en tête),
+  `ticker · type` passe en seconde ligne secondaire (`.valeur-sousligne`,
+  remplace les anciennes `.valeur-ligne1`/`.valeur-ticker`/`.valeur-type`).
+  Couleur de fond des lignes/avatars inchangée (demande explicite).
+  Vérifié par capture d'écran (Playwright, page HTML statique réutilisant
+  `public/styles.css`) faute de pouvoir lancer l'app complète (auth/DB/SMTP)
+  dans cet environnement. `DESIGN.md` mis à jour en conséquence.
+- **README.md — méthode de mise à jour de l'add-on** : traité l'item
+  reporté en session précédente. Section « Mettre à jour l'add-on plus
+  tard » documente désormais les deux méthodes (magasin d'add-ons Home
+  Assistant recommandé si le dépôt y a été ajouté par URL, ou méthode
+  manuelle SSH/rsync conservée pour les installations existantes), sans
+  modifier la section d'installation initiale (hors périmètre de cette
+  session).
+- **Non fait** : pas de vérification sur le Raspberry Pi réel (déploiement
+  et `docker compose logs` / journal de l'add-on) — cet environnement de
+  session (Claude Code sur le web) n'a pas accès au Pi de l'utilisateur.
+  Vérification limitée à `node --check` sur les fichiers serveur/JS
+  modifiés et à la capture d'écran ci-dessus.

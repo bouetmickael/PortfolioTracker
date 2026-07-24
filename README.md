@@ -133,10 +133,35 @@ de l'add-on.
 
 ### Mettre a jour l'add-on plus tard
 
-Repeter l'etape 3 (`rsync`/`scp`) pour ecraser les fichiers avec une version
-plus recente du depot, incrementer `version` dans `config.yaml` (sinon le
-Supervisor ne propose pas de mise a jour), puis dans l'add-on : onglet
-**Info** > **Reconstruire** (rebuild).
+Deux methodes possibles, selon la facon dont l'add-on a ete installe au
+depart.
+
+**Methode magasin d'add-ons** (si l'URL de ce depot a ete ajoutee aux
+depots de la boutique Home Assistant : Parametres > Add-ons > Boutique
+d'add-ons > menu (les trois points) > **Depots** > coller
+`https://github.com/bouetmickael/PortfolioTracker` > **Ajouter**) — dans ce
+cas le Supervisor suit directement les nouvelles versions publiees sur le
+depot, sans copie manuelle de fichiers :
+
+1. Parametres > Add-ons > Boutique d'add-ons > menu > **Verifier les mises
+   a jour**
+2. Si une nouvelle version est disponible, elle apparait sur la fiche de
+   l'add-on **Portfolio Tracker** avec un bouton **Mettre a jour**
+3. Cliquer dessus ; le Supervisor reconstruit et redemarre l'add-on
+   automatiquement (la configuration deja saisie et les donnees SQLite
+   persistees dans `/data` ne sont pas affectees)
+
+**Methode manuelle (SSH/rsync)** (si l'add-on a ete installe en copiant les
+fichiers a la main dans `/addons/portfolio_tracker/`, etape 3 ci-dessus, et
+que le depot n'a pas ete ajoute a la boutique) — cette copie locale n'est
+reliee a aucun depot, donc le Supervisor ne peut pas detecter de nouvelle
+version tout seul :
+
+1. Repeter l'etape 3 (`rsync`/`scp`) pour ecraser les fichiers avec une
+   version plus recente du depot
+2. Incrementer `version` dans `config.yaml` (sinon le Supervisor ne propose
+   pas de mise a jour)
+3. Dans l'add-on : onglet **Info** > **Reconstruire** (rebuild)
 
 ### Acces externe en HTTPS (ex. si vous utilisez deja DuckDNS + Let's Encrypt)
 

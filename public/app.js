@@ -165,11 +165,8 @@ function createValeurCard(ticker, valeur) {
   div.innerHTML = `
     <div class="valeur-avatar" style="background: ${avatarCouleur(ticker)}">${avatarInitiales(ticker)}</div>
     <div class="valeur-main">
-      <div class="valeur-ligne1">
-        <span class="valeur-ticker">${ticker}</span>
-        <span class="valeur-type">${valeur.type || 'Action'}</span>
-      </div>
-      ${valeur.nom ? `<div class="valeur-nom">${valeur.nom}</div>` : ''}
+      <div class="valeur-nom">${valeur.nom || ticker}</div>
+      <div class="valeur-sousligne">${ticker} &middot; ${valeur.type || 'Action'}</div>
       <div class="valeur-footer">
         MAJ: ${derniereMaj}${valeur.volume ? ` &middot; Vol: ${formatVolume(valeur.volume)}` : ''}
       </div>

@@ -67,9 +67,12 @@ Page de connexion : fond dégradé `linear-gradient(135deg, #667eea 0%,
   est une ligne plate (`.valeur-row`) separee par une bordure fine
   (`--border`), fond `--bg-secondary` au survol, toute la ligne cliquable
   pour ouvrir le graphique. Contenu de la ligne : avatar rond a gauche
-  (initiales + couleur par ticker), ticker/type/nom au centre, cours et
-  variation empiles a droite, actions `A`/`X` tout a droite (avec
-  `stopPropagation` pour ne pas declencher l'ouverture du graphique).
+  (initiales + couleur par ticker), puis au centre le nom de la valeur en
+  premiere ligne (`.valeur-nom`, 15px/500 ; ticker en repli si le nom est
+  absent) et `ticker · type` en seconde ligne (`.valeur-sousligne`,
+  12px/`--text-secondary`), cours et variation empiles a droite, actions
+  `A`/`X` tout a droite (avec `stopPropagation` pour ne pas declencher
+  l'ouverture du graphique).
 - **Carte alerte** : coins/ombre façon carte classique (grille séparée de
   la liste des valeurs), actions alignées à droite (icônes lettre
   unique).

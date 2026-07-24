@@ -289,13 +289,7 @@ body {
   min-width: 0;
 }
 
-.valeur-ligne1 {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.valeur-ticker {
+.valeur-nom {
   font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
@@ -303,15 +297,7 @@ body {
   text-overflow: ellipsis;
 }
 
-.valeur-type {
-  font-size: 11px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  flex-shrink: 0;
-}
-
-.valeur-nom {
+.valeur-sousligne {
   font-size: 12px;
   color: var(--text-secondary);
   margin-top: 1px;
