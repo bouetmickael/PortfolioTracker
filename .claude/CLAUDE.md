@@ -43,8 +43,16 @@ développement est livré sur `main`, sauf autorisation explicite de
 l'utilisateur pour un besoin ponctuel. Si l'environnement impose une
 branche technique temporaire (ex. Claude Code sur le web, branches
 `claude/...`), appliquer la procédure de `METHOD.md` §5 (rapatriement
-immédiat du contenu de `main`, fusion vers `main` uniquement sur feu vert
-explicite de l'utilisateur).
+immédiat du contenu de `main`).
+
+**Exception à `METHOD.md` §5 pour ce projet : fusion vers `main` sans
+demander de feu vert.** L'utilisateur a explicitement demandé (session du
+2026-07-24) de fusionner (fast-forward) toute branche technique
+`claude/...` vers `main` dès que le travail est prêt, sans attendre de
+confirmation à chaque fois. Continuer de committer/pousser sur la branche
+technique au fil de la session comme d'habitude ; la fusion vers `main`
+et son push peuvent suivre automatiquement, sans étape de confirmation
+supplémentaire.
 
 ## Règles métier
 
