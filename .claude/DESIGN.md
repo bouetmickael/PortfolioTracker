@@ -8,10 +8,19 @@
 
 Style inspiré de Material Design (Google), sobre, sans emoji ni icône
 vectorielle : les boutons d'action utilisent des libellés lettre unique
-(`R` actualiser, `U` menu utilisateur, `G` graphique, `A` créer alerte, `X`
+(`R` actualiser, `U` menu utilisateur, `A` créer alerte, `X`
 supprimer/fermer, `+` ajouter) plutôt que des icônes SVG ou une police
 d'icônes. Respecter cette convention pour tout nouveau bouton d'action
 plutôt que d'introduire une police d'icônes ou des emojis.
+
+Exception ciblée (session du 2026-07-24, demande explicite utilisateur,
+inspiration TradingView) : la liste des valeurs suivies n'utilise plus de
+bouton lettre dédié pour ouvrir le graphique (l'ancien `G`) — cliquer
+n'importe où sur la ligne l'ouvre directement. `A` et `X` restent des
+boutons lettre unique classiques. Chaque valeur affiche aussi un avatar
+rond (initiales du ticker, couleur générée depuis le ticker) : ce n'est
+pas une icône vectorielle/police d'icônes, juste du texte sur fond
+coloré, donc cohérent avec la convention ci-dessus.
 
 ## Palette (`:root` dans `public/styles.css`)
 
@@ -37,19 +46,33 @@ Page de connexion : fond dégradé `linear-gradient(135deg, #667eea 0%,
 - Police : `Roboto` puis fallback système (`-apple-system,
   BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif`).
 - Titres : `header h1` 20px/500, `section h2` 18px/500, `login-card h1`
-  28px.
-- Valeurs chiffrées mises en avant : `stat-value` 28px/500, `valeur-cours`
-  24px/500.
-- Texte secondaire (labels, aide, footers de carte) : 12-13px,
+  28px. Numéro de version (`#appVersion`, à côté du titre `header h1`) :
+  11px, `--text-secondary`, poids normal.
+- Valeurs chiffrées mises en avant : `stat-value` 28px/500. `valeur-cours`
+  (ligne de la liste des valeurs suivies) : 15px/500, aligné à droite avec
+  `valeur-variation` (13px/500) empilé juste en dessous, coloré en
+  `--success`/`--danger` selon le signe, sans fond de pastille (texte
+  simple).
+- Texte secondaire (labels, aide, footers de ligne) : 11-13px,
   `--text-secondary`.
 
 ## Composants
 
-- **Header** : sticky en haut, fond `--bg`, `--shadow`.
+- **Header** : sticky en haut, fond `--bg`, `--shadow`, titre + numéro de
+  version cote a cote (`.header-titre`).
 - **Cartes statistiques** : grille 3 colonnes égales, fond `--bg`, coins
   8px, `--shadow`.
-- **Carte valeur / carte alerte** : mêmes coins/ombre que les stats,
-  actions alignées à droite (icônes lettre unique).
+- **Liste des valeurs suivies** (`.valeurs-liste`) : un seul conteneur
+  avec coins 8px/`--shadow` (pas une carte par valeur) ; chaque valeur
+  est une ligne plate (`.valeur-row`) separee par une bordure fine
+  (`--border`), fond `--bg-secondary` au survol, toute la ligne cliquable
+  pour ouvrir le graphique. Contenu de la ligne : avatar rond a gauche
+  (initiales + couleur par ticker), ticker/type/nom au centre, cours et
+  variation empiles a droite, actions `A`/`X` tout a droite (avec
+  `stopPropagation` pour ne pas declencher l'ouverture du graphique).
+- **Carte alerte** : coins/ombre façon carte classique (grille séparée de
+  la liste des valeurs), actions alignées à droite (icônes lettre
+  unique).
 - **FAB** (bouton flottant) : 56px, cercle, `--primary`, coin bas-droit,
   respecte les safe-area iOS (`env(safe-area-inset-*)`).
 - **Modales** : fond semi-transparent (`rgba(0,0,0,0.5)`), contenu centré,
@@ -70,9 +93,11 @@ Page de connexion : fond dégradé `linear-gradient(135deg, #667eea 0%,
 
 ## Responsive
 
-- Breakpoint unique `max-width: 640px` : réduction des tailles de police
-  (stats, cours), largeur des modales à 95%, hauteur du conteneur de
-  graphique réduite (300px au lieu de 400px), FAB rapproché des bords.
+- Breakpoint unique `max-width: 640px` : réduction de la taille de police
+  des stats, largeur des modales à 95%, hauteur du conteneur de graphique
+  réduite (300px au lieu de 400px), FAB rapproché des bords. La liste des
+  valeurs suivies est déjà compacte par défaut, pas de règle mobile
+  dédiée.
 
 ## PWA
 

@@ -53,3 +53,38 @@ générique), `CLAUDE.md` (point d'entrée), `ARCHITECTURE.md`,
 `DOCKER.md`, ce fichier. Contenu de `TROUBLESHOOTING.md` réparti dans ces
 fichiers (historique ci-dessus, points de vigilance dans
 `ARCHITECTURE.md` §5, règles dans `BUSINESS_RULES.md`).
+
+## 2026-07-24 — Triage de bugs post-migration, redesign liste des valeurs
+
+Première session de développement sous le cycle `METHOD.md` (compteur
+`BACKLOG.md` : 0/3 -> 1/3). Point de départ : l'utilisateur signalait des
+fonctionnalités « cassées ou différentes » sans les avoir encore listées ;
+un seul point precis est remonté (le reste n'a pas été signalé).
+
+- **Bug corrigé** : graphique 1J/1S n'affichait que 2 points (ligne
+  droite) — `server/routes/chart.js` demandait `interval=1d` à Yahoo
+  Finance quelle que soit la période sélectionnée. Bug préexistant dans la
+  Cloud Function Firebase d'origine, pas une régression de la migration.
+  Intervalle désormais adapté à la période (5 min pour 1J, 15 min pour
+  1S), points sans cours filtrés, labels d'axe X avec heure pour 1J/1S.
+- **Redesign de la liste des valeurs suivies** (demande explicite
+  utilisateur, inspiration TradingView) : liste plate au lieu de cartes
+  par valeur, avatar coloré (initiales du ticker), cours/variation
+  empilés à droite en texte coloré simple, clic sur la ligne entière pour
+  ouvrir le graphique (bouton `G` supprimé, `A`/`X` conservés).
+  `DESIGN.md` mis à jour en conséquence.
+- **Version affichée dans l'app** : `GET /api/version` (source :
+  `server/package.json`) affiché dans le header, pour que l'utilisateur
+  vérifie qu'il consulte bien la dernière version déployée sur son
+  Raspberry Pi. `server/package.json` et `config.yaml` doivent être
+  incrémentés ensemble à chaque release (documenté dans `DOCKER.md`) —
+  bump fait cette session (1.1.0 -> 1.1.1) à l'occasion du correctif de
+  graphique.
+- **Règle de méthode ajoutée** (`CLAUDE.md`, pas ici — spécifique au
+  projet) : l'utilisateur a demandé de ne plus attendre de feu vert
+  explicite avant de fusionner `claude/...` vers `main` en fast-forward,
+  contrairement au défaut de `METHOD.md` §5.
+- **Reporté, non traité** : `README.md` ne documente que la mise à jour
+  manuelle SSH/rsync, alors que l'utilisateur utilise désormais le
+  magasin d'add-ons Home Assistant (dépôt ajouté par URL) — voir
+  `BACKLOG.md`.
