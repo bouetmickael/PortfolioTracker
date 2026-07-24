@@ -39,6 +39,19 @@ Le détail complet du mode Home Assistant Add-on (copie des fichiers via
 SSH/rsync/WinSCP, activation dans l'interface, accès HTTPS via DuckDNS) est
 dans `README.md` et n'est pas reproduit ici.
 
+## Numero de version affiche dans l'application
+
+`server/package.json` (`version`) est la source unique lue par
+`GET /api/version` (voir `server/app.js`), affichee dans le header de
+`public/index.html` pour que l'utilisateur verifie qu'il consulte bien la
+derniere version deployee. **A chaque release, synchroniser manuellement
+cette valeur avec `version` dans `config.yaml`** (celle que lit le
+Supervisor Home Assistant pour proposer une mise a jour, voir
+`README.md` "Mettre a jour l'add-on plus tard") : les deux fichiers
+existent pour des raisons structurelles differentes (manifeste Add-on vs
+descripteur npm, pas de build step pour les unifier), mais doivent rester
+numeriquement identiques.
+
 ## Variables d'environnement / options clés
 
 - `SESSION_SECRET` (obligatoire en usage réel, voir `BUSINESS_RULES.md`).

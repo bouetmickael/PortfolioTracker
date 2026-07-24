@@ -29,6 +29,19 @@ async function initApp() {
   setupDataPolling();
   setupEventListeners();
   registerServiceWorker();
+  chargerVersion();
+}
+
+async function chargerVersion() {
+  try {
+    const res = await apiFetch('/api/version');
+    if (!res.ok) throw new Error('Erreur chargement version');
+
+    const { version } = await res.json();
+    document.getElementById('appVersion').textContent = `v${version}`;
+  } catch (error) {
+    console.error('Erreur chargement version:', error);
+  }
 }
 
 // ========================================

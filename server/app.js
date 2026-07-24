@@ -2,6 +2,7 @@ const path = require('path');
 const express = require('express');
 const session = require('express-session');
 
+const { version } = require('./package.json');
 const authRoutes = require('./routes/auth');
 const valeursRoutes = require('./routes/valeurs');
 const alertesRoutes = require('./routes/alertes');
@@ -36,6 +37,8 @@ app.use(
     }
   })
 );
+
+app.get('/api/version', (req, res) => res.json({ version }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/valeurs', valeursRoutes);
