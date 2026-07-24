@@ -120,9 +120,23 @@ function displayValeurs(valeurs) {
   });
 }
 
+function avatarInitiales(ticker) {
+  return ticker.split('.')[0].slice(0, 2).toUpperCase();
+}
+
+function avatarCouleur(ticker) {
+  let hash = 0;
+  for (let i = 0; i < ticker.length; i++) {
+    hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const teinte = Math.abs(hash) % 360;
+  return `hsl(${teinte}, 55%, 45%)`;
+}
+
 function createValeurCard(ticker, valeur) {
   const div = document.createElement('div');
-  div.className = 'valeur-card';
+  div.className = 'valeur-row';
+  div.onclick = () => openGraphique(ticker);
 
   const variation = valeur.variation || 0;
   const variationClass = variation >= 0 ? 'success' : 'danger';
@@ -136,27 +150,24 @@ function createValeurCard(ticker, valeur) {
     : '-';
 
   div.innerHTML = `
-    <div class="valeur-header">
-      <div class="valeur-info">
-        <div class="valeur-ticker">${ticker}</div>
-        <div class="valeur-type">${valeur.type || 'Action'}</div>
-        ${valeur.nom ? `<div class="valeur-nom">${valeur.nom}</div>` : ''}
+    <div class="valeur-avatar" style="background: ${avatarCouleur(ticker)}">${avatarInitiales(ticker)}</div>
+    <div class="valeur-main">
+      <div class="valeur-ligne1">
+        <span class="valeur-ticker">${ticker}</span>
+        <span class="valeur-type">${valeur.type || 'Action'}</span>
       </div>
-      <div class="valeur-actions">
-        <button class="btn-icon-small" onclick="openGraphique('${ticker}')" title="Graphique" aria-label="Graphique">G</button>
-        <button class="btn-icon-small" onclick="openAlerteModal('${ticker}')" title="Creer alerte" aria-label="Creer alerte">A</button>
-        <button class="btn-icon-small" onclick="supprimerValeur('${ticker}')" title="Supprimer" aria-label="Supprimer">X</button>
+      ${valeur.nom ? `<div class="valeur-nom">${valeur.nom}</div>` : ''}
+      <div class="valeur-footer">
+        MAJ: ${derniereMaj}${valeur.volume ? ` &middot; Vol: ${formatVolume(valeur.volume)}` : ''}
       </div>
     </div>
-    <div class="valeur-body">
+    <div class="valeur-chiffres">
       <div class="valeur-cours">${formatCours(valeur.cours)}</div>
-      <div class="valeur-variation ${variationClass}">
-        ${variationSign}${variation.toFixed(2)}%
-      </div>
+      <div class="valeur-variation ${variationClass}">${variationSign}${variation.toFixed(2)}%</div>
     </div>
-    <div class="valeur-footer">
-      <small>MAJ: ${derniereMaj}</small>
-      ${valeur.volume ? `<small>Vol: ${formatVolume(valeur.volume)}</small>` : ''}
+    <div class="valeur-actions">
+      <button class="btn-icon-small" onclick="event.stopPropagation(); openAlerteModal('${ticker}')" title="Creer alerte" aria-label="Creer alerte">A</button>
+      <button class="btn-icon-small" onclick="event.stopPropagation(); supprimerValeur('${ticker}')" title="Supprimer" aria-label="Supprimer">X</button>
     </div>
   `;
 

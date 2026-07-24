@@ -232,89 +232,116 @@ body {
   font-weight: 500;
 }
 
-/* CARTES VALEURS */
+/* LISTE VALEURS */
 
 .valeurs-liste {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.valeur-card {
   background: var(--bg);
   border-radius: 8px;
-  padding: 16px;
   box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
-.valeur-header {
+.valeur-row {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.valeur-info {
+.valeurs-liste .valeur-row:last-child {
+  border-bottom: none;
+}
+
+.valeur-row:hover {
+  background: var(--bg-secondary);
+}
+
+.valeur-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.valeur-main {
   flex: 1;
+  min-width: 0;
+}
+
+.valeur-ligne1 {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
 
 .valeur-ticker {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
-  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .valeur-type {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 
 .valeur-nom {
-  font-size: 13px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.valeur-footer {
+  font-size: 11px;
   color: var(--text-secondary);
   margin-top: 2px;
 }
 
-.valeur-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.valeur-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+.valeur-chiffres {
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .valeur-cours {
-  font-size: 24px;
+  font-size: 15px;
   font-weight: 500;
 }
 
 .valeur-variation {
-  padding: 6px 12px;
-  border-radius: 4px;
+  font-size: 13px;
   font-weight: 500;
-  font-size: 14px;
+  margin-top: 2px;
 }
 
 .valeur-variation.success {
-  background: rgba(52, 168, 83, 0.1);
   color: var(--success);
 }
 
 .valeur-variation.danger {
-  background: rgba(234, 67, 53, 0.1);
   color: var(--danger);
 }
 
-.valeur-footer {
+.valeur-actions {
+  flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-secondary);
+  gap: 0;
 }
 
 /* CARTES ALERTES */
@@ -756,10 +783,6 @@ body {
 
   .stat-value {
     font-size: 24px;
-  }
-
-  .valeur-cours {
-    font-size: 20px;
   }
 
   .modal-content {
