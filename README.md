@@ -56,33 +56,86 @@ persistant garanti, configuration via une interface au lieu d'un fichier
 
 ## Installation : Home Assistant Add-on
 
-1. Deposer ce depot sur le Raspberry Pi, dans le dossier des add-ons locaux
-   (`/addons/local/portfolio_tracker/`). Deux facons d'y acceder :
-   - Installer l'add-on officiel **Terminal & SSH** (ou **Samba share**)
-     depuis Parametres > Add-ons > Boutique d'add-ons, puis copier le
-     contenu du depot dans ce dossier
-   - Si ce depot GitHub est public, ajouter directement son URL dans
-     Parametres > Add-ons > Boutique d'add-ons > menu (les trois points en
-     haut a droite) > Repositories
-2. Rafraichir la boutique d'add-ons (menu des trois points > Verifier les
-   mises a jour, ou redemarrer le Supervisor). L'add-on **Portfolio Tracker**
-   apparait dans la liste (section "Local add-ons" si depose par fichier)
-3. Installer l'add-on. Le premier build se fait sur le Pi lui-meme (peut
+Le dossier des add-ons locaux est `/addons/` a la racine du systeme de
+fichiers Home Assistant (pas `/addons/local/` : "Local add-ons" est juste le
+nom de section affiche dans l'interface, pas un chemin reel).
+
+### 1. Recuperer les fichiers du depot sur votre ordinateur
+
+Si ce n'est pas deja fait sur la machine que vous allez utiliser pour copier
+les fichiers (pas forcement le Raspberry Pi) :
+
+```bash
+git clone https://github.com/bouetmickael/PortfolioTracker.git
+```
+
+Ou, sans installer git, bouton "Code > Download ZIP" sur la page GitHub du
+depot, puis decompresser.
+
+### 2. Recuperer les parametres de connexion SSH
+
+Dans l'onglet **Configuration** de l'add-on **Advanced SSH & Web Terminal**,
+noter :
+- le port SSH configure (souvent `22222`, verifier votre configuration)
+- le mode d'authentification que vous avez mis en place (cle SSH ou mot de
+  passe)
+
+### 3. Copier les fichiers vers `/addons/portfolio_tracker/`
+
+Depuis un terminal sur votre ordinateur (Mac/Linux, ou Windows avec
+WSL/Git Bash/PowerShell qui inclut `ssh`/`scp` nativement), a la racine du
+depot clone/decompresse :
+
+```bash
+ssh -p 22222 root@<ip-du-pi> "mkdir -p /addons/portfolio_tracker"
+
+rsync -avz -e "ssh -p 22222" \
+  --exclude .git --exclude node_modules --exclude data --exclude .env \
+  ./ root@<ip-du-pi>:/addons/portfolio_tracker/
+```
+
+(remplacer `22222` par le port note a l'etape 2, et `<ip-du-pi>` par
+l'adresse IP du Raspberry Pi ; si `rsync` n'est pas disponible, `scp -P 22222
+-r ./ root@<ip-du-pi>:/addons/portfolio_tracker/` fonctionne aussi mais copiera
+aussi `.git` et `node_modules` s'ils existent localement : les supprimer
+avant, avec `rm -rf .git server/node_modules data` dans une copie
+temporaire du depot, avant de lancer la commande).
+
+Sous Windows sans terminal Unix, l'outil graphique **WinSCP** permet de faire
+le meme transfert (memes port/utilisateur) sans ligne de commande.
+
+### 4. Faire apparaitre l'add-on dans Home Assistant
+
+Parametres > Add-ons > Boutique d'add-ons > menu (les trois points en haut a
+droite) > **Verifier les mises a jour**. L'add-on **Portfolio Tracker**
+apparait dans la liste, section "Local add-ons". Si rien n'apparait,
+redemarrer le Supervisor (Parametres > Systeme > Materiel > redemarrer, ou
+developer tools > Supervisor > Restart) puis reverifier.
+
+### 5. Installer et configurer
+
+1. Installer l'add-on. Le premier build se fait sur le Pi lui-meme (peut
    prendre quelques minutes)
-4. Dans l'onglet **Configuration** de l'add-on, renseigner au minimum
+2. Dans l'onglet **Configuration** de l'add-on, renseigner au minimum
    `session_secret` (valeur aleatoire longue, ex. generee avec
    `openssl rand -hex 32` depuis un autre poste). Les champs `smtp_*` sont
    optionnels : sans eux, les alertes de seuil sont seulement loguees, pas
    envoyees par email, sans bloquer le reste de l'application
-5. Dans l'onglet **Reseau**, verifier/ajuster le port expose (3000 par
+3. Dans l'onglet **Reseau**, verifier/ajuster le port expose (3000 par
    defaut) ; il n'entre pas en conflit avec Home Assistant lui-meme (443)
    puisque c'est un port different
-6. Demarrer l'add-on, activer "Demarrer au demarrage de Home Assistant"
-7. L'application est accessible sur `http://<ip-du-pi>:<port-choisi>`
+4. Demarrer l'add-on, activer "Demarrer au demarrage de Home Assistant"
+5. L'application est accessible sur `http://<ip-du-pi>:<port-choisi>`
 
 Le stockage SQLite est automatiquement persiste par le Supervisor
 (equivalent au volume Docker `/data`) et survit aux mises a jour de HAOS et
 de l'add-on.
+
+### Mettre a jour l'add-on plus tard
+
+Repeter l'etape 3 (`rsync`/`scp`) pour ecraser les fichiers avec une version
+plus recente du depot, puis dans l'add-on : onglet **Info** > **Reconstruire**
+(rebuild), qui reconstruit l'image Docker a partir des fichiers mis a jour.
 
 Pour un acces distant securise (HTTPS) sans toucher a la configuration
 existante de Home Assistant, la solution la plus simple est un tunnel
