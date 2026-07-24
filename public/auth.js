@@ -3,25 +3,6 @@
  */
 
 // ========================================
-// CONNEXION GOOGLE
-// ========================================
-
-document.getElementById('googleSignIn')?.addEventListener('click', async () => {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  provider.setCustomParameters({
-    prompt: 'select_account'
-  });
-
-  try {
-    await auth.signInWithPopup(provider);
-    window.location.href = '/';
-  } catch (error) {
-    console.error('Erreur connexion Google:', error);
-    alert('Erreur de connexion : ' + error.message);
-  }
-});
-
-// ========================================
 // CONNEXION EMAIL / MOT DE PASSE
 // ========================================
 
@@ -32,7 +13,16 @@ document.getElementById('emailSignInForm')?.addEventListener('submit', async (e)
   const password = document.getElementById('password').value;
 
   try {
-    await auth.signInWithEmailAndPassword(email, password);
+    const res = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur de connexion');
+    }
+
     window.location.href = '/';
   } catch (error) {
     console.error('Erreur connexion:', error);
@@ -57,7 +47,16 @@ document.getElementById('showSignUp')?.addEventListener('click', async (e) => {
   }
 
   try {
-    await auth.createUserWithEmailAndPassword(email, password);
+    const res = await apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur inscription');
+    }
+
     alert('Compte cree avec succes');
     window.location.href = '/';
   } catch (error) {
@@ -72,7 +71,7 @@ document.getElementById('showSignUp')?.addEventListener('click', async (e) => {
 
 window.logout = async function logout() {
   if (confirm('Se deconnecter ?')) {
-    await auth.signOut();
+    await apiFetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login.html';
   }
 };
@@ -81,12 +80,33 @@ window.logout = async function logout() {
 // PROTECTION DES PAGES
 // ========================================
 
-auth.onAuthStateChanged((user) => {
+async function checkAuthAndRedirect() {
   const isLoginPage = window.location.pathname.includes('login.html');
 
-  if (!user && !isLoginPage) {
-    window.location.href = '/login.html';
-  } else if (user && isLoginPage) {
-    window.location.href = '/';
+  try {
+    const res = await apiFetch('/api/auth/me');
+
+    if (res.ok) {
+      if (isLoginPage) {
+        window.location.href = '/';
+        return null;
+      }
+      return res.json();
+    }
+
+    if (!isLoginPage) {
+      window.location.href = '/login.html';
+    }
+    return null;
+  } catch (error) {
+    console.error('Erreur verification session:', error);
+    if (!isLoginPage) {
+      window.location.href = '/login.html';
+    }
+    return null;
   }
-});
+}
+
+if (window.location.pathname.includes('login.html')) {
+  checkAuthAndRedirect();
+}

@@ -2,15 +2,15 @@
  * SERVICE WORKER - PORTFOLIO TRACKER
  */
 
-const CACHE_NAME = 'portfolio-tracker-v1';
+const CACHE_NAME = 'portfolio-tracker-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/login.html',
   '/styles.css',
+  '/api.js',
   '/app.js',
   '/auth.js',
-  '/firebase-config.js',
   '/manifest.json'
 ];
 
@@ -39,7 +39,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('firebase')) return;
+  if (event.request.url.includes('/api/')) return;
 
   event.respondWith(
     fetch(event.request)
@@ -54,31 +54,4 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => caches.match(event.request))
   );
-});
-
-self.addEventListener('push', (event) => {
-  let data = {};
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      data = { title: 'Portfolio Tracker', body: event.data.text() };
-    }
-  }
-
-  const title = (data.notification && data.notification.title) || data.title || 'Portfolio Tracker';
-  const options = {
-    body: (data.notification && data.notification.body) || data.body || 'Nouvelle notification',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    vibrate: [200, 100, 200],
-    data: data.data || {}
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(clients.openWindow('/'));
 });

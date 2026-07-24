@@ -1,160 +1,88 @@
 # Troubleshooting
 
-Ce document recense les problemes deja rencontres sur ce projet (pour eviter de
-les reproduire) et le probleme en cours a diagnostiquer.
+Ce document recense les problemes deja rencontres sur ce projet (pour eviter
+de les reproduire).
 
-## Etat actuel (a corriger)
+## Historique : migration hors de Firebase (2026-07)
 
-**Symptome** : les cours des valeurs suivies ne s'affichent plus dans l'application
-(section "Valeurs suivies"), et une erreur apparait lors du rafraichissement.
+Le projet reposait initialement sur Firebase (Hosting, Cloud Functions,
+Realtime Database, Cloud Messaging). Suite a une suppression accidentelle du
+compte/projet Firebase, l'application a ete entierement reecrite pour
+fonctionner sans aucun service Firebase, en auto-hebergement (ex. Raspberry
+Pi), avec :
 
-**Non fourni pour l'instant** : le message d'erreur exact (console navigateur ou
-`firebase functions:log`). Premiere etape de tout diagnostic : le recuperer.
+- Node.js/Express a la place de Cloud Functions
+- SQLite a la place de Realtime Database
+- Sessions locales (email/mot de passe, bcrypt) a la place de Firebase Auth
+  (l'authentification Google a ete retiree : elle necessitait un flux OAuth
+  complet disproportionne pour 2-3 utilisateurs connus)
+- Email (optionnel, SMTP) a la place des notifications push Firebase Cloud
+  Messaging
+- Polling HTTP (toutes les 30 secondes) a la place des listeners temps reel
+  Realtime Database
 
-### Points d'entree pour diagnostiquer
+Le detail de l'architecture actuelle est dans `README.md`. Le code Firebase
+(`functions/`, `firebase.json`, `database.rules.json`, `.firebaserc`,
+`public/firebase-config.js`, `public/firebase-messaging-sw.js`) a ete
+supprime : ne pas le reintroduire.
 
-1. **Logs des Cloud Functions planifiees** (source la plus probable, car
-   `cours` est ecrit exclusivement par `updatePrices` dans `functions/index.js`) :
-   ```bash
-   firebase functions:log --only updatePrices
-   firebase functions:log --only checkAlerts
-   ```
-   Verifier que les executions ont bien lieu toutes les 2 minutes et qu'elles
-   ne remontent pas d'erreur.
+## Points de vigilance sur la stack actuelle
 
-2. **Cloud Scheduler** : `updatePrices` et `checkAlerts` sont des fonctions
-   `pubsub.schedule(...)`, deployees comme jobs Cloud Scheduler. Verifier dans
-   Google Cloud Console > Cloud Scheduler que les jobs existent, sont actifs
-   (non en pause) et que leur derniere execution est en succes (pas d'erreur
-   HTTP 4xx/5xx).
+### 1. Source de cours : Yahoo Finance (inchange, toujours a surveiller)
 
-3. **Source de donnees Yahoo Finance** : `fetchYahooFinance()` dans
-   `functions/index.js` appelle `query1.finance.yahoo.com`, un endpoint public
-   non officiel et non contractuel. Il est connu pour :
-   - changer de comportement sans preavis (ex. exiger un cookie/"crumb" de
-     session, renvoyer 401/429, ou changer la structure du JSON retourne)
-   - bloquer les requetes provenant d'IP de datacenter (le cas des Cloud
-     Functions) plus agressivement que les requetes navigateur
-   Si les logs montrent des erreurs `Yahoo Finance error: ...` ou des reponses
-   vides, la source est probablement cassee cote Yahoo, pas cote code metier.
-   Dans ce cas, la vraie option est de migrer vers une source stable et
-   contractuelle (Alpha Vantage, Financial Modeling Prep, IEX Cloud, Twelve
-   Data...) plutot que de patcher un endpoint non officiel.
+`server/jobs/prices.js` (mise a jour toutes les 2 minutes) et
+`server/routes/chart.js` (graphiques) appellent toujours
+`query1.finance.yahoo.com`, un endpoint public non officiel et non
+contractuel. Il est connu pour :
 
-4. **Realtime Database** : verifier manuellement dans Console Firebase >
-   Realtime Database que `users/{uid}/valeurs/{ticker}/cours` est bien mis a
-   jour recemment (`derniereMaj`). Si `cours` reste a `0` (valeur initiale
-   posee par `ajouterValeur()` dans `public/app.js`), cela confirme que la
-   Cloud Function `updatePrices` n'ecrit plus, pas un probleme d'affichage
-   frontend.
+- changer de comportement sans preavis (cookie/crumb de session exige,
+  401/429, structure JSON modifiee)
+- bloquer plus agressivement les requetes provenant d'IP de datacenter que
+  les requetes navigateur
 
-5. **Erreur au rafraichissement** : le bouton "Actualiser" (`refreshBtn`) ne
-   fait aujourd'hui qu'afficher un toast ("Actualisation...") et ne declenche
-   aucun appel reseau — les donnees sont censees se mettre a jour via les
-   listeners Firebase temps reel (`database.ref(...).on('value', ...)`).
-   Si une erreur apparait a ce moment precis, elle vient plus probablement
-   d'un listener qui echoue (regles de securite Realtime Database, session
-   expiree, quota depasse) que du bouton lui-meme. Verifier la console
-   navigateur (F12 > Console) pour le message d'erreur exact et sa stack trace.
+Si les cours cessent de se mettre a jour, verifier en premier lieu les logs
+(`docker compose logs -f`, chercher `Erreur <TICKER>` ou `Yahoo Finance
+error`). Le code respecte le principe "pas de valeur inventee" : en cas
+d'echec, l'erreur est loguee et rien n'est ecrit en base, donc `cours` reste
+a sa derniere valeur connue (ou `0` si jamais mis a jour).
 
-### Ordre de diagnostic recommande
+Migration recommandee si le probleme se confirme recurrent : Alpha Vantage,
+Financial Modeling Prep, Twelve Data (cle API gratuite avec quotas). Cela n'a
+pas ete fait lors de la migration hors Firebase (choix explicite : traiter un
+probleme a la fois).
 
-1. Recuperer le message d'erreur exact (console navigateur + `firebase functions:log`)
-2. Verifier l'etat des jobs Cloud Scheduler (`updatePrices`, `checkAlerts`)
-3. Verifier si le probleme vient de Yahoo Finance (erreurs de fetch cote Functions)
-4. Verifier les regles Realtime Database (`database.rules.json`) si l'erreur
-   semble venir du frontend (permission denied)
-5. Ne corriger le code qu'une fois la cause confirmee par les logs — eviter
-   de deviner et de patcher au hasard
+### 2. Store de session en memoire
 
-## Historique des problemes deja rencontres (deploiement initial)
+`server/app.js` utilise le store de session par defaut d'`express-session`
+(en memoire du process). Consequence acceptee (usage personnel, 2-3
+utilisateurs) : un redemarrage du conteneur deconnecte tout le monde. Ce
+n'est pas un bug ; ne pas le "corriger" en ajoutant un store externe (Redis,
+etc.) sans que ce soit devenu un vrai probleme d'usage.
 
-Ces points sont deja resolus dans l'etat actuel du depot, mais sont
-documentes pour eviter de les reintroduire par erreur (ex. en mettant a jour
-une dependance sans verifier la compatibilite).
+### 3. SQLite et le volume Docker
 
-### 1. Node.js 18 decommissionne
+La base est un fichier unique (`data/portfolio.db`, monte en volume Docker).
+Sauvegarde = copier ce fichier (le service peut rester demarre, SQLite gere
+les acces concurrents via WAL). Si le conteneur demarre mais que les donnees
+semblent vides apres une mise a jour, verifier que le volume `./data:/app/data`
+est toujours bien mappe dans `docker-compose.yml` (une erreur frequente est de
+supprimer ou deplacer ce dossier par erreur).
 
-Firebase a decommissionne le runtime Node 18 (fin de vie 2025-10-30). Le
-projet cible **Node 20** :
-- `functions/package.json` → `"engines": { "node": "20" }`
-- `firebase.json` → `"functions": { "runtime": "nodejs20" }`
+### 4. SESSION_SECRET obligatoire
 
-Ne pas passer a Node 24 : ce n'est pas (encore) un runtime Cloud Functions
-supporte au moment de la redaction de ce document — verifier la liste des
-runtimes supportes avant de changer.
+Sans `SESSION_SECRET` defini dans `.env`, le serveur demarre quand meme (avec
+un avertissement en log) mais utilise une valeur par defaut non securisee.
+A definir avant tout usage reel, y compris en local.
 
-### 2. `firebase-functions` v5 casse la syntaxe utilisee dans `index.js`
+### 5. Notifications par email (optionnelles)
 
-Le code de `functions/index.js` utilise la syntaxe v1/v4 :
-```js
-const functions = require('firebase-functions');
-exports.updatePrices = functions.pubsub.schedule('every 2 minutes')...
-```
-
-`firebase-functions` v5 a retire cette API au profit de
-`firebase-functions/v2/scheduler` (`onSchedule(...)`). Installer la v5 sans
-migrer le code provoque :
-```
-TypeError: functions.pubsub.schedule is not a function
-```
-
-**Deux options, ne pas les melanger** :
-- Rester en v4 : `functions/package.json` → `"firebase-functions": "^4.9.0"`
-  (etat actuel du depot)
-- Migrer vers v5 : reecrire `updatePrices`, `checkAlerts`, `getChartData`,
-  `searchTickers` avec les imports `firebase-functions/v2/scheduler` et
-  `firebase-functions/v2/https`, et passer `"firebase-functions": "^5.1.1"`
-
-Si une mise a jour de dependances est un jour necessaire, traiter cela comme
-une migration complete, pas un simple `npm update`.
-
-### 3. Plan Firebase Blaze obligatoire
-
-Les Cloud Functions (meme le tier gratuit de 2M invocations/mois) necessitent
-que le projet soit sur le plan **Blaze** (pay-as-you-go). Le plan Spark
-(gratuit) ne permet pas d'activer `cloudbuild.googleapis.com` et
-`artifactregistry.googleapis.com`, requis pour le build des functions. Le
-projet est deja passe sur Blaze — ne pas repasser sur Spark.
-
-### 4. Service account par defaut manquant (erreur ponctuelle au premier deploiement)
-
-Rencontre une seule fois au premier `firebase deploy` :
-```
-Failed to create 1st Gen function ... : Default service account
-'{PROJECT_NUMBER}-compute@developer.gserviceaccount.com' doesn't exist.
-```
-Resolu en activant (ou reactivant) l'API Compute Engine sur le projet Google
-Cloud, ce qui recree le service account par defaut. Si l'erreur reapparait,
-verifier : https://console.cloud.google.com/apis/library/compute.googleapis.com
-
-### 5. Cle VAPID non configuree (notifications push)
-
-`public/firebase-config.js` contient actuellement un placeholder :
-```js
-const vapidKey = "REMPLACER_PAR_VOTRE_CLE_VAPID";
-```
-Tant que ce n'est pas remplace par la vraie cle (Console Firebase >
-Parametres du projet > Cloud Messaging > Web Push certificates), l'appel
-`messaging.getToken()` dans `setupNotifications()` (`public/app.js`) echouera.
-Cet appel est deja dans un `try/catch`, donc **ne devrait pas** bloquer le
-reste de l'application (affichage des valeurs, graphiques) — mais a verifier
-en priorite si l'erreur observee au chargement/rafraichissement mentionne
-`messaging` ou `getToken` ou `applicationServerKey`.
+Sans variables `SMTP_*` renseignees dans `.env`, les alertes de seuil sont
+seulement loguees (`Email non envoye (SMTP non configure)`), jamais
+bloquantes pour le reste de l'application. C'est un choix delibere, pas un
+bug a corriger en urgence.
 
 ### 6. Icones PWA temporaires
 
 `public/icons/icon-192.png` et `icon-512.png` sont des icones generees
 automatiquement (fond bleu, texte "PT"), pas des icones definitives. Sans
 impact fonctionnel, purement cosmetique.
-
-## Sources de donnees et limites (rappel)
-
-- Cours et historique : Yahoo Finance (endpoint public non officiel, gratuit,
-  sans SLA — voir section "Etat actuel" ci-dessus, c'est le suspect principal
-  du bug en cours)
-- Non disponible en l'etat : PER sectoriel moyen, screening automatique,
-  Greeks/delta des warrants, volatilite implicite, parite
-- Aucune donnee n'est simulee : en cas d'echec de recuperation, la fonction
-  doit logger l'erreur et ne rien ecrire (pas de valeur inventee) — a
-  preserver dans tout correctif

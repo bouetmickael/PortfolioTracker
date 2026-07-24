@@ -2,76 +2,33 @@
  * APPLICATION PRINCIPALE - PORTFOLIO TRACKER
  */
 
+const POLL_INTERVAL_MS = 30000;
+
 let currentUser = null;
-let valeursListener = null;
-let alertesListener = null;
+let valeursPollInterval = null;
+let alertesPollInterval = null;
 let chartInstance = null;
 
 // ========================================
 // INITIALISATION
 // ========================================
 
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    currentUser = user;
+(async function start() {
+  currentUser = await checkAuthAndRedirect();
+  if (currentUser) {
     initApp();
-  } else {
-    window.location.href = '/login.html';
   }
-});
+})();
 
 async function initApp() {
   console.log('Utilisateur connecte:', currentUser.email);
 
-  document.getElementById('userName').textContent =
-    currentUser.displayName || currentUser.email.split('@')[0];
+  document.getElementById('userName').textContent = currentUser.displayName || currentUser.email.split('@')[0];
   document.getElementById('userEmail').textContent = currentUser.email;
 
-  await setupNotifications();
-  setupRealtimeListeners();
+  setupDataPolling();
   setupEventListeners();
   registerServiceWorker();
-}
-
-// ========================================
-// NOTIFICATIONS PUSH
-// ========================================
-
-async function setupNotifications() {
-  if (!messaging) {
-    console.log('Notifications push non supportees sur ce navigateur');
-    return;
-  }
-
-  try {
-    const permission = await Notification.requestPermission();
-
-    if (permission === 'granted') {
-      console.log('Permission notifications accordee');
-
-      const token = await messaging.getToken();
-      console.log('Token FCM:', token);
-
-      await database.ref(`users/${currentUser.uid}/fcmToken`).set(token);
-
-      messaging.onMessage((payload) => {
-        console.log('Message recu:', payload);
-
-        const { title, body } = payload.notification;
-        showToast(`${title}: ${body}`, 'info');
-
-        new Notification(title, {
-          body: body,
-          icon: '/icons/icon-192.png',
-          badge: '/icons/icon-192.png'
-        });
-      });
-    } else {
-      console.log('Permission notifications refusee');
-    }
-  } catch (error) {
-    console.error('Erreur setup notifications:', error);
-  }
 }
 
 // ========================================
@@ -99,22 +56,40 @@ function registerServiceWorker() {
 }
 
 // ========================================
-// LISTENERS TEMPS REEL FIREBASE
+// CHARGEMENT DES DONNEES (polling)
 // ========================================
 
-function setupRealtimeListeners() {
-  const uid = currentUser.uid;
+function setupDataPolling() {
+  chargerValeurs();
+  chargerAlertes();
 
-  valeursListener = database.ref(`users/${uid}/valeurs`).on('value', (snapshot) => {
-    const valeurs = snapshot.val() || {};
+  valeursPollInterval = setInterval(chargerValeurs, POLL_INTERVAL_MS);
+  alertesPollInterval = setInterval(chargerAlertes, POLL_INTERVAL_MS);
+}
+
+async function chargerValeurs() {
+  try {
+    const res = await apiFetch('/api/valeurs');
+    if (!res.ok) throw new Error('Erreur chargement des valeurs');
+
+    const valeurs = await res.json();
     displayValeurs(valeurs);
     updateStats(valeurs);
-  });
+  } catch (error) {
+    console.error('Erreur chargement valeurs:', error);
+  }
+}
 
-  alertesListener = database.ref(`users/${uid}/alertes`).on('value', (snapshot) => {
-    const alertes = snapshot.val() || {};
+async function chargerAlertes() {
+  try {
+    const res = await apiFetch('/api/alertes');
+    if (!res.ok) throw new Error('Erreur chargement des alertes');
+
+    const alertes = await res.json();
     displayAlertes(alertes);
-  });
+  } catch (error) {
+    console.error('Erreur chargement alertes:', error);
+  }
 }
 
 // ========================================
@@ -257,25 +232,22 @@ async function ajouterValeur() {
   showLoader(true);
 
   try {
-    const uid = currentUser.uid;
-    const valeurRef = database.ref(`users/${uid}/valeurs/${ticker}`);
+    const res = await apiFetch('/api/valeurs', {
+      method: 'POST',
+      body: JSON.stringify({ ticker, type, nom })
+    });
 
-    const snapshot = await valeurRef.once('value');
-    if (snapshot.exists()) {
+    if (res.status === 409) {
       showToast('Cette valeur est deja suivie', 'warning');
-      showLoader(false);
       return;
     }
 
-    await valeurRef.set({
-      type: type,
-      nom: nom || '',
-      cours: 0,
-      variation: 0,
-      volume: 0,
-      ajouteLe: firebase.database.ServerValue.TIMESTAMP,
-      derniereMaj: null
-    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur ajout valeur');
+    }
+
+    await chargerValeurs();
 
     showToast(`${ticker} ajoute`, 'success');
     closeAllModals();
@@ -296,17 +268,11 @@ async function supprimerValeur(ticker) {
   showLoader(true);
 
   try {
-    const uid = currentUser.uid;
-    await database.ref(`users/${uid}/valeurs/${ticker}`).remove();
+    const res = await apiFetch(`/api/valeurs/${ticker}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erreur suppression valeur');
 
-    const alertesSnapshot = await database.ref(`users/${uid}/alertes`).once('value');
-    const alertes = alertesSnapshot.val() || {};
-
-    for (const [id, alerte] of Object.entries(alertes)) {
-      if (alerte.ticker === ticker) {
-        await database.ref(`users/${uid}/alertes/${id}`).remove();
-      }
-    }
+    await chargerValeurs();
+    await chargerAlertes();
 
     showToast(`${ticker} supprime`, 'success');
   } catch (error) {
@@ -335,18 +301,17 @@ async function creerAlerte() {
   showLoader(true);
 
   try {
-    const uid = currentUser.uid;
-    const alerteRef = database.ref(`users/${uid}/alertes`).push();
-
-    await alerteRef.set({
-      ticker: ticker,
-      seuilHaut: seuilHaut || null,
-      seuilBas: seuilBas || null,
-      active: true,
-      creeLe: firebase.database.ServerValue.TIMESTAMP,
-      dernierCoursAlerte: null,
-      derniereAlerte: null
+    const res = await apiFetch('/api/alertes', {
+      method: 'POST',
+      body: JSON.stringify({ ticker, seuilHaut: seuilHaut || null, seuilBas: seuilBas || null })
     });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur creation alerte');
+    }
+
+    await chargerAlertes();
 
     showToast(`Alerte creee pour ${ticker}`, 'success');
     closeAllModals();
@@ -367,8 +332,11 @@ async function supprimerAlerte(id) {
   showLoader(true);
 
   try {
-    const uid = currentUser.uid;
-    await database.ref(`users/${uid}/alertes/${id}`).remove();
+    const res = await apiFetch(`/api/alertes/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erreur suppression alerte');
+
+    await chargerAlertes();
+
     showToast('Alerte supprimee', 'success');
   } catch (error) {
     console.error('Erreur suppression alerte:', error);
@@ -406,11 +374,14 @@ async function chargerGraphique(ticker, period) {
   container.innerHTML = '<div class="loader-inline"><div class="spinner-small"></div></div>';
 
   try {
-    const functionsInstance = firebase.functions();
-    const getChartData = functionsInstance.httpsCallable('getChartData');
+    const res = await apiFetch(`/api/chart/${ticker}?period=${period}`);
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Erreur chargement des donnees');
+    }
 
-    const result = await getChartData({ ticker, period });
-    const data = result.data.data;
+    const result = await res.json();
+    const data = result.data;
 
     const labels = data.map((d) =>
       new Date(d.date).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
@@ -498,6 +469,8 @@ async function chargerGraphique(ticker, period) {
 function setupEventListeners() {
   document.getElementById('refreshBtn').addEventListener('click', () => {
     showToast('Actualisation...', 'info');
+    chargerValeurs();
+    chargerAlertes();
   });
 
   const userMenuBtn = document.getElementById('userMenuBtn');
@@ -590,10 +563,6 @@ function formatVolume(volume) {
 // ========================================
 
 window.addEventListener('beforeunload', () => {
-  if (valeursListener) {
-    database.ref(`users/${currentUser.uid}/valeurs`).off('value', valeursListener);
-  }
-  if (alertesListener) {
-    database.ref(`users/${currentUser.uid}/alertes`).off('value', alertesListener);
-  }
+  if (valeursPollInterval) clearInterval(valeursPollInterval);
+  if (alertesPollInterval) clearInterval(alertesPollInterval);
 });
