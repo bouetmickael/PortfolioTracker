@@ -44,13 +44,15 @@ dans `README.md` et n'est pas reproduit ici.
 `server/package.json` (`version`) est la source unique lue par
 `GET /api/version` (voir `server/app.js`), affichee dans le header de
 `public/index.html` pour que l'utilisateur verifie qu'il consulte bien la
-derniere version deployee. **A chaque release, synchroniser manuellement
-cette valeur avec `version` dans `config.yaml`** (celle que lit le
-Supervisor Home Assistant pour proposer une mise a jour, voir
-`README.md` "Mettre a jour l'add-on plus tard") : les deux fichiers
-existent pour des raisons structurelles differentes (manifeste Add-on vs
-descripteur npm, pas de build step pour les unifier), mais doivent rester
-numeriquement identiques.
+derniere version deployee. **A chaque session fonctionnelle (METHOD.md
+§5.5, pas seulement a une "release" ponctuelle), incrementer cette
+valeur et la synchroniser manuellement avec `version` dans
+`config.yaml`** (celle que lit le Supervisor Home Assistant pour
+proposer une mise a jour, voir `README.md` "Mettre a jour l'add-on plus
+tard") : les deux fichiers existent pour des raisons structurelles
+differentes (manifeste Add-on vs descripteur npm, pas de build step pour
+les unifier), mais doivent rester numeriquement identiques et etre
+commites ensemble. Journaliser chaque increment dans `CHANGELOG.md`.
 
 ## Variables d'environnement / options clés
 

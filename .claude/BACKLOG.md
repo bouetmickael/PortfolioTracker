@@ -36,11 +36,25 @@ partage RW de section entre utilisateurs. Découpage :
 
 ## Backlog produit
 
+- **Remplacer les 3 tuiles statistiques du haut par le suivi de 3
+  indices de marché** (demande explicite utilisateur, 2026-07-24) : les
+  cartes `stat-card` actuelles (`#statTotal`/`#statHausse`/`#statBaisse`
+  dans `public/index.html`, comptage des valeurs suivies en hausse/baisse,
+  voir `DESIGN.md` § Composants) sont remplacées par le suivi de 3 indices
+  boursiers : **SBF 120**, **Nasdaq-100**, **S&P 500**. À préciser avant
+  implémentation (arbitrage utilisateur) : source des cours (probablement
+  le même mécanisme Yahoo Finance que les valeurs suivies, voir
+  `server/jobs/prices.js`/`ARCHITECTURE.md` § Points de vigilance, tickers
+  Yahoo pressentis `^SBF120`/`^NDX`/`^GSPC` à vérifier), fréquence de
+  rafraîchissement, et ce qui doit s'afficher sur chaque tuile (cours,
+  variation du jour, les deux). Pas de contrainte de rétro-compatibilité :
+  aucun utilisateur externe à ce projet personnel/familial.
+
 À compléter au-delà de ce point — aucune autre source du dépôt (issue
 tracker, notes de session, roadmap) ne liste de prochaines fonctionnalités
-prévues au-delà du plan ci-dessus. Ne pas confondre avec les « limites
-connues » listées dans `SPECIFICATION_FONCTIONNELLE.md` (PER sectoriel,
-screening, Greeks, volatilité implicite, parité) : ce sont des limites
-assumées par le README public, pas des éléments déjà priorisés pour une
-future session — à faire arbitrer par l'utilisateur avant de les inscrire
-ici.
+prévues au-delà du plan ci-dessus et du point ci-dessus. Ne pas confondre
+avec les « limites connues » listées dans `SPECIFICATION_FONCTIONNELLE.md`
+(PER sectoriel, screening, Greeks, volatilité implicite, parité) : ce sont
+des limites assumées par le README public, pas des éléments déjà
+priorisés pour une future session — à faire arbitrer par l'utilisateur
+avant de les inscrire ici.

@@ -47,19 +47,23 @@ ajouté spécifiquement pour ce projet.
    conventions de code et les règles métier du projet.
 3. Écrire les **tests unitaires** correspondants et les exécuter. La session
    n'est pas terminée tant que les tests ne passent pas.
-4. Committer et **pousser sur la branche d'intégration unique du projet**
+4. **Incrémenter le compteur de version du projet** et journaliser le
+   changement — voir §5.5. Chaque session fonctionnelle correspond à une
+   version, sans exception, y compris pour un changement purement visuel
+   ou interne sans impact fonctionnel visible.
+5. Committer et **pousser sur la branche d'intégration unique du projet**
    (voir §5 — Git Workflow). Ne jamais créer ou pousser sur une autre
    branche sans autorisation explicite de l'utilisateur.
-5. Déployer et **vérifier que l'application est réellement opérationnelle**
+6. Déployer et **vérifier que l'application est réellement opérationnelle**
    (pas seulement que le build/les tests passent) — voir §5.4.
-6. Mettre à jour `BACKLOG.md` : avancement, fonctionnalité en cours,
+7. Mettre à jour `BACKLOG.md` : avancement, fonctionnalité en cours,
    compteur de sessions depuis la dernière revue (+1).
-7. Mettre à jour les règles métier (`BUSINESS_RULES.md`) si de nouvelles ont
+8. Mettre à jour les règles métier (`BUSINESS_RULES.md`) si de nouvelles ont
    été fournies ou si des modifications sont nécessaires.
-8. **Demander** : « Souhaitez-vous clore la session pour continuer dans une
+9. **Demander** : « Souhaitez-vous clore la session pour continuer dans une
    nouvelle ? » Ne pas continuer à coder dans la même session après cette
    question.
-9. Si oui → fournir le **prompt exact** de la session suivante (§0.3) :
+10. Si oui → fournir le **prompt exact** de la session suivante (§0.3) :
    - soit la prochaine fonctionnalité du backlog (`BACKLOG.md`),
    - soit — si le compteur atteint 3/3 — le déclenchement du cycle de revue
      (§0.2).
@@ -194,7 +198,7 @@ s'y réfèrent par pointeur (« voir `X.md` §Y »).
      déclarée dans `CLAUDE.md`, sans permission explicite.
   Si aucune branche technique n'est imposée par l'environnement, travailler
   directement sur la branche d'intégration.
-- **Push en fin de session** (§0.1 étape 4) : jamais de commit qui reste
+- **Push en fin de session** (§0.1 étape 5) : jamais de commit qui reste
   local à la fin d'une session validée par l'utilisateur.
 - **Convention de message de commit** : `Session N - description courte`,
   en anglais (sauf indication contraire du projet dans `CLAUDE.md`).
@@ -210,7 +214,38 @@ s'y réfèrent par pointeur (« voir `X.md` §Y »).
 - **Ne pas proposer de clore la session tant que la nouvelle version n'est
   pas déployée et opérationnelle.** Un échec de déploiement doit être
   diagnostiqué et résolu avant de poser la question de clôture (§0.1
-  étape 8).
+  étape 9).
+
+### 5.5 Compteur de version
+
+Chaque **session fonctionnelle** (cycle §0.1) doit incrémenter le
+compteur de version du projet, sans exception — y compris pour un
+changement mineur ou sans impact fonctionnel visible. Objectif : que le
+numéro de version affiché/exposé par l'application (et lu par un éventuel
+mécanisme de mise à jour, ex. un Supervisor Home Assistant) reflète
+toujours fidèlement la dernière session livrée, sans dépendre d'une étape
+de « release » séparée et facultative que l'on oublie de déclencher.
+
+- Le ou les fichiers qui portent ce compteur pour le projet courant (ex.
+  un descripteur de package, un manifeste d'add-on/plateforme) sont
+  documentés dans le fichier de déploiement référencé au §1 (ex.
+  `DOCKER.md`) — ne pas les improviser ici, ce fichier ne connaît que la
+  règle, pas l'emplacement technique propre au projet.
+- Incrémenter en version « patch » (dernier chiffre d'un schéma
+  sémantique `MAJEUR.MINEUR.PATCH`) par défaut ; réserver un incrément
+  MINEUR/MAJEUR à une demande explicite de l'utilisateur ou à un
+  changement dont l'ampleur le justifie clairement.
+- Si plusieurs fichiers portent le même numéro (ex. manifeste de
+  plateforme et descripteur de package), les incrémenter et les
+  synchroniser ensemble dans le même commit — jamais l'un sans l'autre.
+- Journaliser le changement dans le fichier de changelog du projet s'il en
+  existe un (ex. `CHANGELOG.md`), avec une description courte orientée
+  utilisateur.
+- Le cycle de revue de dette technique (§0.2) n'est **pas** une session
+  fonctionnelle au sens de cette règle : il n'incrémente le compteur de
+  version que si les correctifs appliqués changent un comportement
+  observable par l'utilisateur (à apprécier au cas par cas), pas pour un
+  correctif strictement interne (renommage, extraction de fonction, etc.).
 
 ---
 
