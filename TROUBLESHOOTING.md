@@ -26,6 +26,29 @@ Le detail de l'architecture actuelle est dans `README.md`. Le code Firebase
 `public/firebase-config.js`, `public/firebase-messaging-sw.js`) a ete
 supprime : ne pas le reintroduire.
 
+## Historique : packaging Home Assistant Add-on (2026-07)
+
+Le seul Raspberry Pi disponible tourne sous Home Assistant OS (HAOS), pas un
+Linux generique. Le Supervisor gere entierement l'hote : deployer via
+`docker compose` directement dessus n'est pas supporte (perte possible des
+conteneurs a la prochaine mise a jour de HAOS). L'application a donc ete
+packagee aussi comme Home Assistant Add-on (`config.yaml`,
+`repository.yaml`), en plus du mode Docker Compose (garde pour un usage sur
+un Linux generique, pas HAOS). Le detail des deux modes est dans
+`README.md`.
+
+Les deux modes partagent le meme `Dockerfile` et le meme code serveur. La
+seule difference technique est la source de configuration :
+
+- Docker Compose : fichier `.env`, lu par `dotenv`
+- Home Assistant Add-on : `/data/options.json` (rempli par le Supervisor
+  depuis l'onglet Configuration de l'add-on), traduit vers les memes
+  variables d'environnement par `server/load-addon-options.js`
+
+Si les deux sources coexistent (ne devrait pas arriver en usage normal), une
+variable d'environnement deja definie est toujours prioritaire sur
+`options.json`.
+
 ## Points de vigilance sur la stack actuelle
 
 ### 1. Source de cours : Yahoo Finance (inchange, toujours a surveiller)
@@ -59,14 +82,19 @@ utilisateurs) : un redemarrage du conteneur deconnecte tout le monde. Ce
 n'est pas un bug ; ne pas le "corriger" en ajoutant un store externe (Redis,
 etc.) sans que ce soit devenu un vrai probleme d'usage.
 
-### 3. SQLite et le volume Docker
+### 3. SQLite et le stockage persistant
 
-La base est un fichier unique (`data/portfolio.db`, monte en volume Docker).
+La base est un fichier unique (`/data/portfolio.db` dans le conteneur).
 Sauvegarde = copier ce fichier (le service peut rester demarre, SQLite gere
-les acces concurrents via WAL). Si le conteneur demarre mais que les donnees
-semblent vides apres une mise a jour, verifier que le volume `./data:/app/data`
-est toujours bien mappe dans `docker-compose.yml` (une erreur frequente est de
-supprimer ou deplacer ce dossier par erreur).
+les acces concurrents via WAL).
+
+- Mode Docker Compose : verifier que le volume `./data:/data` est toujours
+  bien mappe dans `docker-compose.yml` (une erreur frequente est de
+  supprimer ou deplacer ce dossier par erreur) si les donnees semblent vides
+  apres un redemarrage
+- Mode Home Assistant Add-on : le stockage persistant est fourni
+  automatiquement par le Supervisor (option `map: [data:rw]` dans
+  `config.yaml`), rien a configurer manuellement
 
 ### 4. SESSION_SECRET obligatoire
 

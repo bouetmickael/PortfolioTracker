@@ -2,7 +2,11 @@ const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'portfolio.db');
+// /data est le chemin de stockage persistant standard, aussi bien pour un
+// Home Assistant Add-on (fourni par le Supervisor) que pour le volume
+// docker-compose (voir docker-compose.yml). DB_PATH reste surchargeable
+// pour lancer le serveur en local sans Docker.
+const DB_PATH = process.env.DB_PATH || path.join('/data', 'portfolio.db');
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 

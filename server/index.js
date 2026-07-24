@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./load-addon-options').loadAddonOptions();
 
 const cron = require('node-cron');
 const app = require('./app');

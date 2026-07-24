@@ -1,0 +1,33 @@
+name: "Portfolio Tracker"
+version: "1.0.0"
+slug: "portfolio_tracker"
+description: "Suivi de portefeuille (actions et warrants), sans Firebase"
+url: "https://github.com/bouetmickael/PortfolioTracker"
+arch:
+  - aarch64
+  - armv7
+  - amd64
+startup: services
+boot: auto
+map:
+  - data:rw
+ports:
+  3000/tcp: 3000
+ports_description:
+  3000/tcp: "Interface web Portfolio Tracker"
+options:
+  session_secret: ""
+  smtp_host: ""
+  smtp_port: 587
+  smtp_secure: false
+  smtp_user: ""
+  smtp_pass: ""
+  mail_from: ""
+schema:
+  session_secret: str?
+  smtp_host: str?
+  smtp_port: port?
+  smtp_secure: bool?
+  smtp_user: str?
+  smtp_pass: password?
+  mail_from: str?
