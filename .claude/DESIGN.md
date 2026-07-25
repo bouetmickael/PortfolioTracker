@@ -310,6 +310,32 @@ délibéré antérieur, non remis en cause).
   voie à privilégier pour poser haut ET bas en une fois ; cette nouvelle
   voie ne le remplace pas, elle s'y ajoute pour le geste rapide "un seul
   seuil, directement sur le graphique".
+- **Alertes existantes sur le graphique** (session 2026-07-25, demande
+  explicite utilisateur) : à l'ouverture du graphique historique d'une
+  valeur de ma propre liste "Valeurs suivies" (même restriction que le
+  composant « Alerte depuis le graphique » ci-dessus — jamais sur un
+  indice de marché ni sur une valeur d'une section partagée), chaque
+  seuil actif (`seuilHaut`/`seuilBas`, toutes alertes actives confondues
+  sur ce ticker) est matérialisé par une ligne pointillée fine
+  (`.alerte-existante-ligne`, 1px, `--danger` — volontairement distincte
+  du pointillé or `--primary` du mode placement d'une nouvelle alerte,
+  pour ne pas confondre un seuil déjà posé avec celui en cours de
+  glissement) et une pastille de prix (`.alerte-existante-badge`, fond
+  `--bg`, bordure et texte `--danger`, ancrée à droite du graphique —
+  côté opposé à la pastille dorée `.alerte-drag-badge` du mode placement,
+  ancrée à gauche, pour qu'elles ne se chevauchent jamais si les deux
+  sont visibles en même temps). Un seuil qui tombe hors de la plage
+  `min`/`max` de l'échelle Y affichée pour la période courante (trop haut
+  ou trop bas par rapport aux cours du graphique) n'est **pas** tracé en
+  ligne : un simple repère compact (`.alerte-hors-limite`, même habillage
+  visuel que la pastille) est affiché à la place, épinglé en haut
+  (`▲ <prix>`) ou en bas (`▼ <prix>`) du graphique selon le sens du
+  dépassement, plutôt que de fausser l'échelle du graphique pour faire
+  entrer un seuil éloigné. Recalculé à chaque chargement du graphique
+  (ouverture, changement de période) via `afficherAlertesGraphique()`
+  (`public/app.js`), pas de plugin d'annotation Chart.js supplémentaire
+  (mêmes API publiques d'échelle `getPixelForValue`/`min`/`max` que le
+  composant « Alerte depuis le graphique »).
 
 ## Responsive
 

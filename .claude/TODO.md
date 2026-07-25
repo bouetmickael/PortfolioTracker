@@ -1084,3 +1084,58 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - Compteur `BACKLOG.md` : reinitialise a 0/3. Prochaine session : a
   arbitrer avec l'utilisateur (aucun point supplementaire du backlog
   produit n'est encore priorise au-dela du plan livre).
+
+## 2026-07-25 — Session 19 - alertes existantes affichees sur le graphique (v1.8.0)
+
+- **Demande explicite utilisateur** : afficher sur le graphique historique
+  d'une valeur les alertes de seuil deja posees (ligne fine + prix), et ne
+  pas les afficher (ou signaler qu'elles sont hors limites) quand le seuil
+  tombe hors de la plage de valeurs affichee par le graphique.
+- **Implementation** :
+  - `public/app.js` : cache `alertesParTicker` (ticker -> tableau de
+    `{seuilHaut, seuilBas}`) construit dans `displayAlertes()` a partir de
+    la reponse `GET /api/alertes` deja chargee (aucun nouvel appel reseau).
+  - Nouvelle fonction `afficherAlertesGraphique(ticker)` appelee a chaque
+    (re)chargement du graphique (`chargerGraphique()`, ouverture + tout
+    changement de periode) : pour chaque seuil actif du ticker courant, si
+    `graphiqueState.alertable` (memes restrictions que le mode placement
+    de la Session 17 - jamais sur un indice ou une valeur d'une section
+    partagee) et si le seuil tombe dans `chartInstance.scales.y.min/max`,
+    rend une ligne pointillee + une pastille de prix
+    (`.alerte-existante-ligne`/`.alerte-existante-badge`) via les memes
+    API publiques d'echelle Chart.js que la Session 17
+    (`getPixelForValue`, pas de plugin d'annotation). Un seuil hors de
+    cette plage rend a la place un repere compact `.alerte-hors-limite`
+    (fleche + prix) epingle en haut ou en bas du graphique.
+  - `public/index.html` : nouveau conteneur `#alertesGraphiqueOverlay`
+    dans `#graphiqueWrapper`, vide/repeuple a chaque appel de
+    `chargerGraphique()`.
+  - `public/styles.css` : nouvelles classes `.alerte-existante-ligne`
+    (pointille 1px `--danger`, volontairement distinct du pointille or
+    `--primary` du mode placement pour ne pas confondre un seuil deja
+    pose avec celui en cours de glissement), `.alerte-existante-badge`
+    (ancree a droite du graphique, cote oppose a la pastille doree du
+    mode placement ancree a gauche) et `.alerte-hors-limite`.
+  - `.claude/DESIGN.md` : nouveau composant « Alertes existantes sur le
+    graphique » documente sous « Alerte depuis le graphique ».
+- **Verification reelle** : `npm test` (`node --test test/*.test.js`,
+  29/29 verts, aucune route serveur modifiee). Parcours navigateur reel
+  (Playwright + Chromium local, viewport mobile 390px, meme contournement
+  qu'en Session 17 pour Yahoo Finance/CDN Chart.js bloques dans ce
+  sandbox : donnees de graphique synthetiques + copie locale de Chart.js
+  via npm, non vendorisee dans le depot) : trois alertes creees via l'API
+  sur un ticker dont le graphique synthetique couvre 100-200 (seuil haut
+  150 dans la plage, seuil haut 500 au-dessus, seuil bas 50 en dessous) ->
+  ligne + pastille "150.00 EUR" correctement positionnees sur l'axe,
+  reperes "▲ 500.00 EUR" et "▼ 50.00 EUR" affiches en haut/bas sans ligne
+  tracee hors plage ; mode placement d'une nouvelle alerte (Session 17)
+  ouvert en parallele -> pastilles gauche (nouvelle alerte, or) et droite
+  (alertes existantes, rouge) coexistent sans chevauchement, aucune erreur
+  console ; graphique d'un indice de marche (`stat-card`, non alertable)
+  -> overlay vide malgre les alertes existantes en cache pour d'autres
+  tickers. Capture d'ecran verifiee en theme sombre egalement.
+- Version : `server/package.json`/`config.yaml` 1.7.0 -> 1.8.0 (increment
+  MINEUR, nouvelle fonctionnalite utilisateur visible, meme ampleur que
+  les sessions precedentes versionnees en MINEUR), journalise dans
+  `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 0/3 -> 1/3.

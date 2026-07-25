@@ -11,6 +11,7 @@ let indicesPollInterval = null;
 let chartInstance = null;
 let graphiqueState = { ticker: null, alertable: false };
 let placementAlerteActif = false;
+let alertesParTicker = {};
 
 document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
@@ -219,6 +220,12 @@ function displayAlertes(alertes) {
   container.innerHTML = '';
 
   const alertesArray = Object.entries(alertes).filter(([, a]) => a.active);
+
+  alertesParTicker = {};
+  alertesArray.forEach(([, a]) => {
+    if (!alertesParTicker[a.ticker]) alertesParTicker[a.ticker] = [];
+    alertesParTicker[a.ticker].push({ seuilHaut: a.seuilHaut, seuilBas: a.seuilBas });
+  });
 
   if (alertesArray.length === 0) {
     container.innerHTML = `
@@ -924,6 +931,56 @@ async function confirmerPlacementAlerte() {
   await creerAlerteAPI(ticker, seuilHaut, seuilBas);
 }
 
+function afficherAlertesGraphique(ticker) {
+  const overlay = document.getElementById('alertesGraphiqueOverlay');
+  overlay.innerHTML = '';
+
+  if (!graphiqueState.alertable || !chartInstance) return;
+
+  const seuils = [];
+  (alertesParTicker[ticker] || []).forEach((a) => {
+    if (a.seuilHaut) seuils.push(a.seuilHaut);
+    if (a.seuilBas) seuils.push(a.seuilBas);
+  });
+  if (seuils.length === 0) return;
+
+  const { min, max } = chartInstance.scales.y;
+  let indexHaut = 0;
+  let indexBas = 0;
+
+  seuils.forEach((seuil) => {
+    if (seuil >= min && seuil <= max) {
+      const y = chartInstance.scales.y.getPixelForValue(seuil);
+
+      const ligne = document.createElement('div');
+      ligne.className = 'alerte-existante-ligne';
+      ligne.style.top = y + 'px';
+      overlay.appendChild(ligne);
+
+      const badge = document.createElement('div');
+      badge.className = 'alerte-existante-badge';
+      badge.style.top = y + 'px';
+      badge.textContent = formatCours(seuil);
+      overlay.appendChild(badge);
+    } else {
+      const horsHaut = seuil > max;
+      const chip = document.createElement('div');
+      chip.className = 'alerte-hors-limite';
+      chip.textContent = `${horsHaut ? '▲' : '▼'} ${formatCours(seuil)}`;
+
+      if (horsHaut) {
+        chip.style.top = 4 + indexHaut * 22 + 'px';
+        indexHaut += 1;
+      } else {
+        chip.style.bottom = 4 + indexBas * 22 + 'px';
+        indexBas += 1;
+      }
+
+      overlay.appendChild(chip);
+    }
+  });
+}
+
 function formatGraphiqueLabel(dateStr, period) {
   const date = new Date(dateStr);
 
@@ -943,6 +1000,7 @@ function formatGraphiqueLabel(dateStr, period) {
 async function chargerGraphique(ticker, period) {
   const container = document.getElementById('graphiqueContainer');
   container.innerHTML = '<div class="loader-inline"><div class="spinner-small"></div></div>';
+  document.getElementById('alertesGraphiqueOverlay').innerHTML = '';
 
   try {
     const res = await apiFetch(`/api/chart/${ticker}?period=${period}`);
@@ -1026,6 +1084,8 @@ async function chargerGraphique(ticker, period) {
         }
       }
     });
+
+    afficherAlertesGraphique(ticker);
 
     if (placementAlerteActif) {
       positionnerLigneAlerte(graphiqueState.valeurPlacement);

@@ -6,13 +6,12 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/3** — revue de dette technique n°4 effectuée le 2026-07-25 (voir
+**1/3** — revue de dette technique n°4 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°3 (Session 15 tuiles d'indices, Session 16
 périmètre smartphone-only + CSS, Session 17 alerte depuis le graphique).
-Compteur réinitialisé à 0/3. Correctifs appliqués purement internes
-(pas de changement de comportement observable), aucun incrément de
-version au sens de `METHOD.md` §5.5.
+Compteur réinitialisé à 0/3, puis incrémenté à 1/3 par la Session 19
+(alertes existantes affichées sur le graphique, v1.8.0, voir ci-dessous).
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -133,6 +132,20 @@ produit ci-après, à arbitrer avec l'utilisateur.
   valeur d'une section partagée avec moi, ces deux cas ne pouvant
   techniquement jamais déclencher d'alerte (voir `BUSINESS_RULES.md` §
   Alertes de seuil, jointure de `checkAlerts()`). Fait le 2026-07-25.
+- [x] **Revue de dette technique n°4** : voir `CLAUDE.md` § Historique
+  des revues de dette technique. Compteur remis à 0/3. Fait le
+  2026-07-25.
+- [x] **Alertes existantes sur le graphique (v1.8.0)** (demande explicite
+  utilisateur) : les seuils d'alerte actifs d'une valeur suivie sont
+  désormais matérialisés sur son graphique historique par une ligne fine
+  pointillée et une pastille de prix (voir `DESIGN.md` § Alertes
+  existantes sur le graphique). Un seuil hors de la plage de valeurs
+  affichée par le graphique pour la période courante n'est pas tracé :
+  un repère compact « hors limites » (flèche + prix) est affiché en haut
+  ou en bas du graphique à la place, plutôt que de fausser l'échelle ou
+  de masquer silencieusement l'alerte. Même restriction que la Session
+  17 : uniquement sur mes propres valeurs suivies, jamais sur un indice
+  de marché ni sur une valeur d'une section partagée. Fait le 2026-07-25.
 
 ## Backlog produit
 
@@ -144,6 +157,5 @@ ci-dessus. Ne pas confondre avec les « limites connues » listées dans
 volatilité implicite, parité) : ce sont des limites assumées par le
 README public, pas des éléments déjà priorisés pour une future session —
 à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
-de revue ayant atteint 3/3 (voir ci-dessus), la prochaine session est de
-toute façon le cycle de revue de dette technique (`METHOD.md` §0.2), pas
-un nouveau point de ce backlog.
+de revue est à 1/3 (voir ci-dessus) : la prochaine session peut être un
+nouveau point de ce backlog, à arbitrer avec l'utilisateur.

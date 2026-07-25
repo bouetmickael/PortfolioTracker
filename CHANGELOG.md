@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.8.0
+
+- Affichage des alertes de seuil existantes directement sur le graphique
+  historique d'une valeur suivie : une ligne pointillee rouge fine avec
+  une pastille indiquant le prix marque chaque seuil actif (haut et/ou
+  bas), a condition qu'il tombe dans la plage de valeurs affichee par le
+  graphique pour la periode courante. Si un seuil est hors de cette
+  plage (trop haut ou trop bas par rapport aux cours affiches), la ligne
+  n'est pas tracee sur le graphique lui-meme : un petit repere "hors
+  limites" (fleche + prix) est affiche en haut ou en bas du graphique a
+  la place. Disponible uniquement sur les valeurs de ma propre liste
+  "Valeurs suivies" (memes restrictions que la creation d'alerte depuis
+  le graphique, voir 1.7.0) : jamais sur les indices de marche ni sur les
+  valeurs d'une section partagee.
+
 ## 1.7.0
 
 - Nouvelle facon de creer une alerte de seuil : directement depuis le
