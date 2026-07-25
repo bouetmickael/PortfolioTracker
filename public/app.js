@@ -9,6 +9,8 @@ let valeursPollInterval = null;
 let alertesPollInterval = null;
 let indicesPollInterval = null;
 let chartInstance = null;
+let graphiqueState = { ticker: null, alertable: false };
+let placementAlerteActif = false;
 
 document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
@@ -721,6 +723,32 @@ async function persisterOrdreSectionPartagee(section, valeurIds) {
   }
 }
 
+async function creerAlerteAPI(ticker, seuilHaut, seuilBas) {
+  showLoader(true);
+
+  try {
+    const res = await apiFetch('/api/alertes', {
+      method: 'POST',
+      body: JSON.stringify({ ticker, seuilHaut: seuilHaut || null, seuilBas: seuilBas || null })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur creation alerte');
+    }
+
+    await chargerAlertes();
+    showToast(`Alerte creee pour ${ticker}`, 'success');
+    return true;
+  } catch (error) {
+    console.error('Erreur creation alerte:', error);
+    showToast('Erreur: ' + error.message, 'error');
+    return false;
+  } finally {
+    showLoader(false);
+  }
+}
+
 async function creerAlerte() {
   const ticker = document.getElementById('inputTickerAlerte').value;
   const seuilHaut = parseFloat(document.getElementById('inputSeuilHaut').value);
@@ -736,31 +764,12 @@ async function creerAlerte() {
     return;
   }
 
-  showLoader(true);
+  const success = await creerAlerteAPI(ticker, seuilHaut, seuilBas);
 
-  try {
-    const res = await apiFetch('/api/alertes', {
-      method: 'POST',
-      body: JSON.stringify({ ticker, seuilHaut: seuilHaut || null, seuilBas: seuilBas || null })
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || 'Erreur creation alerte');
-    }
-
-    await chargerAlertes();
-
-    showToast(`Alerte creee pour ${ticker}`, 'success');
+  if (success) {
     closeAllModals();
-
     document.getElementById('inputSeuilHaut').value = '';
     document.getElementById('inputSeuilBas').value = '';
-  } catch (error) {
-    console.error('Erreur creation alerte:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
   }
 }
 
@@ -789,7 +798,10 @@ async function supprimerAlerte(id) {
 // GRAPHIQUES
 // ========================================
 
-async function openGraphique(ticker, nom = null) {
+async function openGraphique(ticker, nom = null, alertable = false) {
+  graphiqueState = { ticker, alertable };
+  fermerPlacementAlerte();
+
   openModal('modalGraphique');
   document.getElementById('graphiqueTitre').textContent = `Graphique - ${nom || ticker}`;
 
@@ -806,6 +818,113 @@ async function openGraphique(ticker, nom = null) {
       await chargerGraphique(ticker, btn.dataset.period);
     };
   });
+}
+
+// ========================================
+// ALERTE DEPUIS LE GRAPHIQUE (glisser-deposer)
+// ========================================
+
+let draggingAlerte = false;
+
+function positionnerLigneAlerte(valeur) {
+  if (!chartInstance) return;
+
+  const y = chartInstance.scales.y.getPixelForValue(valeur);
+  document.getElementById('alerteLigne').style.top = y + 'px';
+
+  const badge = document.getElementById('alerteBadge');
+  badge.style.top = y + 'px';
+  badge.textContent = formatCours(valeur);
+}
+
+function mettreAJourPlacementDepuisEvent(e) {
+  if (!chartInstance) return;
+
+  const rect = document.getElementById('graphiqueContainer').getBoundingClientRect();
+  const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+  const brut = chartInstance.scales.y.getValueForPixel(y);
+  const { min, max } = chartInstance.scales.y;
+  const valeur = Math.max(min, Math.min(max, brut));
+
+  graphiqueState.valeurPlacement = valeur;
+  positionnerLigneAlerte(valeur);
+}
+
+function alerteOnPointerDown(e) {
+  draggingAlerte = true;
+  e.currentTarget.setPointerCapture(e.pointerId);
+  mettreAJourPlacementDepuisEvent(e);
+}
+
+function alerteOnPointerMove(e) {
+  if (!draggingAlerte) return;
+  mettreAJourPlacementDepuisEvent(e);
+}
+
+function alerteOnPointerUp() {
+  draggingAlerte = false;
+}
+
+function ouvrirPlacementAlerte() {
+  if (!chartInstance || placementAlerteActif) return;
+
+  const valeurStore = Alpine.store('portfolio').valeurs.find((v) => v.ticker === graphiqueState.ticker);
+  const { min, max } = chartInstance.scales.y;
+  const depart = (valeurStore && valeurStore.cours) || (min + max) / 2;
+
+  graphiqueState.valeurPlacement = depart;
+  placementAlerteActif = true;
+
+  document.getElementById('graphiqueWrapper').classList.add('placement-actif');
+  document.getElementById('alerteDeclencheur').hidden = true;
+  document.getElementById('alerteAnnuler').hidden = false;
+  document.getElementById('alerteConfirmer').hidden = false;
+  document.getElementById('alerteLigne').hidden = false;
+  document.getElementById('alerteBadge').hidden = false;
+  positionnerLigneAlerte(depart);
+
+  const containerEl = document.getElementById('graphiqueContainer');
+  containerEl.addEventListener('pointerdown', alerteOnPointerDown);
+  containerEl.addEventListener('pointermove', alerteOnPointerMove);
+  containerEl.addEventListener('pointerup', alerteOnPointerUp);
+  containerEl.addEventListener('pointercancel', alerteOnPointerUp);
+}
+
+function fermerPlacementAlerte() {
+  placementAlerteActif = false;
+  draggingAlerte = false;
+
+  document.getElementById('graphiqueWrapper').classList.remove('placement-actif');
+  document.getElementById('alerteDeclencheur').hidden = !graphiqueState.alertable;
+  document.getElementById('alerteAnnuler').hidden = true;
+  document.getElementById('alerteConfirmer').hidden = true;
+  document.getElementById('alerteLigne').hidden = true;
+  document.getElementById('alerteBadge').hidden = true;
+
+  const containerEl = document.getElementById('graphiqueContainer');
+  containerEl.removeEventListener('pointerdown', alerteOnPointerDown);
+  containerEl.removeEventListener('pointermove', alerteOnPointerMove);
+  containerEl.removeEventListener('pointerup', alerteOnPointerUp);
+  containerEl.removeEventListener('pointercancel', alerteOnPointerUp);
+}
+
+function annulerPlacementAlerte() {
+  fermerPlacementAlerte();
+}
+
+async function confirmerPlacementAlerte() {
+  if (!placementAlerteActif) return;
+
+  const ticker = graphiqueState.ticker;
+  const valeurChoisie = graphiqueState.valeurPlacement;
+  const valeurStore = Alpine.store('portfolio').valeurs.find((v) => v.ticker === ticker);
+  const coursActuel = valeurStore ? valeurStore.cours : valeurChoisie;
+
+  const seuilHaut = valeurChoisie >= coursActuel ? valeurChoisie : null;
+  const seuilBas = valeurChoisie < coursActuel ? valeurChoisie : null;
+
+  fermerPlacementAlerte();
+  await creerAlerteAPI(ticker, seuilHaut, seuilBas);
 }
 
 function formatGraphiqueLabel(dateStr, period) {
@@ -910,6 +1029,10 @@ async function chargerGraphique(ticker, period) {
         }
       }
     });
+
+    if (placementAlerteActif) {
+      positionnerLigneAlerte(graphiqueState.valeurPlacement);
+    }
   } catch (error) {
     console.error('Erreur chargement graphique:', error);
     container.innerHTML = `

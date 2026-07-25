@@ -942,3 +942,82 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   toute session fonctionnelle incremente la version meme pour un
   changement interne sans impact visuel), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 1/3 -> 2/3.
+
+## 2026-07-25 — Alerte depuis le graphique, glisser-depose style TradingView (v1.7.0)
+
+- **Demande utilisateur** : deux captures d'ecran de TradingView montrant
+  la creation d'une alerte de seuil par glisser-depose direct sur le
+  graphique (ligne pointillee + pastille de prix + bouton de validation).
+  Session planifiee via `EnterPlanMode` (feature non triviale : nouvelle
+  interaction canvas/pointer events, contrainte technique sur le perimetre
+  autorise) - plan ecrit et approuve avant implementation.
+- **Contrainte technique determinant le perimetre** : `checkAlerts()`
+  (`server/jobs/alerts.js`) evalue une alerte via une jointure stricte
+  `valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker`
+  - une alerte creee sur un ticker absent de `valeurs` pour l'utilisateur
+  courant (indice de marche, valeur d'une section partagee appartenant a
+  un autre compte) ne serait jamais evaluee. La fonctionnalite est donc
+  restreinte aux valeurs de la liste "Valeurs suivies" propre a
+  l'utilisateur (meme perimetre que le bouton cloche existant).
+- **Implementation** :
+  - `public/index.html` : nouvelle icone `icon-check` dans le sprite SVG ;
+    `openGraphique(ticker, nom, alertable)` gagne un 3e parametre, passe
+    `true` uniquement depuis la ligne de valeur de "Valeurs suivies" ;
+    nouveaux elements overlay (`#alerteLigne`/`#alerteBadge`/
+    `#alerteDeclencheur`/`#alerteAnnuler`/`#alerteConfirmer`) ajoutes
+    comme freres de `#graphiqueContainer` (dans un nouveau
+    `#graphiqueWrapper`) plutot qu'enfants, car `chargerGraphique()`
+    remplace `innerHTML` de `#graphiqueContainer` a chaque chargement/
+    changement de periode.
+  - `public/app.js` : extraction de `creerAlerteAPI(ticker, seuilHaut,
+    seuilBas)` depuis `creerAlerte()` (reutilisee par les deux voies de
+    creation, pas de duplication de l'appel `POST /api/alertes`).
+    Nouvelles fonctions `ouvrirPlacementAlerte()`/
+    `confirmerPlacementAlerte()`/`annulerPlacementAlerte()` et gestion
+    des `Pointer Events` (`pointerdown`/`pointermove`/`pointerup`,
+    `setPointerCapture`) sur `#graphiqueContainer`. Positionnement de la
+    ligne via les API publiques de l'echelle Chart.js
+    (`getValueForPixel`/`getPixelForValue`), sans plugin d'annotation
+    supplementaire. Determination automatique `seuilHaut`/`seuilBas` par
+    comparaison de la valeur glissee au cours actuel de la valeur (issu
+    du store Alpine). Repositionnement de la ligne si l'utilisateur
+    change de periode en cours de placement (le chart est detruit/recree
+    par `chargerGraphique()`).
+  - `public/styles.css` : styles de l'overlay
+    (`.alerte-drag-line`/`.alerte-drag-badge`/`.alerte-drag-trigger`/
+    `.alerte-drag-cancel`/`.alerte-drag-confirm`).
+  - `.claude/DESIGN.md` (§ Composants, nouveau paragraphe "Alerte depuis
+    le graphique" + liste d'icones) et `.claude/BUSINESS_RULES.md` (§
+    Alertes de seuil, note sur la portee technique de toute voie de
+    creation) mis a jour.
+- **Bug trouve et corrige pendant la verification** : les boutons
+  `.alerte-drag-trigger`/`.alerte-drag-cancel`/`.alerte-drag-confirm`
+  declaraient `display: flex` dans leur regle CSS commune, ce qui
+  ecrasait la regle par defaut du navigateur pour l'attribut `hidden`
+  (meme specificite, feuille de style chargee apres celle du navigateur)
+  - un bouton marque `hidden` restait donc visuellement affiche et
+  interceptait les clics. Corrige par une regle `[hidden] { display:
+  none; }` explicite sur ces trois classes.
+- **Verification reelle** : `npm test` (`node --test test/*.test.js`,
+  29/29 verts, aucune route serveur modifiee). Parcours navigateur reel
+  (Playwright + Chromium local, viewport mobile 390px) : Yahoo Finance
+  et le CDN Chart.js sont tous deux bloques dans cet environnement
+  sandbox, donc interception des requetes (`page.route`) pour servir des
+  donnees de graphique synthetiques et une copie de Chart.js installee
+  localement via npm (uniquement pour ce test, rien vendorise dans le
+  depot). Sequence testee : bouton `icon-bell` visible sur le graphique
+  d'une valeur suivie -> clic -> mode placement affiche (ligne + pastille
+  + boutons annuler/valider) -> glissement vers le haut -> pastille
+  affiche le bon prix -> validation -> `GET /api/alertes` confirme
+  `seuilHaut` correct ; meme sequence vers le bas -> confirme `seuilBas`
+  correct ; annulation -> aucune alerte supplementaire creee, bouton
+  cloche reaffiche ; graphique d'un indice de marche -> bouton d'ajout
+  d'alerte absent. Capture d'ecran du mode placement verifiee en theme
+  clair et sombre (ligne/pastille/boutons lisibles dans les deux).
+- Version : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.6.2 -> 1.7.0 (increment MINEUR, nouvelle fonctionnalite
+  utilisateur visible de premier plan, meme ampleur que les sessions
+  precedentes versionnees en MINEUR), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 2/3 -> 3/3 - **seuil atteint, la prochaine
+  session est obligatoirement le cycle de revue de dette technique**
+  (`METHOD.md` §0.2), pas un nouveau point du backlog produit.

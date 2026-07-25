@@ -89,6 +89,9 @@
       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
       <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
     </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </symbol>
   </svg>
 
   <header class="header">
@@ -167,7 +170,7 @@
               </div>
               <div class="valeurs-section-liste" :data-section-id="section.id" x-init="initSortableValeurs($el)" x-show="ouvert" x-transition>
                 <template x-for="valeur in $store.portfolio.valeursDeSection(section.id)" :key="valeur.id">
-                  <div class="valeur-row" :data-valeur-id="valeur.id" @click="openGraphique(valeur.ticker)">
+                  <div class="valeur-row" :data-valeur-id="valeur.id" @click="openGraphique(valeur.ticker, valeur.nom, true)">
                     <div class="valeur-drag-handle" @click.stop title="Glisser pour deplacer" aria-hidden="true">
                       <svg class="icon icon-sm"><use href="#icon-grip"></use></svg>
                     </div>
@@ -398,8 +401,21 @@
           <button class="btn-periode" data-period="1Y">1A</button>
           <button class="btn-periode" data-period="MAX">Max</button>
         </div>
-        <div id="graphiqueContainer">
-          <canvas id="chartCanvas"></canvas>
+        <div id="graphiqueWrapper">
+          <div id="graphiqueContainer">
+            <canvas id="chartCanvas"></canvas>
+          </div>
+          <div id="alerteLigne" class="alerte-drag-line" hidden></div>
+          <div id="alerteBadge" class="alerte-drag-badge" hidden></div>
+          <button id="alerteDeclencheur" class="alerte-drag-trigger" onclick="ouvrirPlacementAlerte()" title="Ajouter une alerte" aria-label="Ajouter une alerte" hidden>
+            <svg class="icon icon-sm"><use href="#icon-bell"></use></svg>
+          </button>
+          <button id="alerteAnnuler" class="alerte-drag-cancel" onclick="annulerPlacementAlerte()" title="Annuler" aria-label="Annuler" hidden>
+            <svg class="icon icon-sm"><use href="#icon-x"></use></svg>
+          </button>
+          <button id="alerteConfirmer" class="alerte-drag-confirm" onclick="confirmerPlacementAlerte()" title="Creer l'alerte a ce seuil" aria-label="Creer l'alerte a ce seuil" hidden>
+            <svg class="icon icon-sm"><use href="#icon-check"></use></svg>
+          </button>
         </div>
       </div>
     </div>

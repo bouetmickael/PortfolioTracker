@@ -6,14 +6,18 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/3** — revue de dette technique n°3 effectuée le 2026-07-25 (voir
+**3/3** — revue de dette technique n°3 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°2 (Session 11 badges d'alerte, Session 12
 partage RW de section, Session 13 tuiles d'indices de marché). Compteur
 réinitialisé à 0/3. Correctif tuiles d'indices (v1.6.1) livré le
 2026-07-25, compteur incrémenté à 1/3. Précision de périmètre usage
-smartphone uniquement + simplification CSS responsive (v1.6.2,
-ci-dessous) livré le 2026-07-25, compteur incrémenté à 2/3.
+smartphone uniquement + simplification CSS responsive (v1.6.2) livré le
+2026-07-25, compteur incrémenté à 2/3. Alerte depuis le graphique
+(v1.7.0, ci-dessous) livrée le 2026-07-25, compteur incrémenté à 3/3 —
+**le seuil est atteint : la prochaine session doit être le cycle de
+revue de dette technique (`METHOD.md` §0.2), pas une nouvelle
+fonctionnalité.**
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -125,17 +129,26 @@ produit ci-après, à arbitrer avec l'utilisateur.
   la feuille de style. Aucun changement visuel pour l'utilisateur sur un
   vrai téléphone (déjà piloté par le correctif mobile auparavant). Fait
   le 2026-07-25.
+- [x] **Alerte depuis le graphique (v1.7.0)** (demande explicite
+  utilisateur, captures d'écran TradingView) : nouvelle voie de création
+  d'une alerte de seuil par glisser-déposer directement sur le graphique
+  historique d'une valeur (voir `DESIGN.md` § Alerte depuis le
+  graphique), en plus du formulaire existant. Disponible uniquement sur
+  mes propres valeurs suivies — jamais sur un indice de marché ni sur une
+  valeur d'une section partagée avec moi, ces deux cas ne pouvant
+  techniquement jamais déclencher d'alerte (voir `BUSINESS_RULES.md` §
+  Alertes de seuil, jointure de `checkAlerts()`). Fait le 2026-07-25.
 
 ## Backlog produit
 
 À compléter au-delà de ce point — aucune autre source du dépôt (issue
 tracker, notes de session, roadmap) ne liste de prochaines fonctionnalités
-prévues au-delà du plan livré (Sessions A à E) et de la revue n°3
+prévues au-delà du plan livré (Sessions A à E) et des sessions listées
 ci-dessus. Ne pas confondre avec les « limites connues » listées dans
 `SPECIFICATION_FONCTIONNELLE.md` (PER sectoriel, screening, Greeks,
 volatilité implicite, parité) : ce sont des limites assumées par le
 README public, pas des éléments déjà priorisés pour une future session —
 à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
-de revue étant à 0/3 (voir ci-dessus), la prochaine session peut porter
-sur une nouvelle fonctionnalité, à condition que l'utilisateur en précise
-une (aucune n'est encore priorisée dans ce backlog produit).
+de revue ayant atteint 3/3 (voir ci-dessus), la prochaine session est de
+toute façon le cycle de revue de dette technique (`METHOD.md` §0.2), pas
+un nouveau point de ce backlog.

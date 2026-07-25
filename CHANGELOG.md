@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.7.0
+
+- Nouvelle facon de creer une alerte de seuil : directement depuis le
+  graphique historique d'une valeur suivie, en glissant une ligne
+  pointillee jusqu'au niveau souhaite (comme sur TradingView) puis en
+  validant d'un tap. L'alerte est creee immediatement avec le seuil
+  haut ou bas selon le sens du glissement (au-dessus/en-dessous du
+  cours actuel). Disponible uniquement sur les valeurs de ma propre
+  liste "Valeurs suivies" (pas sur les indices de marche ni sur les
+  valeurs d'une section partagee, qui ne peuvent techniquement pas
+  declencher d'alerte). Le formulaire existant (icone cloche sur la
+  ligne de la valeur) reste disponible pour poser un seuil haut et bas
+  en une seule fois.
+
 ## 1.6.2
 
 - Precision de perimetre (demande explicite utilisateur) : l'application

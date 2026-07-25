@@ -128,6 +128,18 @@
 - L'envoi d'email est optionnel et non bloquant : sans `SMTP_*` configuré,
   l'alerte est seulement loguée (`Email non envoye (SMTP non configure)`),
   jamais une erreur qui bloque le reste de l'application.
+- **Portée technique de toute voie de création d'alerte** (formulaire
+  `#modalCreateAlerte` ou glisser-déposer sur le graphique, voir
+  `DESIGN.md` § Alerte depuis le graphique) : `checkAlerts()`
+  (`server/jobs/alerts.js`) n'évalue une alerte que via une jointure
+  stricte `valeurs.user_id = alertes.user_id AND valeurs.ticker =
+  alertes.ticker`. Une alerte créée sur un ticker absent de `valeurs`
+  pour l'utilisateur courant (un indice de marché, ou la valeur d'un
+  autre compte via une section partagée) n'est donc **jamais évaluée** —
+  silencieusement morte, pas une erreur visible. Toute nouvelle UI de
+  création d'alerte doit donc rester restreinte aux valeurs de ma propre
+  liste "Valeurs suivies", jamais aux indices ni aux sections partagées
+  avec moi.
 
 ## Indices de marché (données globales)
 

@@ -36,7 +36,9 @@ utilisateur), `icon-moon`/`icon-sun` (bascule thème clair/sombre),
 (renommer une section), `icon-share` (partager une section, voir
 composant « Partage de section » ci-dessous), `icon-chevron-down`
 (replier/déplier une section), `icon-x` (fermer une modale), `icon-plus`
-(ajouter). Toutes
+(ajouter), `icon-check` (valider le seuil d'une alerte posée directement
+sur le graphique, voir composant « Alerte depuis le graphique »
+ci-dessous). Toutes
 en `stroke="currentColor"` (la couleur suit `color` du bouton parent),
 `stroke-width="2"`, viewBox `0 0 24 24`, style trait rond (`stroke-
 linecap`/`stroke-linejoin: round`), taille `20x20` (`.icon`), `16x16`
@@ -279,6 +281,35 @@ délibéré antérieur, non remis en cause).
   (courbe, grille, ticks) adapte ses couleurs au thème actif (calculées
   dans `chargerGraphique()`, `public/app.js`, à partir de l'attribut
   `data-theme` courant).
+- **Alerte depuis le graphique** (session 2026-07-25, demande explicite
+  utilisateur, inspirée du geste de glisser-déposer de TradingView) :
+  sur le graphique d'une valeur de ma propre liste "Valeurs suivies"
+  (jamais un indice de marché ni une valeur d'une section partagée avec
+  moi — même périmètre que le bouton cloche existant sur la ligne, voir
+  `BUSINESS_RULES.md` § Alertes de seuil pour la raison technique), un
+  bouton rond `icon-bell` (`.alerte-drag-trigger`, ancré en bas-gauche du
+  graphique, `position: absolute` dans `#graphiqueWrapper`) ouvre un
+  « mode placement » : une ligne pointillée or (`.alerte-drag-line`,
+  même couleur `--primary` que la courbe du graphique) apparaît sur le
+  cours actuel de la valeur, accompagnée d'une pastille sombre
+  (`.alerte-drag-badge`, fond `--toast-neutral`, texte blanc) affichant
+  le prix courant. Glisser n'importe où sur le graphique (souris ou
+  tactile, `Pointer Events`, `touch-action: none` le temps du mode
+  placement) déplace la ligne et met à jour la pastille en direct, en
+  s'appuyant sur les API publiques de l'échelle Chart.js
+  (`getValueForPixel`/`getPixelForValue`, pas de plugin d'annotation
+  supplémentaire). Le bouton `icon-bell` est remplacé par un bouton
+  `icon-x` (annuler, même emplacement bas-gauche) ; un bouton rond doré
+  `icon-check` apparaît en bas-droite pour valider. Au tap sur la coche,
+  l'alerte est créée immédiatement (`POST /api/alertes`, sans repasser
+  par `#modalCreateAlerte`) avec `seuilHaut` si le seuil glissé est
+  au-dessus du cours actuel de la valeur, `seuilBas` sinon — l'utilisateur
+  reste sur le graphique (peut poser une seconde alerte dans la foulée).
+  Annuler ferme le mode placement sans rien créer. Le formulaire complet
+  (icône cloche sur la ligne de la valeur, `#modalCreateAlerte`) reste la
+  voie à privilégier pour poser haut ET bas en une fois ; cette nouvelle
+  voie ne le remplace pas, elle s'y ajoute pour le geste rapide "un seul
+  seuil, directement sur le graphique".
 
 ## Responsive
 

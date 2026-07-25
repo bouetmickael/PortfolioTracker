@@ -842,9 +842,83 @@ body {
   border-color: var(--primary);
 }
 
+#graphiqueWrapper {
+  position: relative;
+}
+
+#graphiqueWrapper.placement-actif #graphiqueContainer {
+  cursor: ns-resize;
+  touch-action: none;
+}
+
 #graphiqueContainer {
   height: 300px;
   position: relative;
+}
+
+.alerte-drag-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px dashed var(--primary);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.alerte-drag-badge {
+  position: absolute;
+  left: 8px;
+  transform: translateY(-50%);
+  background: var(--toast-neutral);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 6;
+}
+
+.alerte-drag-trigger, .alerte-drag-cancel, .alerte-drag-confirm {
+  position: absolute;
+  bottom: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  z-index: 7;
+  transition: background 0.2s;
+}
+
+.alerte-drag-trigger[hidden], .alerte-drag-cancel[hidden], .alerte-drag-confirm[hidden] {
+  display: none;
+}
+
+.alerte-drag-trigger, .alerte-drag-cancel {
+  left: 8px;
+  background: var(--bg);
+  color: var(--text-secondary);
+}
+
+.alerte-drag-trigger:hover, .alerte-drag-cancel:hover {
+  background: var(--bg-secondary);
+}
+
+.alerte-drag-confirm {
+  right: 8px;
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.alerte-drag-confirm:hover {
+  background: var(--primary-dark);
 }
 
 /* MENU UTILISATEUR */
