@@ -172,6 +172,9 @@
                       <div class="valeur-sousligne">
                         <span class="ticker" x-text="valeur.ticker"></span>
                         <span class="badge-type" x-text="(valeur.type || 'Action').toUpperCase()"></span>
+                        <span class="badge-alerte" x-show="valeur.hasAlerte" title="Alerte active">
+                          <svg class="icon-xs"><use href="#icon-bell"></use></svg>
+                        </span>
                       </div>
                       <div class="valeur-footer">
                         <div x-text="'MAJ: ' + formatHeure(valeur.derniereMaj)"></div>

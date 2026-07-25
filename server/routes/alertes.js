@@ -40,10 +40,13 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Au moins un seuil requis' });
   }
 
+  const valeur = db.prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?').get(req.session.userId, ticker);
+  const valeurId = valeur ? valeur.id : null;
+
   db.prepare(
-    `INSERT INTO alertes (user_id, ticker, seuil_haut, seuil_bas, active, dernier_cours_alerte, derniere_alerte, cree_le)
-     VALUES (?, ?, ?, ?, 1, NULL, NULL, ?)`
-  ).run(req.session.userId, ticker, seuilHaut, seuilBas, Date.now());
+    `INSERT INTO alertes (user_id, ticker, valeur_id, seuil_haut, seuil_bas, active, dernier_cours_alerte, derniere_alerte, cree_le)
+     VALUES (?, ?, ?, ?, ?, 1, NULL, NULL, ?)`
+  ).run(req.session.userId, ticker, valeurId, seuilHaut, seuilBas, Date.now());
 
   res.status(201).json({ success: true });
 });

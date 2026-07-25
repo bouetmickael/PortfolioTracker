@@ -37,8 +37,11 @@ utilisateur), `icon-moon`/`icon-sun` (bascule thème clair/sombre),
 section), `icon-x` (fermer une modale), `icon-plus` (ajouter). Toutes
 en `stroke="currentColor"` (la couleur suit `color` du bouton parent),
 `stroke-width="2"`, viewBox `0 0 24 24`, style trait rond (`stroke-
-linecap`/`stroke-linejoin: round`), taille `20x20` (`.icon`) ou `16x16`
-(`.icon-sm`, utilisé dans les actions denses de ligne). Exception :
+linecap`/`stroke-linejoin: round`), taille `20x20` (`.icon`), `16x16`
+(`.icon-sm`, utilisé dans les actions denses de ligne) ou `10x10`
+(`.icon-xs`, utilisé uniquement dans le badge d'alerte `.badge-alerte`
+de la liste des valeurs, voir composant « Liste des valeurs suivies »
+ci-dessous). Exception :
 `icon-grip` (poignée de glisser-déposer d'une valeur, voir composant
 « Liste des valeurs suivies » ci-dessous) est en `fill="currentColor"`
 (6 points pleins) plutôt qu'en trait, plus lisible à petite taille pour
@@ -157,8 +160,15 @@ délibéré antérieur, non remis en cause).
   - au centre : nom de la valeur (`.valeur-nom`, 15px/500 ; ticker en
     repli si le nom est absent), puis ticker + **badge pilule** du type
     (`.badge-type`, ex. "ACTION"/"WARRANT", fond `--bg-secondary`,
-    10px/600, majuscules) sur la ligne suivante (`.valeur-sousligne`),
-    puis le footer sur **deux lignes distinctes** — `MAJ: hh:mm` et
+    10px/600, majuscules), suivi si la valeur a au moins une alerte de
+    seuil active d'un second badge pilule (`.badge-alerte`, icône
+    `icon-bell` en `.icon-xs`, fond `--primary` (or), icône blanche —
+    même gabarit que `.badge-type` mais coloré pour signaler l'état actif
+    plutôt que le type de valeur), sur la ligne suivante
+    (`.valeur-sousligne`) ; `hasAlerte` (booléen calculé côté API par
+    jointure sur les alertes actives de l'utilisateur, voir
+    `BACKLOG.md` Session C) pilote son affichage (`x-show`), pas de
+    nouvelle donnée cliente, puis le footer sur **deux lignes distinctes** — `MAJ: hh:mm` et
     `Vol: xxx` chacune sur sa propre ligne (`.valeur-footer` en
     `flex-direction: column`), pour que le volume ne soit jamais coupé/
     tronqué au milieu par un retour à la ligne intempestif (correction

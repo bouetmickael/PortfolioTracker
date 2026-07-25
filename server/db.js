@@ -107,4 +107,32 @@ const backfillSectionsParDefaut = db.transaction(() => {
 
 backfillSectionsParDefaut();
 
+// Migration : ajout de alertes.valeur_id (cle etrangere vers valeurs.id),
+// introduite apres la creation initiale de la table alertes, pour permettre
+// de savoir en une jointure/sous-requete si une valeur suivie a une alerte
+// active (badge d'alerte sur la liste des valeurs).
+const colonnesAlertes = db.prepare('PRAGMA table_info(alertes)').all().map((c) => c.name);
+
+if (!colonnesAlertes.includes('valeur_id')) {
+  db.exec('ALTER TABLE alertes ADD COLUMN valeur_id INTEGER REFERENCES valeurs(id)');
+}
+
+const backfillValeurIdAlertes = db.transaction(() => {
+  const alertesSansValeurId = db
+    .prepare('SELECT id, user_id, ticker FROM alertes WHERE valeur_id IS NULL')
+    .all();
+
+  const trouverValeur = db.prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?');
+  const affecterValeurId = db.prepare('UPDATE alertes SET valeur_id = ? WHERE id = ?');
+
+  for (const alerte of alertesSansValeurId) {
+    const valeur = trouverValeur.get(alerte.user_id, alerte.ticker);
+    if (valeur) {
+      affecterValeurId.run(valeur.id, alerte.id);
+    }
+  }
+});
+
+backfillValeurIdAlertes();
+
 module.exports = db;

@@ -20,7 +20,8 @@ function toValeursMap(rows) {
       derniereMaj: row.derniere_maj,
       ajouteLe: row.ajoute_le,
       sectionId: row.section_id,
-      ordre: row.ordre
+      ordre: row.ordre,
+      hasAlerte: Boolean(row.has_alerte)
     };
   }
   return map;
@@ -37,7 +38,17 @@ function sectionCible(userId, sectionId) {
 }
 
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM valeurs WHERE user_id = ?').all(req.session.userId);
+  const rows = db
+    .prepare(
+      `SELECT v.*,
+         EXISTS(
+           SELECT 1 FROM alertes a
+           WHERE a.valeur_id = v.id AND a.user_id = v.user_id AND a.active = 1
+         ) AS has_alerte
+       FROM valeurs v
+       WHERE v.user_id = ?`
+    )
+    .all(req.session.userId);
   res.json(toValeursMap(rows));
 });
 

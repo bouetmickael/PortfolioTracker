@@ -6,13 +6,13 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/3** — revue de dette technique n°2 effectuée le 2026-07-25 (voir
+**1/3** — revue de dette technique n°2 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique et `TODO.md`),
 portant sur le diff cumulé depuis la revue n°1 (Session B sections +
 drag-and-drop, refonte visuelle + thème clair/sombre, et les deux
 correctifs directs poignée de glisser-déposer / modales prompt-confirm).
-Compteur réinitialisé : la prochaine session peut reprendre la Session C
-ci-dessous.
+Session C (badges d'alerte, ci-dessous) livrée le 2026-07-25, compteur
+incrémenté à 1/3 en conséquence.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -64,8 +64,9 @@ partage RW de section entre utilisateurs. Découpage :
   (`+ Nouvelle section`) / renommer (`M`) / supprimer (`X`) une section
   et glisser-déposer (SortableJS vendorisé, valeurs entre/dans les
   sections + sections elles-mêmes). Fait cette session (2026-07-25).
-- [ ] **Session C — badges d'alerte** : `alertes.valeur_id` + backfill,
-  `hasAlerte` exposé par l'API, badge visuel sur les lignes.
+- [x] **Session C — badges d'alerte** : `alertes.valeur_id` + backfill,
+  `hasAlerte` exposé par l'API, badge visuel sur les lignes. Fait cette
+  session (2026-07-25).
 - [ ] **Session D — partage RW de section** : `section_shares`,
   `GET /api/users`, contrôle d'accès, modale de partage, amendement
   explicite de `BUSINESS_RULES.md` (isolation stricte), tests d'accès

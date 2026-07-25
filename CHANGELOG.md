@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0
+
+- Ajout d'un badge d'alerte sur la liste des valeurs suivies : un pictogramme
+  cloche s'affiche a cote du type (badge pilule) de chaque valeur ayant au
+  moins une alerte de seuil active, pour la reperer sans avoir a ouvrir la
+  section des alertes. Migration de base ajoutant `alertes.valeur_id`
+  (resolution automatique de l'existant par ticker+utilisateur au demarrage)
+  et nouveau champ `hasAlerte` sur `GET /api/valeurs`.
+
 ## 1.3.2
 
 - Remplacement des popups navigateur natives (`prompt()`/`confirm()`,

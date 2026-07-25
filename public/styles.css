@@ -113,6 +113,11 @@ body {
   height: 16px;
 }
 
+.icon-xs {
+  width: 10px;
+  height: 10px;
+}
+
 .icon-chevron {
   transition: transform 0.2s;
 }
@@ -517,6 +522,18 @@ body {
   font-weight: 600;
   letter-spacing: 0.3px;
   padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.badge-alerte {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #ffffff;
+  padding: 2px 5px;
   border-radius: 4px;
   margin-left: 6px;
 }

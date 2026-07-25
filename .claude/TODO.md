@@ -493,3 +493,67 @@ section/valeur/alerte) : aucune des deux ne suit le theme clair/sombre.
   reportes de la revue n°1, toujours non traites.
 - Compteur `BACKLOG.md` : reinitialise a 0/3. Prochaine session : Session
   C (badges d'alerte, voir `BACKLOG.md`).
+
+## 2026-07-25 — Session C : badges d'alerte (v1.4.0)
+
+Session fonctionnelle suivant le plan multi-sessions "Refonte ergonomie
+liste des valeurs" (`BACKLOG.md`), troisieme etape apres le socle
+Alpine.js (Session A) et les sections + glisser-depose (Session B) :
+reperer visuellement, sur la liste des valeurs suivies, les valeurs ayant
+au moins une alerte de seuil active, sans avoir a ouvrir la section des
+alertes.
+
+- **Migration DB** (`server/db.js`) : ajout de `alertes.valeur_id`
+  (`INTEGER REFERENCES valeurs(id)`, `ALTER TABLE` sur les bases
+  existantes, meme pattern que la migration `section_id`/`ordre` de la
+  Session B). Backfill (`backfillValeurIdAlertes`, `db.transaction`) :
+  pour chaque alerte existante sans `valeur_id`, resolution par
+  correspondance `(user_id, ticker)` sur la table `valeurs` ; laisse
+  `valeur_id` a `NULL` si aucune valeur ne correspond (alerte orpheline,
+  cas deja possible avant cette session car `POST /api/alertes` n'a
+  jamais impose qu'un `ticker` corresponde a une valeur suivie).
+- **API** (`server/routes/alertes.js`, `server/routes/valeurs.js`) :
+  `POST /api/alertes` resout desormais `valeur_id` a la creation (meme
+  requete `(user_id, ticker)` que le backfill). `GET /api/valeurs`
+  expose un nouveau champ `hasAlerte` (booleen), calcule par une
+  sous-requete `EXISTS` correlee sur `alertes` filtree par
+  `valeur_id = v.id AND a.user_id = v.user_id AND a.active = 1` -
+  filtrage par `user_id` fait dans la requete SQL elle-meme
+  (`BUSINESS_RULES.md`), pas de risque de fuite meme si `valeur_id`
+  n'etait pas unique par construction.
+- **UI** (`public/index.html`, `public/styles.css`) : nouveau badge
+  pilule `.badge-alerte` (icone `icon-bell` existante, taille `.icon-xs`
+  10x10 nouvellement introduite, fond `--primary` or, icone blanche),
+  affiche via `x-show="valeur.hasAlerte"` juste apres le badge de type
+  existant (`.badge-type`) dans `.valeur-sousligne` - meme patron visuel
+  que ce badge existant plutot qu'un nouveau style, conformement a la
+  consigne de session. `DESIGN.md` mis a jour (liste des tailles
+  d'icones, composant Liste des valeurs suivies).
+- **Tests** (`server/test/`) :
+  - `db-migration.test.js` (nouveau) : pre-remplit une base au format
+    "avant migration" (table `alertes` sans `valeur_id`) avant de
+    `require('../db')`, verifie que le backfill resout bien `valeur_id`
+    pour une alerte correspondant a une valeur existante et le laisse a
+    `NULL` pour un ticker orphelin.
+  - `alertes.test.js` (nouveau) : `hasAlerte` a `false` sans alerte,
+    passe a `true` a la creation d'une alerte active, repasse a `false`
+    apres suppression, et isolation stricte entre deux utilisateurs
+    suivant le meme ticker (l'alerte de l'un ne marque pas la valeur de
+    l'autre).
+- **Verification reelle** : suite de tests executee via `node --test`
+  (19 sous-tests verts, dont les 4 fichiers `test/*.test.js` existants
+  inchanges) - `npm test` (`node --test test/`) echoue dans cet
+  environnement sandbox avec une erreur `MODULE_NOT_FOUND` sans rapport
+  avec ce changement (reproduit a l'identique sur `HEAD` avant toute
+  modification de cette session, `git stash` a l'appui) ; `node --test`
+  (sans argument, decouverte automatique) et `node --test test/*.test.js`
+  executent la meme suite avec succes - a surveiller sur un environnement
+  de deploiement reel (Docker) plutot qu'un correctif suppose dans cette
+  session. Serveur demarre en local (`DB_PATH` temporaire) sans erreur
+  au demarrage (nouvelle migration + backfill `valeur_id`).
+- Version : `server/package.json`/`config.yaml`/`server/package-lock.json`
+  1.3.2 -> 1.4.0 (increment MINEUR, nouvelle fonctionnalite utilisateur
+  visible, meme ampleur que la Session B qui avait egalement recu un
+  increment mineur), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 0/3 -> 1/3. Prochaine session : Session D
+  (partage RW de section, voir `BACKLOG.md`).
