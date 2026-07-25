@@ -38,7 +38,11 @@ section), `icon-x` (fermer une modale), `icon-plus` (ajouter). Toutes
 en `stroke="currentColor"` (la couleur suit `color` du bouton parent),
 `stroke-width="2"`, viewBox `0 0 24 24`, style trait rond (`stroke-
 linecap`/`stroke-linejoin: round`), taille `20x20` (`.icon`) ou `16x16`
-(`.icon-sm`, utilisé dans les actions denses de ligne).
+(`.icon-sm`, utilisé dans les actions denses de ligne). Exception :
+`icon-grip` (poignée de glisser-déposer d'une valeur, voir composant
+« Liste des valeurs suivies » ci-dessous) est en `fill="currentColor"`
+(6 points pleins) plutôt qu'en trait, plus lisible à petite taille pour
+ce usage précis.
 
 Aucun émoji dans le code, les commentaires ou l'UI (règle inchangée,
 voir `ARCHITECTURE.md` §4).
@@ -131,9 +135,18 @@ délibéré antérieur, non remis en cause).
   À l'intérieur de chaque section, chaque valeur reste une ligne plate
   (`.valeur-row`) séparée par une bordure fine (`--border`), fond
   `--bg-secondary` au survol, toute la ligne cliquable pour ouvrir le
-  graphique et également glissable (SortableJS, `public/vendor/
-  sortable.min.js`) vers une autre position dans la même section ou vers
-  une autre section. Contenu de la ligne :
+  graphique. Le glisser-déposer (SortableJS, `public/vendor/
+  sortable.min.js`, vers une autre position dans la même section ou vers
+  une autre section) ne se déclenche **que** depuis une poignée dédiée
+  (`.valeur-drag-handle`, icône `icon-grip` à 6 points, tout à gauche de
+  la ligne, avant l'avatar) — **pas** depuis n'importe quel point de la
+  ligne : sur mobile, rendre toute la ligne glissable empêcherait de
+  scroller la page en touchant une valeur (retour utilisateur du
+  2026-07-25). La poignée porte `touch-action: none` (empêche le
+  navigateur d'intercepter le geste tactile comme un scroll), le reste de
+  la ligne n'a aucune restriction de `touch-action` et scrolle
+  normalement. Contenu de la ligne :
+  - poignée de glisser-déposer (icône `icon-grip`) ;
   - avatar rond à gauche (initiales + couleur générée depuis le ticker) ;
   - au centre : nom de la valeur (`.valeur-nom`, 15px/500 ; ticker en
     repli si le nom est absent), puis ticker + **badge pilule** du type

@@ -346,3 +346,47 @@ pas implementee cette session).
   l'application), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 1/3 -> 2/3. Prochaine session : Session C
   (badges d'alerte) du plan en cours.
+
+## 2026-07-25 — Correctif : poignee de glisser-depose (v1.3.1)
+
+Retour utilisateur immediat apres verification visuelle de la session
+precedente (captures d'ecran demandees pour confirmer l'absence de
+l'icone "article de presse" de l'ancienne version - confirmee absente,
+seuls les icones `icon-bell`/`icon-trash` sont presentes sur chaque
+ligne). En testant, l'utilisateur a signale un probleme d'ergonomie non
+anticipe : le glisser-depose d'une valeur (SortableJS, toute la ligne
+`.valeur-row` comme source de glisser-depose depuis la Session B) genait
+le scroll tactile de la page sur mobile, puisque n'importe quel toucher
+sur une ligne pouvait etre interprete comme un debut de glisser-depose
+plutot qu'un scroll. L'utilisateur a suggere une poignee a gauche, a
+moins d'avoir une meilleure idee.
+
+- **Correctif** (`public/index.html`/`public/app.js`/`public/styles.css`)
+  : nouvelle icone `icon-grip` (6 points, `fill="currentColor"`, seule
+  exception au style trait des autres icones) dans une poignee dediee
+  (`.valeur-drag-handle`) ajoutee tout a gauche de chaque ligne, avant
+  l'avatar. `initSortableValeurs()` restreint desormais le glisser-
+  depose a cette poignee (`handle: '.valeur-drag-handle'` au lieu de
+  toute la ligne). La poignee porte `touch-action: none` (empeche le
+  navigateur de capturer le geste tactile comme un debut de glisser-
+  depose plutot qu'un scroll) ; le reste de la ligne n'a aucune
+  restriction de `touch-action` et scrolle normalement. La poignee a
+  aussi `@click.stop` pour ne pas declencher l'ouverture du graphique
+  sur un simple tap (elle n'est pas un raccourci vers le graphique,
+  seulement une poignee de glisser-depose).
+- **Verification reelle** : suite `node --test` re-executee (13/13
+  verts, changement frontend uniquement). Playwright : (1) un glisser-
+  depose initie depuis le corps de la ligne (nom de la valeur) ne
+  declenche plus aucune reorganisation (verifie en relisant le DOM apres
+  le geste) ; (2) un clic simple sur le corps de la ligne ouvre toujours
+  la modale graphique ; (3) un clic simple sur la poignee n'ouvre plus la
+  modale graphique ; (4) un glisser-depose initie depuis la poignee
+  deplace bien la valeur vers une autre section (verifie en base via
+  l'API apres le geste). Capture d'ecran du rendu de la poignee envoyee
+  a l'utilisateur pour confirmation visuelle.
+- Version : `server/package.json`/`config.yaml` 1.3.0 -> 1.3.1
+  (correctif, comportement de glisser-depose corrige suite a un retour
+  utilisateur reel), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 2/3 -> 3/3. **Revue de dette technique
+  obligatoire a la prochaine session** (`METHOD.md` §0.2), avant de
+  reprendre la Session C (badges d'alerte) du plan en cours.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.1
+
+- Correction : le glisser-depose d'une valeur ne se declenche plus
+  depuis n'importe quel endroit de la ligne (ce qui genait le scroll
+  tactile sur mobile), mais uniquement depuis une poignee dediee a
+  gauche de la ligne (retour utilisateur). Le reste de la ligne reste
+  cliquable normalement (ouverture du graphique) et scrolle sans
+  interference.
+
 ## 1.3.0
 
 - Retour au style visuel de l'ancienne version du projet (demande

@@ -424,8 +424,8 @@ body {
 .valeur-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 12px 16px 12px 8px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.15s;
@@ -437,6 +437,25 @@ body {
 
 .valeur-row:hover {
   background: var(--bg-secondary);
+}
+
+.valeur-drag-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--text-secondary);
+  cursor: grab;
+  /* Empeche le navigateur d'intercepter le geste comme un scroll de page :
+     seule cette poignee initie le glisser-depose, le reste de la ligne
+     reste scrollable normalement (voir demande utilisateur du
+     2026-07-25 : le glisser-depose ne doit pas geler le scroll tactile). */
+  touch-action: none;
+}
+
+.valeur-drag-handle:active {
+  cursor: grabbing;
 }
 
 .valeur-avatar {

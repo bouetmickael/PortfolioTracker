@@ -6,13 +6,15 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/3** — revue de dette technique effectuée le 2026-07-24 (première
+**3/3** — revue de dette technique effectuée le 2026-07-24 (première
 revue du projet, voir `CLAUDE.md` § Historique des revues de dette
 technique et `TODO.md`). Session B (sections + drag-and-drop) livrée le
 2026-07-25, puis une session hors plan (refonte visuelle + thème clair/
-sombre, demande explicite utilisateur, voir ci-dessous), compteur
-incrémenté à chaque fois. La prochaine session reprend la fonctionnalité
-en cours (Session C ci-dessous).
+sombre, demande explicite utilisateur, voir ci-dessous) et son correctif
+de poignée de glisser-déposer (même jour, retour utilisateur immédiat),
+compteur incrémenté à chaque version livrée. **Compteur à 3/3 : la
+prochaine session doit être la revue de dette technique obligatoire
+(`METHOD.md` §0.2), avant de reprendre la Session C ci-dessous.**
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -27,6 +29,15 @@ générale) et `TODO.md`. Deux éléments vus sur les captures explicitement
   dans le modèle actuel, pas demandé comme nouvelle fonctionnalité ;
 - portefeuilles partagés : correspond à la Session D déjà planifiée
   ci-dessous, ordre du backlog conservé (Session C avant Session D).
+
+**Correctif (même jour, v1.3.1)** : retour utilisateur après vérification
+visuelle — le glisser-déposer d'une valeur ne doit pas se déclencher
+depuis n'importe quel point de la ligne, sous peine de gêner le scroll
+tactile de la page. Ajout d'une poignée dédiée (`.valeur-drag-handle`,
+icône `icon-grip`) à gauche de chaque ligne, seule à porter `touch-
+action: none` ; le reste de la ligne reste cliquable (ouverture du
+graphique) et scrolle normalement. Voir `DESIGN.md` § Liste des valeurs
+suivies.
 
 ## Fonctionnalité en cours
 

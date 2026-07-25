@@ -411,6 +411,7 @@ function initSortableValeurs(el) {
   Sortable.create(el, {
     group: 'valeurs',
     draggable: '.valeur-row',
+    handle: '.valeur-drag-handle',
     animation: 150,
     ghostClass: 'sortable-ghost',
     dragClass: 'sortable-drag',

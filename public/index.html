@@ -74,6 +74,14 @@
       <line x1="12" y1="5" x2="12" y2="19"></line>
       <line x1="5" y1="12" x2="19" y2="12"></line>
     </symbol>
+    <symbol id="icon-grip" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="9" cy="6" r="1.5"></circle>
+      <circle cx="15" cy="6" r="1.5"></circle>
+      <circle cx="9" cy="12" r="1.5"></circle>
+      <circle cx="15" cy="12" r="1.5"></circle>
+      <circle cx="9" cy="18" r="1.5"></circle>
+      <circle cx="15" cy="18" r="1.5"></circle>
+    </symbol>
   </svg>
 
   <header class="header">
@@ -155,6 +163,9 @@
               <div class="valeurs-section-liste" :data-section-id="section.id" x-init="initSortableValeurs($el)" x-show="ouvert" x-transition>
                 <template x-for="valeur in $store.portfolio.valeursDeSection(section.id)" :key="valeur.ticker">
                   <div class="valeur-row" :data-ticker="valeur.ticker" @click="openGraphique(valeur.ticker)">
+                    <div class="valeur-drag-handle" @click.stop title="Glisser pour deplacer" aria-hidden="true">
+                      <svg class="icon icon-sm"><use href="#icon-grip"></use></svg>
+                    </div>
                     <div class="valeur-avatar" :style="{ background: avatarCouleur(valeur.ticker) }" x-text="avatarInitiales(valeur.ticker)"></div>
                     <div class="valeur-main">
                       <div class="valeur-nom" x-text="valeur.nom || valeur.ticker"></div>
