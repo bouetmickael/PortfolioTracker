@@ -1021,3 +1021,66 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - Compteur `BACKLOG.md` : 2/3 -> 3/3 - **seuil atteint, la prochaine
   session est obligatoirement le cycle de revue de dette technique**
   (`METHOD.md` §0.2), pas un nouveau point du backlog produit.
+
+## 2026-07-25 — Revue de dette technique n°4 (`METHOD.md` §0.2)
+
+- **Portee** : `git diff 31b310f..HEAD -- server/ public/` (hors
+  `public/vendor/` et `.claude/*.md`), depuis la revue n°3 (commit de
+  cloture `31b310f`, Session 14) jusqu'a `HEAD` : Session 15 (tuiles
+  d'indices cliquables/compactes), Session 16 (perimetre smartphone-only
+  + CSS responsive simplifiee), Session 17 (alerte depuis le graphique).
+  Correction de perimetre par rapport au prompt de session initial
+  (`e55b83a..HEAD`, en realite le commit de Session 16 elle-meme, aurait
+  exclu les Sessions 15 et 16) : borne basse corrigee sur `31b310f`, le
+  veritable commit de cloture de la revue n°3 (meme type de correction
+  deja applique en Revue n°3). Outillage : skill `/simplify`, 4 agents en
+  parallele (reutilisation, simplification, efficacite, altitude) sur le
+  diff cumule.
+- **Correctifs appliques** (risque faible, comportement inchange - sauf
+  le dernier, correctif d'etat interne sans impact observable en usage
+  normal) :
+  - `public/app.js` : suppression de `annulerPlacementAlerte()` (relais
+    pur vers `fermerPlacementAlerte()`, un seul appelant) ; le bouton
+    Annuler (`public/index.html`) appelle desormais `fermerPlacementAlerte()`
+    directement.
+  - `public/app.js` (`mettreAJourPlacementDepuisEvent()`) : suppression
+    du double clampage (pixel puis valeur) - mathematiquement redondant
+    pour une echelle Chart.js lineaire, conserve uniquement le clampage
+    en espace valeur.
+  - `public/app.js` (`alerteOnPointerDown/Move/Up`) : le rectangle du
+    conteneur du graphique (`getBoundingClientRect()`) est desormais
+    calcule une seule fois par geste de glisser-depose au lieu d'a chaque
+    `pointermove`.
+  - `public/app.js` (`closeAllModals()`) appelle desormais
+    `fermerPlacementAlerte()` - fermer la modale graphique via l'icone
+    `icon-x`/le fond semi-transparent pendant le mode placement laissait
+    auparavant les ecouteurs pointer et `placementAlerteActif` actifs ;
+    sans impact observable en usage normal (`openGraphique()`
+    reinitialise deja l'etat a la reouverture), corrige par coherence
+    defensive.
+- **Verification reelle** : `npm install` (dependances jamais installees
+  dans ce checkout), suite de tests via `node --test test/*.test.js`
+  (29/29 verts) - `npm test` (`node --test test/`) echoue toujours dans
+  cet environnement sandbox avec la meme erreur `MODULE_NOT_FOUND` deja
+  notee en Revue n°3, sans rapport avec ce changement. Serveur demarre en
+  local (`DB_PATH` temporaire) sans erreur, `GET /`/`GET /login.html` ->
+  200. Correctifs limites a du JS/HTML non visuel (pas de changement de
+  gabarit/couleur/disposition) : pas de test manuel navigateur du geste
+  de glisser-depose lui-meme cette session.
+  Aucun changement de comportement observable pour l'utilisateur : pas
+  d'incrementation de version (`METHOD.md` §5.5).
+- **Correctifs reportes** (voir le detail complet dans `CLAUDE.md` §
+  Historique des revues de dette technique, Revue n°4) : duplication CSS
+  entre `.alerte-drag-trigger`/`.alerte-drag-cancel`/`.alerte-drag-confirm`
+  et `.btn-icon-small`/`.btn-icon-gold` (fusion risquant un leger
+  changement de gabarit visuel, a verifier au navigateur) ; double
+  mecanisme de visibilite du mode placement (classe CSS + cinq attributs
+  `hidden` togliges manuellement) ; branche specifique a l'alerte dans
+  `chargerGraphique()` (fonction generique de rendu du graphique) plutot
+  qu'un evenement generique, avec un effet de bord repere au passage
+  (ligne d'alerte non re-clampee lors d'un changement de periode en cours
+  de placement) ; les correctifs reportes des revues n°1/n°2/n°3, toujours
+  non traites.
+- Compteur `BACKLOG.md` : reinitialise a 0/3. Prochaine session : a
+  arbitrer avec l'utilisateur (aucun point supplementaire du backlog
+  produit n'est encore priorise au-dela du plan livre).

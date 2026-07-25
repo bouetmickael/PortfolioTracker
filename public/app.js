@@ -825,6 +825,7 @@ async function openGraphique(ticker, nom = null, alertable = false) {
 // ========================================
 
 let draggingAlerte = false;
+let dragRect = null;
 
 function positionnerLigneAlerte(valeur) {
   if (!chartInstance) return;
@@ -838,11 +839,9 @@ function positionnerLigneAlerte(valeur) {
 }
 
 function mettreAJourPlacementDepuisEvent(e) {
-  if (!chartInstance) return;
+  if (!chartInstance || !dragRect) return;
 
-  const rect = document.getElementById('graphiqueContainer').getBoundingClientRect();
-  const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
-  const brut = chartInstance.scales.y.getValueForPixel(y);
+  const brut = chartInstance.scales.y.getValueForPixel(e.clientY - dragRect.top);
   const { min, max } = chartInstance.scales.y;
   const valeur = Math.max(min, Math.min(max, brut));
 
@@ -852,6 +851,7 @@ function mettreAJourPlacementDepuisEvent(e) {
 
 function alerteOnPointerDown(e) {
   draggingAlerte = true;
+  dragRect = document.getElementById('graphiqueContainer').getBoundingClientRect();
   e.currentTarget.setPointerCapture(e.pointerId);
   mettreAJourPlacementDepuisEvent(e);
 }
@@ -863,6 +863,7 @@ function alerteOnPointerMove(e) {
 
 function alerteOnPointerUp() {
   draggingAlerte = false;
+  dragRect = null;
 }
 
 function ouvrirPlacementAlerte() {
@@ -906,10 +907,6 @@ function fermerPlacementAlerte() {
   containerEl.removeEventListener('pointermove', alerteOnPointerMove);
   containerEl.removeEventListener('pointerup', alerteOnPointerUp);
   containerEl.removeEventListener('pointercancel', alerteOnPointerUp);
-}
-
-function annulerPlacementAlerte() {
-  fermerPlacementAlerte();
 }
 
 async function confirmerPlacementAlerte() {
@@ -1091,6 +1088,7 @@ function openModal(modalId) {
 }
 
 function closeAllModals() {
+  fermerPlacementAlerte();
   document.querySelectorAll('.modal').forEach((modal) => {
     modal.classList.remove('active');
   });

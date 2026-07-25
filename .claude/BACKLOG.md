@@ -6,18 +6,13 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/3** — revue de dette technique n°3 effectuée le 2026-07-25 (voir
+**0/3** — revue de dette technique n°4 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
-diff cumulé depuis la revue n°2 (Session 11 badges d'alerte, Session 12
-partage RW de section, Session 13 tuiles d'indices de marché). Compteur
-réinitialisé à 0/3. Correctif tuiles d'indices (v1.6.1) livré le
-2026-07-25, compteur incrémenté à 1/3. Précision de périmètre usage
-smartphone uniquement + simplification CSS responsive (v1.6.2) livré le
-2026-07-25, compteur incrémenté à 2/3. Alerte depuis le graphique
-(v1.7.0, ci-dessous) livrée le 2026-07-25, compteur incrémenté à 3/3 —
-**le seuil est atteint : la prochaine session doit être le cycle de
-revue de dette technique (`METHOD.md` §0.2), pas une nouvelle
-fonctionnalité.**
+diff cumulé depuis la revue n°3 (Session 15 tuiles d'indices, Session 16
+périmètre smartphone-only + CSS, Session 17 alerte depuis le graphique).
+Compteur réinitialisé à 0/3. Correctifs appliqués purement internes
+(pas de changement de comportement observable), aucun incrément de
+version au sens de `METHOD.md` §5.5.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 

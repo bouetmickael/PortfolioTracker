@@ -299,3 +299,111 @@ variables d'environnement, vérification).
     `supprimerSection()` et consœurs, `valeursDeSection()` recalculé à
     chaque rendu) — voir Revues n°1 et n°2 ci-dessus, aucun n'a été
     adressé cette session.
+
+### 2026-07-25 — Revue n°4
+
+- **Portée** : diff cumulé depuis la revue n°3 jusqu'à `HEAD`
+  (`git diff 31b310f..HEAD -- server/ public/` hors `public/vendor/` et
+  `.claude/*.md`), couvrant Session 15 (tuiles d'indices cliquables/
+  compactes, v1.6.1), Session 16 (périmètre smartphone-only, CSS
+  responsive simplifiée à un seul layout mobile, v1.6.2) et Session 17
+  (création d'alerte par glisser-déposer sur le graphique, v1.7.0).
+  Correction de portée par rapport au prompt de session initial (qui
+  indiquait `e55b83a..HEAD`, en réalité le commit de Session 16
+  elle-même — aurait exclu les Sessions 15 et 16) : le commit de clôture
+  de la revue n°3 est `31b310f` (« Session 14 - technical debt review
+  n3 »), utilisé comme borne basse à la place — même type de correction
+  déjà appliqué en Revue n°3. Outillage utilisé : `/simplify` (4 agents
+  en parallèle : réutilisation, simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement inchangé — sauf
+  le dernier point qui corrige un état interne incohérent sans jamais
+  avoir été observable par l'utilisateur en usage normal —, vérifiés par
+  tests unitaires (`npm test`, 29/29) et un démarrage réel du serveur
+  (`GET /`/`GET /login.html` → 200) ; pas de test manuel navigateur du
+  geste de glisser-déposer lui-même cette session, correctifs limités à
+  du JS non visuel) :
+  - Suppression de `annulerPlacementAlerte()` (`public/app.js`), pur
+    relais vers `fermerPlacementAlerte()` avec un seul appelant ; le
+    bouton Annuler (`public/index.html`) appelle désormais directement
+    `fermerPlacementAlerte()`.
+  - `mettreAJourPlacementDepuisEvent()` (`public/app.js`) : suppression
+    du double clampage (bornage en espace pixel puis re-bornage en
+    espace valeur) — pour une échelle Chart.js linéaire (fonction
+    monotone), les deux bornages produisent mathématiquement le même
+    résultat final ; conservé uniquement le bornage en espace valeur
+    (`Math.max(min, Math.min(max, brut))`).
+  - `alerteOnPointerDown()`/`alerteOnPointerMove()`/`alerteOnPointerUp()`
+    (`public/app.js`) : le rectangle du conteneur du graphique
+    (`getBoundingClientRect()`, potentiellement coûteux — force un
+    recalcul de layout) est désormais calculé une seule fois par geste
+    de glisser-déposer (`alerteOnPointerDown`) au lieu d'être recalculé
+    à chaque évènement `pointermove`.
+  - `closeAllModals()` (`public/app.js`) appelle désormais
+    `fermerPlacementAlerte()` : fermer la modale graphique via l'icône
+    `icon-x`/le fond semi-transparent pendant le mode placement d'une
+    alerte ne laissait auparavant ni les écouteurs `pointerdown/move/up/
+    cancel` sur `#graphiqueContainer`, ni `placementAlerteActif` remis à
+    `false` (seul le chemin `ouvrirPlacementAlerte()`/appel suivant à
+    `openGraphique()` les réinitialisait). Sans impact observable en
+    usage normal (`openGraphique()` réinitialise déjà l'état à la
+    réouverture), corrigé par cohérence défensive plutôt que pour un
+    bug symptomatique constaté.
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - `.alerte-drag-trigger`/`.alerte-drag-cancel` (`public/styles.css`)
+    redéclarent intégralement le motif visuel de `.btn-icon-small`
+    (fond transparent, `border-radius: 50%`, centrage flex, survol
+    `--bg-secondary`, couleur `--text-secondary`) ; `.alerte-drag-
+    confirm` redéclare celui de `.btn-icon-gold` (fond `--primary`,
+    survol `--primary-dark`, 36×36). Fusionnables en ajoutant les
+    classes `btn-icon-small`/`btn-icon-gold` aux boutons et en ne
+    gardant dans `.alerte-drag-*` que le positionnement (`position:
+    absolute`, `bottom`, `left`/`right`) — mais `.btn-icon-small` dérive
+    sa taille du `padding` (pas de `width`/`height` fixes) alors que les
+    boutons de glisser-déposer ont une taille explicite 36×36 : fusionner
+    risquerait un léger changement de gabarit visuel, à vérifier
+    manuellement au navigateur plutôt qu'à corriger en aveugle dans ce
+    cycle (même prudence que la fusion déjà reportée en Revue n°2 pour
+    `showPrompt()`/`showConfirm()`).
+  - Le mode placement (`public/app.js`/`public/styles.css`) pilote sa
+    visibilité par deux mécanismes redondants tenus manuellement en
+    synchronisation : la classe `.placement-actif` sur
+    `#graphiqueWrapper` **et** cinq attributs `hidden` togglés
+    individuellement dans `ouvrirPlacementAlerte()`/
+    `fermerPlacementAlerte()` (`alerteDeclencheur`/`alerteAnnuler`/
+    `alerteConfirmer`/`alerteLigne`/`alerteBadge`). Unifiable en pilotant
+    la visibilité des cinq éléments uniquement par la classe CSS
+    (sélecteurs `#graphiqueWrapper.placement-actif .alerte-drag-*` et
+    leur inverse), mais change le mécanisme d'affichage lui-même —
+    risque de régression visuelle sur une interaction directe, à valider
+    par un test manuel dédié plutôt qu'en correctif à l'aveugle.
+  - `chargerGraphique()` (`public/app.js`), fonction générique de
+    (re)construction du graphique Chart.js partagée par valeurs et
+    indices, contient une branche spécifique à la fonctionnalité
+    « alerte depuis le graphique » (`if (placementAlerteActif) {
+    positionnerLigneAlerte(...) }`) plutôt que de rester ignorante de
+    cette fonctionnalité aval. Piste plus profonde : faire émettre un
+    évènement générique par `chargerGraphique()` (ex.
+    `chart:loaded`) et laisser le code de placement d'alerte s'y
+    abonner. Effet de bord repéré au passage (pas corrigé, hors
+    périmètre d'un correctif de dette technique — relève plutôt d'une
+    revue de correction) : `positionnerLigneAlerte()` réutilise
+    `valeurPlacement` sans le re-clamper aux nouveaux `min`/`max` de
+    l'échelle après un changement de période, contrairement à
+    `mettreAJourPlacementDepuisEvent()` qui clampe — changer de période
+    en cours de placement peut laisser la ligne/pastille hors du
+    graphique visible pour la nouvelle période.
+  - Correctifs reportés des revues n°1/n°2/n°3 toujours non traités
+    (format de réponse API en map, alertes en manipulation DOM directe,
+    logique Yahoo Finance dupliquée `prices.js`/`chart.js`/
+    `updateIndices()`, appels réseau/SMTP séquentiels dans les jobs,
+    absence de cache sur `GET /api/chart/:ticker`, absence de middleware
+    d'erreurs centralisé, trois vérifications de propriété de section
+    dans `sections.js`, `rolesSection()` recalculé pour un seul id,
+    poignée de glisser-déposer des sections, duplication
+    `ajouterSection()`/`renommerSection()`/`supprimerSection()` et
+    consœurs, `valeursDeSection()` recalculé à chaque rendu, duplication
+    `showPrompt()`/`showConfirm()`, duplication
+    `initSortableValeurs()`/`initSortableValeursPartagees()` et
+    `persisterOrdre()`/`persisterOrdreSectionPartagee()`) — voir Revues
+    n°1/n°2/n°3 ci-dessus, aucun n'a été adressé cette session.
