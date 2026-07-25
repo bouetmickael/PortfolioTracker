@@ -10,10 +10,13 @@
 revue du projet, voir `CLAUDE.md` § Historique des revues de dette
 technique et `TODO.md`). Session B (sections + drag-and-drop) livrée le
 2026-07-25, puis une session hors plan (refonte visuelle + thème clair/
-sombre, demande explicite utilisateur, voir ci-dessous) et son correctif
-de poignée de glisser-déposer (même jour, retour utilisateur immédiat),
-compteur incrémenté à chaque version livrée. **Compteur à 3/3 : la
-prochaine session doit être la revue de dette technique obligatoire
+sombre, demande explicite utilisateur, voir ci-dessous) et ses deux
+correctifs directs (poignée de glisser-déposer, puis modales prompt/
+confirm stylées — même jour, retours utilisateur immédiats après
+vérification visuelle), regroupés sous la même session hors plan sans
+incrémenter le compteur au-delà de 3/3 (itération continue sur une même
+demande, pas de nouvelles fonctionnalités distinctes). **Compteur à 3/3 :
+la prochaine session doit être la revue de dette technique obligatoire
 (`METHOD.md` §0.2), avant de reprendre la Session C ci-dessous.**
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
@@ -38,6 +41,14 @@ icône `icon-grip`) à gauche de chaque ligne, seule à porter `touch-
 action: none` ; le reste de la ligne reste cliquable (ouverture du
 graphique) et scrolle normalement. Voir `DESIGN.md` § Liste des valeurs
 suivies.
+
+**Correctif (même jour, v1.3.2)** : autre retour utilisateur — les
+popups navigateur natives (`prompt()`/`confirm()`, utilisées pour créer/
+renommer/supprimer une section ou supprimer une valeur/alerte) gardaient
+l'apparence brute du système, hors charte graphique et incohérentes avec
+le thème clair/sombre. Remplacées par deux modales génériques
+réutilisables (`#modalPrompt`/`#modalConfirm`, résolues comme des
+`Promise`). Voir `DESIGN.md` § Modales.
 
 ## Fonctionnalité en cours
 

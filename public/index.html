@@ -335,6 +335,40 @@
     </div>
   </div>
 
+  <div id="modalPrompt" class="modal">
+    <div class="modal-backdrop" onclick="resolvePrompt(null)"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="promptTitre">Titre</h3>
+        <button class="btn-close" onclick="resolvePrompt(null)" aria-label="Fermer"><svg class="icon icon-sm"><use href="#icon-x"></use></svg></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="promptInput" class="input" autocomplete="off">
+      </div>
+      <div class="modal-footer">
+        <button onclick="resolvePrompt(null)" class="btn btn-secondary">Annuler</button>
+        <button onclick="resolvePromptOk()" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalConfirm" class="modal">
+    <div class="modal-backdrop" onclick="resolveConfirm(false)"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="confirmTitre">Confirmer</h3>
+        <button class="btn-close" onclick="resolveConfirm(false)" aria-label="Fermer"><svg class="icon icon-sm"><use href="#icon-x"></use></svg></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button onclick="resolveConfirm(false)" class="btn btn-secondary">Annuler</button>
+        <button onclick="resolveConfirm(true)" id="confirmOkBtn" class="btn btn-danger">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <div id="loader" class="loader hidden">

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.2
+
+- Remplacement des popups navigateur natives (`prompt()`/`confirm()`,
+  utilisees pour creer/renommer/supprimer une section ou supprimer une
+  valeur/alerte) par des modales stylees coherentes avec le theme
+  clair/sombre de l'application (elles gardaient auparavant l'apparence
+  brute du systeme, hors charte graphique).
+
 ## 1.3.1
 
 - Correction : le glisser-depose d'une valeur ne se declenche plus

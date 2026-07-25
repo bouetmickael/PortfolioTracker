@@ -390,3 +390,51 @@ moins d'avoir une meilleure idee.
 - Compteur `BACKLOG.md` : 2/3 -> 3/3. **Revue de dette technique
   obligatoire a la prochaine session** (`METHOD.md` §0.2), avant de
   reprendre la Session C (badges d'alerte) du plan en cours.
+
+## 2026-07-25 — Correctif : modales prompt/confirm stylees (v1.3.2)
+
+Nouveau retour utilisateur, capture d'ecran a l'appui : la popup
+navigateur native (`window.prompt()`, utilisee pour nommer une nouvelle
+section) gardait l'apparence brute du systeme (fond gris clair, coins
+carres) au-dessus de l'en-tete bleu marine de l'application, hors charte
+graphique. Meme probleme pour `window.confirm()` (suppression de
+section/valeur/alerte) : aucune des deux ne suit le theme clair/sombre.
+
+- **Correctif** (`public/index.html`/`public/app.js`/`public/styles.css`)
+  : deux nouvelles modales generiques reutilisables, sur le meme patron
+  que les modales existantes (`.modal`/`.modal-content`/`openModal()`/
+  `closeAllModals()`) :
+  - `#modalPrompt` (titre dynamique, champ texte, boutons `Annuler`/
+    `OK`) ;
+  - `#modalConfirm` (titre + message dynamiques, boutons `Annuler`/
+    `Confirmer`, `Confirmer` en nouvelle classe `.btn-danger` pour les
+    actions destructives).
+  Cote JS, `showPrompt(titre, valeurDefaut)` et `showConfirm(message,
+  titre)` retournent une `Promise` resolue par clic sur OK/Confirmer
+  (valeur saisie / `true`), ou par clic sur Annuler/le fond semi-
+  transparent/l'icone de fermeture/la touche Echap (`null`/`false`) - le
+  handler global `keydown` Echap existant a ete etendu pour resoudre en
+  annulation la modale prompt/confirm ouverte avant de fermer, plutot que
+  de la fermer sans jamais resoudre la promesse (ce qui aurait bloque
+  indefiniment l'appelant `await`). Les 5 appels a `window.prompt()`/
+  `window.confirm()` (`ajouterSection`, `renommerSection`,
+  `supprimerSection`, `supprimerValeur`, `supprimerAlerte`) sont
+  remplaces par des `await showPrompt(...)`/`await showConfirm(...)`.
+- **Verification reelle** : suite `node --test` re-executee (13/13
+  verts, changement frontend uniquement). Playwright : creation de
+  section via la modale prompt avec soumission au clavier (touche
+  Entree, comme le `prompt()` natif) ; annulation d'une suppression de
+  valeur via clic sur le fond semi-transparent (valeur toujours
+  presente) ; confirmation reelle de la suppression (valeur supprimee) ;
+  fermeture propre d'une modale prompt ouverte via la touche Echap (pas
+  de blocage). Captures d'ecran clair et sombre envoyees a l'utilisateur
+  pour confirmation visuelle.
+- `DESIGN.md` mis a jour (§ Liste des valeurs suivies et § Modales).
+- Version : `server/package.json`/`config.yaml` 1.3.1 -> 1.3.2
+  (correctif), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : reste a 3/3 (ce correctif est regroupe avec la
+  session hors plan du meme jour plutot que compte comme une session
+  distincte - iteration continue sur le meme retour utilisateur, pas une
+  nouvelle fonctionnalite). **Revue de dette technique toujours
+  obligatoire a la prochaine session** (`METHOD.md` §0.2) avant la
+  Session C.

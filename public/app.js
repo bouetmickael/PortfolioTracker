@@ -275,7 +275,8 @@ async function ajouterValeur() {
 }
 
 async function supprimerValeur(ticker) {
-  if (!confirm(`Supprimer ${ticker} de vos valeurs suivies ?`)) return;
+  const ok = await showConfirm(`Supprimer ${ticker} de vos valeurs suivies ?`, 'Supprimer la valeur');
+  if (!ok) return;
 
   showLoader(true);
 
@@ -300,7 +301,7 @@ async function supprimerValeur(ticker) {
 // ========================================
 
 async function ajouterSection() {
-  const nom = prompt('Nom de la nouvelle section :');
+  const nom = await showPrompt('Nom de la nouvelle section :');
   if (!nom || !nom.trim()) return;
 
   showLoader(true);
@@ -327,7 +328,7 @@ async function ajouterSection() {
 }
 
 async function renommerSection(section) {
-  const nom = prompt('Nouveau nom de la section :', section.nom);
+  const nom = await showPrompt('Nouveau nom de la section :', section.nom);
   if (!nom || !nom.trim() || nom.trim() === section.nom) return;
 
   showLoader(true);
@@ -354,7 +355,11 @@ async function renommerSection(section) {
 }
 
 async function supprimerSection(section) {
-  if (!confirm(`Supprimer la section "${section.nom}" ? Les valeurs qu'elle contient seront deplacees vers une autre section.`)) return;
+  const ok = await showConfirm(
+    `Supprimer la section "${section.nom}" ? Les valeurs qu'elle contient seront deplacees vers une autre section.`,
+    'Supprimer la section'
+  );
+  if (!ok) return;
 
   showLoader(true);
 
@@ -509,7 +514,8 @@ async function creerAlerte() {
 }
 
 async function supprimerAlerte(id) {
-  if (!confirm('Supprimer cette alerte ?')) return;
+  const ok = await showConfirm('Supprimer cette alerte ?', 'Supprimer l\'alerte');
+  if (!ok) return;
 
   showLoader(true);
 
@@ -694,6 +700,13 @@ function setupEventListeners() {
   document.getElementById('fab').addEventListener('click', () => {
     openModal('modalAddValeur');
   });
+
+  document.getElementById('promptInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      resolvePromptOk();
+    }
+  });
 }
 
 // ========================================
@@ -718,8 +731,65 @@ function openAlerteModal(ticker) {
   openModal('modalCreateAlerte');
 }
 
+// ========================================
+// PROMPT / CONFIRM (remplacent window.prompt/window.confirm,
+// non stylables et incoherents avec le theme clair/sombre de l'appli)
+// ========================================
+
+let promptResolve = null;
+let confirmResolve = null;
+
+function showPrompt(titre, valeurDefaut = '') {
+  return new Promise((resolve) => {
+    promptResolve = resolve;
+    document.getElementById('promptTitre').textContent = titre;
+    const input = document.getElementById('promptInput');
+    input.value = valeurDefaut;
+    openModal('modalPrompt');
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 50);
+  });
+}
+
+function resolvePrompt(valeur) {
+  closeAllModals();
+  if (promptResolve) {
+    promptResolve(valeur);
+    promptResolve = null;
+  }
+}
+
+function resolvePromptOk() {
+  resolvePrompt(document.getElementById('promptInput').value);
+}
+
+function showConfirm(message, titre = 'Confirmer') {
+  return new Promise((resolve) => {
+    confirmResolve = resolve;
+    document.getElementById('confirmTitre').textContent = titre;
+    document.getElementById('confirmMessage').textContent = message;
+    openModal('modalConfirm');
+  });
+}
+
+function resolveConfirm(valeur) {
+  closeAllModals();
+  if (confirmResolve) {
+    confirmResolve(valeur);
+    confirmResolve = null;
+  }
+}
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
+  if (e.key !== 'Escape') return;
+
+  if (promptResolve) {
+    resolvePrompt(null);
+  } else if (confirmResolve) {
+    resolveConfirm(false);
+  } else {
     closeAllModals();
   }
 });

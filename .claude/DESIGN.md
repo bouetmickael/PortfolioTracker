@@ -126,12 +126,18 @@ délibéré antérieur, non remis en cause).
   En-tête de section (`.valeurs-section-header`, fond `--bg-secondary`) :
   titre repliable (chevron + nom, poignée de glisser-déposer pour
   réordonner les sections entre elles) et deux boutons icône à droite :
-  `icon-pencil` (renommer, invite `prompt()` navigateur) et `icon-trash`
-  (supprimer, `confirm()` de confirmation, masqué s'il ne reste qu'une
-  section — la dernière section d'un utilisateur ne peut pas être
-  supprimée). Une section se crée via le bouton texte `+ Nouvelle
-  section` en bas de liste (même `prompt()` navigateur que le
-  renommage, pas de nouvelle modale).
+  `icon-pencil` (renommer) et `icon-trash` (supprimer, masqué s'il ne
+  reste qu'une section — la dernière section d'un utilisateur ne peut pas
+  être supprimée). Une section se crée via le bouton texte `+ Nouvelle
+  section` en bas de liste. Renommer/créer une section et confirmer une
+  suppression (section, valeur, alerte) passent par des **modales
+  génériques réutilisables** (`#modalPrompt`/`#modalConfirm`,
+  `showPrompt()`/`showConfirm()` dans `public/app.js`, résolues comme des
+  `Promise`) plutôt que par `window.prompt()`/`window.confirm()` — les
+  popups natives du navigateur ignorent entièrement le thème clair/sombre
+  de l'application et détonnaient visuellement (retour utilisateur du
+  2026-07-25). Le bouton de confirmation d'une action destructive utilise
+  `.btn-danger` (fond `--danger`).
   À l'intérieur de chaque section, chaque valeur reste une ligne plate
   (`.valeur-row`) séparée par une bordure fine (`--border`), fond
   `--bg-secondary` au survol, toute la ligne cliquable pour ouvrir le
@@ -174,7 +180,14 @@ délibéré antérieur, non remis en cause).
   secondaires (renommer, supprimer, alerte).
 - **Modales** : fond semi-transparent (`rgba(0,0,0,0.5)`), contenu centré,
   animation `slideUp` 0.2s, variante `.modal-large` (800px) pour le
-  graphique, fermeture via icône `icon-x`.
+  graphique, fermeture via icône `icon-x`. Deux modales génériques
+  réutilisables complètent les modales de formulaire dédiées :
+  `#modalPrompt` (titre + champ texte, boutons `Annuler`/`OK`, soumission
+  au clavier avec `Entrée`) et `#modalConfirm` (titre + message, boutons
+  `Annuler`/`Confirmer` — `Confirmer` en `.btn-danger` pour les actions
+  destructives). Résolues comme des `Promise` (`showPrompt()`/
+  `showConfirm()`), `Échap`/fond semi-transparent/icône `icon-x`
+  résolvent en annulation.
 - **Toasts** : centrés en bas, auto-masqués après 3s, 4 variantes
   (succès/danger-erreur/avertissement/info via `--success`/`--danger`/
   `--warning`/`--toast-neutral`).
