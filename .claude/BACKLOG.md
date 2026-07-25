@@ -6,17 +6,12 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/3** — revue de dette technique n°2 effectuée le 2026-07-25 (voir
-`CLAUDE.md` § Historique des revues de dette technique et `TODO.md`),
-portant sur le diff cumulé depuis la revue n°1 (Session B sections +
-drag-and-drop, refonte visuelle + thème clair/sombre, et les deux
-correctifs directs poignée de glisser-déposer / modales prompt-confirm).
-Session C (badges d'alerte) livrée le 2026-07-25, compteur incrémenté à
-1/3. Session D (partage RW de section) livrée le 2026-07-25, compteur
-incrémenté à 2/3. Session E (tuiles d'indices de marché, ci-dessous)
-livrée le 2026-07-25, compteur incrémenté à 3/3 — **le seuil est
-atteint : la prochaine session doit être le cycle de revue de dette
-technique (`METHOD.md` §0.2), pas une nouvelle fonctionnalité.**
+**0/3** — revue de dette technique n°3 effectuée le 2026-07-25 (voir
+`CLAUDE.md` § Historique des revues de dette technique), portant sur le
+diff cumulé depuis la revue n°2 (Session 11 badges d'alerte, Session 12
+partage RW de section, Session 13 tuiles d'indices de marché). Compteur
+réinitialisé à 0/3 — la prochaine session est une nouvelle fonctionnalité
+du backlog produit ci-dessous, pas une revue.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -55,9 +50,11 @@ réutilisables (`#modalPrompt`/`#modalConfirm`, résolues comme des
 2026-07-24, voir `/root/.claude/plans/fluttering-spinning-swing.md` pour
 l'architecture complète) : glisser-déposer, sections, badges d'alerte,
 partage RW de section entre utilisateurs. **Plan complet, les quatre
-sessions sont livrées** (voir découpage ci-dessous) — la prochaine
-session porte sur le prochain point du backlog produit ci-après
-(compteur de revue à 2/3, voir ci-dessus).
+sessions sont livrées** (voir découpage ci-dessous). Aucune fonctionnalité
+en cours actuellement : la revue de dette technique n°3 vient de clore le
+cycle (voir `CLAUDE.md` § Historique des revues, compteur remis à 0/3
+ci-dessus) — la prochaine session porte sur le prochain point du backlog
+produit ci-après, à arbitrer avec l'utilisateur.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé
   (`public/vendor/alpine.min.js`), rendu de la liste des valeurs migré sur
@@ -89,7 +86,7 @@ session porte sur le prochain point du backlog produit ci-après
   partagées ne sont exposées que par les nouvelles routes dédiées, une
   section à la fois (évite toute ambiguïté de ticker entre comptes).
 
-## Fonctionnalité livrée cette session
+## Sessions précédentes
 
 - [x] **Session E — tuiles d'indices de marché** (demande explicite
   utilisateur, 2026-07-24) : les cartes `stat-card` (`#statTotal`/
@@ -103,17 +100,21 @@ session porte sur le prochain point du backlog produit ci-après
   `indices_marche` (données globales, non rattachées à un utilisateur —
   voir `BUSINESS_RULES.md` § Indices de marché), nouvelle route
   `GET /api/indices`, `updateIndices()` dans `server/jobs/prices.js`.
-  Fait cette session (2026-07-25).
+  Fait le 2026-07-25.
+- [x] **Revue de dette technique n°3** : voir `CLAUDE.md` § Historique
+  des revues de dette technique. Compteur remis à 0/3 (voir ci-dessus).
+  Fait le 2026-07-25.
 
 ## Backlog produit
 
 À compléter au-delà de ce point — aucune autre source du dépôt (issue
 tracker, notes de session, roadmap) ne liste de prochaines fonctionnalités
-prévues au-delà du plan ci-dessus et du point ci-dessus. Ne pas confondre
-avec les « limites connues » listées dans `SPECIFICATION_FONCTIONNELLE.md`
-(PER sectoriel, screening, Greeks, volatilité implicite, parité) : ce sont
-des limites assumées par le README public, pas des éléments déjà
-priorisés pour une future session — à faire arbitrer par l'utilisateur
-avant de les inscrire ici. Le compteur de revue ayant atteint 3/3 (voir
-ci-dessus), la prochaine session est de toute façon le cycle de revue de
-dette technique (`METHOD.md` §0.2), pas un nouveau point de ce backlog.
+prévues au-delà du plan livré (Sessions A à E) et de la revue n°3
+ci-dessus. Ne pas confondre avec les « limites connues » listées dans
+`SPECIFICATION_FONCTIONNELLE.md` (PER sectoriel, screening, Greeks,
+volatilité implicite, parité) : ce sont des limites assumées par le
+README public, pas des éléments déjà priorisés pour une future session —
+à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
+de revue étant à 0/3 (voir ci-dessus), la prochaine session peut porter
+sur une nouvelle fonctionnalité, à condition que l'utilisateur en précise
+une (aucune n'est encore priorisée dans ce backlog produit).

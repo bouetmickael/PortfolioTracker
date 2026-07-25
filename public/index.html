@@ -211,7 +211,7 @@
       </div>
       <div class="empty-state" x-show="$store.portfolio.chargee && $store.portfolio.valeurs.length === 0">
         <p>Aucune valeur suivie</p>
-        <button @click="ouvrirAjoutValeurDefaut()" class="btn btn-primary">
+        <button @click="ouvrirAjoutValeur()" class="btn btn-primary">
           Ajouter une valeur
         </button>
       </div>
@@ -237,7 +237,7 @@
               </div>
             </div>
             <div class="valeurs-section-actions">
-              <button class="btn-icon-small" @click="ouvrirAjoutValeurSection(section)" title="Ajouter une valeur" aria-label="Ajouter une valeur" x-show="section.role === 'ecriture'">
+              <button class="btn-icon-small" @click="ouvrirAjoutValeur(section)" title="Ajouter une valeur" aria-label="Ajouter une valeur" x-show="section.role === 'ecriture'">
                 <svg class="icon icon-sm"><use href="#icon-plus"></use></svg>
               </button>
             </div>

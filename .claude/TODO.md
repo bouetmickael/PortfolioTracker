@@ -791,3 +791,71 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - Compteur `BACKLOG.md` : 2/3 -> 3/3 - **seuil atteint, la prochaine
   session est obligatoirement le cycle de revue de dette technique**
   (`METHOD.md` §0.2), pas un nouveau point du backlog produit.
+
+## 2026-07-25 — Revue de dette technique n°3 (`METHOD.md` §0.2)
+
+- **Portee** : `git diff d1c9718..HEAD -- server/ public/` (hors
+  `public/vendor/` et `.claude/*.md`), depuis la revue n°2 (commit de
+  cloture `d1c9718`, Session 10) jusqu'a `HEAD` : Session 11 (badges
+  d'alerte), Session 12 (partage RW de section), Session 13 (tuiles
+  d'indices de marche). Correction de perimetre par rapport au prompt de
+  session initial (`358c510..HEAD`, en realite le commit de Session 12
+  elle-meme, aurait exclu la Session 11) : borne basse corrigee sur
+  `d1c9718`, le veritable commit de cloture de la revue n°2. Outillage :
+  skill `/simplify`, 4 agents en parallele (reutilisation, simplification,
+  efficacite, altitude) sur le diff cumule.
+- **Correctifs appliques** (risque faible, comportement inchange) :
+  - `server/valeurs.js` (nouveau) : extraction de `HAS_ALERTE_SUBQUERY`
+    et `toValeurJson`/`toValeursMap`, remplace deux copies identiques
+    (sous-requete SQL + fonction de mapping) entre `GET /api/valeurs`
+    (`server/routes/valeurs.js`) et `GET /api/sections/:id/valeurs`
+    (`server/routes/sections.js`).
+  - `public/app.js`/`public/index.html` : fusion de
+    `ouvrirAjoutValeurSection()`/`ouvrirAjoutValeurDefaut()` en une seule
+    `ouvrirAjoutValeur(section = null)` ; listeners `addValeurBtn`/`fab`
+    passes en fermeture (`() => ouvrirAjoutValeur()`) pour eviter que
+    l'objet `Event` du listener natif ne soit recu comme parametre
+    `section`. `formatCours()` delegue desormais a
+    `formatCoursDevise(cours)` au lieu de dupliquer le meme corps.
+  - `server/routes/indices.js` : `SELECT rowid, *` -> `SELECT *` (le tri
+    `ORDER BY rowid` ne necessite pas de selectionner la colonne, jamais
+    lue par le mapper de reponse).
+  - `server/db.js` : extraction de `columnExists(table, column)`,
+    remplace deux occurrences separees du motif `PRAGMA table_info(...)
+    -> .map(name) -> .includes(...)`.
+- **Verification reelle** : `npm install` (dependances jamais installees
+  dans ce checkout), puis suite de tests executee via `node --test
+  test/*.test.js` (29/29 verts) - `npm test` (`node --test test/`) echoue
+  toujours dans cet environnement sandbox avec la meme erreur
+  `MODULE_NOT_FOUND` deja notee en Session E, sans rapport avec ce
+  changement. Serveur demarre en local (`DB_PATH` temporaire) sans erreur
+  au demarrage. Parcours API reel via `curl` : deux comptes enregistres,
+  creation d'une valeur puis d'une alerte avec verification de
+  `hasAlerte` (`GET /api/valeurs`), partage d'une section en ecriture,
+  `GET /api/sections/:id/valeurs` cote invite (meme forme de reponse
+  qu'avant l'extraction), ajout d'une valeur par l'invite dans la section
+  partagee, `GET /api/indices` (reponse inchangee malgre le retrait de
+  `rowid`).
+  Aucun changement de comportement observable pour l'utilisateur : pas
+  d'incrementation de version (`METHOD.md` §5.5, un correctif purement
+  interne n'en necessite pas).
+- **Correctifs reportes** (voir le detail complet dans `CLAUDE.md` §
+  Historique des revues de dette technique, Revue n°3) : trois
+  verifications de propriete de section coexistant dans
+  `server/routes/sections.js` (`sectionPossedee()` vs conditions inline
+  de `PUT`/`DELETE /:id`, ces dernieres encodant la verification
+  directement dans la requete de mutation) ; `rolesSection()` recalculant
+  la carte d'acces complete pour ne lire qu'une seule entree sur les
+  routes `/:id/valeurs*` ; `updateIndices()` (Session 13) dupliquant la
+  boucle sequentielle par ticker de `updatePrices()` au lieu d'un helper
+  commun, sans parallelisation (memes raisons de prudence que la Revue
+  n°1 pour `prices.js`/`alerts.js`) ; duplication de forme entre
+  `initSortableValeurs()`/`initSortableValeursPartagees()` et
+  `persisterOrdre()`/`persisterOrdreSectionPartagee()` (Session 12,
+  risque de regression sur une interaction de glisser-depose directe) ;
+  branche defensive inatteignable dans `rolesSection()` (laissee telle
+  quelle) ; les correctifs reportes des revues n°1 et n°2, toujours non
+  traites.
+- Compteur `BACKLOG.md` : reinitialise a 0/3. Prochaine session : a
+  arbitrer avec l'utilisateur (aucun point supplementaire du backlog
+  produit n'est encore priorise au-dela du plan livre).

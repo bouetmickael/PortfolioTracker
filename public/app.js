@@ -260,18 +260,14 @@ function createAlerteCard(id, alerte) {
 
 // Section partagee ciblee par la modale d'ajout ("+ ajouter" sur une section
 // partagee en ecriture), ou null pour le comportement par defaut (ajout dans
-// la section proprietaire par defaut de l'utilisateur, voir ouvrirAjoutValeurSection).
+// la section proprietaire par defaut de l'utilisateur, voir ouvrirAjoutValeur).
 let sectionCibleAjoutPartagee = null;
 
-function ouvrirAjoutValeurSection(section) {
+function ouvrirAjoutValeur(section = null) {
   sectionCibleAjoutPartagee = section;
-  document.getElementById('modalAddValeurTitre').textContent = `Ajouter une valeur - ${section.nom}`;
-  openModal('modalAddValeur');
-}
-
-function ouvrirAjoutValeurDefaut() {
-  sectionCibleAjoutPartagee = null;
-  document.getElementById('modalAddValeurTitre').textContent = 'Ajouter une valeur';
+  document.getElementById('modalAddValeurTitre').textContent = section
+    ? `Ajouter une valeur - ${section.nom}`
+    : 'Ajouter une valeur';
   openModal('modalAddValeur');
 }
 
@@ -949,9 +945,9 @@ function setupEventListeners() {
     userMenu.classList.remove('active');
   });
 
-  document.getElementById('addValeurBtn').addEventListener('click', ouvrirAjoutValeurDefaut);
+  document.getElementById('addValeurBtn').addEventListener('click', () => ouvrirAjoutValeur());
 
-  document.getElementById('fab').addEventListener('click', ouvrirAjoutValeurDefaut);
+  document.getElementById('fab').addEventListener('click', () => ouvrirAjoutValeur());
 
   document.getElementById('promptInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -1066,8 +1062,7 @@ function showToast(message, type = 'info') {
 }
 
 function formatCours(cours) {
-  if (!cours) return '-';
-  return cours.toFixed(2) + ' EUR';
+  return formatCoursDevise(cours);
 }
 
 function formatVolume(volume) {

@@ -3,30 +3,11 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
+const { HAS_ALERTE_SUBQUERY, toValeursMap } = require('../valeurs');
 
 const router = express.Router();
 
 router.use(requireAuth);
-
-function toValeursMap(rows) {
-  const map = {};
-  for (const row of rows) {
-    map[row.ticker] = {
-      id: row.id,
-      type: row.type,
-      nom: row.nom,
-      cours: row.cours,
-      variation: row.variation,
-      volume: row.volume,
-      derniereMaj: row.derniere_maj,
-      ajouteLe: row.ajoute_le,
-      sectionId: row.section_id,
-      ordre: row.ordre,
-      hasAlerte: Boolean(row.has_alerte)
-    };
-  }
-  return map;
-}
 
 function sectionCible(userId, sectionId) {
   if (sectionId) {
@@ -41,11 +22,7 @@ function sectionCible(userId, sectionId) {
 router.get('/', (req, res) => {
   const rows = db
     .prepare(
-      `SELECT v.*,
-         EXISTS(
-           SELECT 1 FROM alertes a
-           WHERE a.valeur_id = v.id AND a.user_id = v.user_id AND a.active = 1
-         ) AS has_alerte
+      `SELECT v.*, ${HAS_ALERTE_SUBQUERY}
        FROM valeurs v
        WHERE v.user_id = ?`
     )

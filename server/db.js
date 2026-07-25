@@ -87,12 +87,17 @@ for (const indice of INDICES) {
 // Migration : ajout de sections + section_id/ordre sur valeurs (introduites
 // apres la creation initiale de la table valeurs, ALTER TABLE necessaire
 // pour les bases existantes ; CREATE TABLE IF NOT EXISTS ne suffit pas).
-const colonnesValeurs = db.prepare('PRAGMA table_info(valeurs)').all().map((c) => c.name);
+function columnExists(table, column) {
+  return db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all()
+    .some((c) => c.name === column);
+}
 
-if (!colonnesValeurs.includes('section_id')) {
+if (!columnExists('valeurs', 'section_id')) {
   db.exec('ALTER TABLE valeurs ADD COLUMN section_id INTEGER REFERENCES sections(id)');
 }
-if (!colonnesValeurs.includes('ordre')) {
+if (!columnExists('valeurs', 'ordre')) {
   db.exec('ALTER TABLE valeurs ADD COLUMN ordre INTEGER NOT NULL DEFAULT 0');
 }
 
@@ -138,9 +143,7 @@ backfillSectionsParDefaut();
 // introduite apres la creation initiale de la table alertes, pour permettre
 // de savoir en une jointure/sous-requete si une valeur suivie a une alerte
 // active (badge d'alerte sur la liste des valeurs).
-const colonnesAlertes = db.prepare('PRAGMA table_info(alertes)').all().map((c) => c.name);
-
-if (!colonnesAlertes.includes('valeur_id')) {
+if (!columnExists('alertes', 'valeur_id')) {
   db.exec('ALTER TABLE alertes ADD COLUMN valeur_id INTEGER REFERENCES valeurs(id)');
 }
 

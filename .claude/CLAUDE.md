@@ -197,3 +197,97 @@ variables d'environnement, vérification).
     réseau/SMTP séquentiels dans les jobs, absence de cache sur
     `GET /api/chart/:ticker`, absence de middleware d'erreurs centralisé)
     — voir Revue n°1 ci-dessus, aucun n'a été adressé cette session.
+
+### 2026-07-25 — Revue n°3
+
+- **Portée** : diff cumulé depuis la revue n°2 jusqu'à `HEAD`
+  (`git diff d1c9718..HEAD -- server/ public/` hors `public/vendor/` et
+  `.claude/*.md`), couvrant Session 11 (badges d'alerte), Session 12
+  (partage RW de section) et Session 13 (tuiles d'indices de marché).
+  Correction de portée par rapport au prompt de session initial (qui
+  indiquait `358c510..HEAD`, en réalité le commit de Session 12
+  elle-même — aurait exclu la Session 11) : le commit de clôture de la
+  revue n°2 est `d1c9718`, utilisé comme borne basse à la place.
+  Outillage utilisé : `/simplify` (4 agents en parallèle : réutilisation,
+  simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement inchangé,
+  vérifiés par tests unitaires (`npm test`, 29/29) et un parcours API réel
+  — register de deux comptes, création de valeur, création d'alerte et
+  vérification de `hasAlerte`, partage RW d'une section, ajout d'une
+  valeur par l'invité dans la section partagée, `GET /api/indices`) :
+  - Extraction de `server/valeurs.js` (`HAS_ALERTE_SUBQUERY`,
+    `toValeurJson`/`toValeursMap`), utilisé par `GET /api/valeurs`
+    (`server/routes/valeurs.js`) et `GET /api/sections/:id/valeurs`
+    (`server/routes/sections.js`) à la place de deux copies identiques
+    de la sous-requête `EXISTS(...) AS has_alerte` et de la fonction de
+    mapping ligne SQL → JSON (`toValeursMap`/`toValeursSectionMap`).
+  - Fusion de `ouvrirAjoutValeurSection()`/`ouvrirAjoutValeurDefaut()`
+    (`public/app.js`) en une seule `ouvrirAjoutValeur(section = null)`,
+    appelants mis à jour (`public/index.html`, listeners `addValeurBtn`/
+    `fab` passés en fermeture `() => ouvrirAjoutValeur()` pour éviter que
+    l'objet `Event` du listener ne soit reçu comme paramètre `section`).
+  - `formatCours()` (`public/app.js`) délègue désormais à
+    `formatCoursDevise(cours)` (défaut `'EUR'`) au lieu de dupliquer le
+    même corps.
+  - `server/routes/indices.js` : `SELECT rowid, *` → `SELECT *` (le tri
+    `ORDER BY rowid` ne nécessite pas de sélectionner la colonne, jamais
+    lue par le mapper de réponse).
+  - Extraction de `columnExists(table, column)` (`server/db.js`),
+    remplace deux occurrences séparées du motif `PRAGMA table_info(...)
+    → .map(name) → .includes(...)` (migrations `valeurs.section_id`/
+    `ordre` et `alertes.valeur_id`).
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - Trois vérifications de propriété de section coexistent dans
+    `server/routes/sections.js` : le nouveau helper `sectionPossedee()`
+    (utilisé par les trois routes `/:id/partages*`), la condition inline
+    `UPDATE sections SET ... WHERE id = ? AND user_id = ?` de `PUT /:id`,
+    et le `SELECT ... WHERE id = ? AND user_id = ?` inline de
+    `DELETE /:id`. Unifiables sur un seul mécanisme, mais `PUT`/`DELETE`
+    encodent actuellement la vérification de propriété **dans** la
+    requête de mutation elle-même (contrôle atomique) — remplacer par un
+    contrôle préalable via `sectionPossedee()` puis une mutation séparée
+    changerait ce motif d'atomicité, pas un simple renommage. À évaluer
+    avec prudence dans une session dédiée.
+  - `rolesSection()` (`server/partage.js`) recalcule la carte d'accès
+    complète de l'utilisateur (toutes ses sections + toutes les sections
+    partagées avec lui) à chaque appel de `GET/POST/DELETE
+    /api/sections/:id/valeurs`, alors que seule l'entrée d'un id précis
+    est utilisée. Sans impact réel à l'échelle du projet (2-3 comptes,
+    quelques sections chacun), mais une requête ciblée sur le seul id
+    demandé serait plus propre — changement de la logique SQL
+    d'autorisation, pas un correctif ponctuel à risque faible.
+  - `updateIndices()` (`server/jobs/prices.js`, Session 13) répète la
+    boucle séquentielle `for...await` par ticker déjà présente dans
+    `updatePrices()` (même structure try/catch/log par itération) au
+    lieu de partager un helper commun paramétré par la requête de mise à
+    jour — aggrave la dette déjà signalée en Revue n°1 (logique Yahoo
+    Finance dupliquée entre jobs/routes). Paralléliser les 3 appels
+    (`Promise.allSettled`) réduirait le temps du job, mais la Revue n°1 a
+    explicitement écarté ce type de changement pour `prices.js`/
+    `alerts.js` (risque de blocage par Yahoo Finance sous charge
+    parallèle) — traité avec la même prudence ici plutôt que corrigé
+    isolément pour la seule Session 13.
+  - `initSortableValeurs()`/`initSortableValeursPartagees()` et
+    `persisterOrdre()`/`persisterOrdreSectionPartagee()`
+    (`public/app.js`, Session 12) : même duplication de forme que celle
+    déjà repérée en Revue n°2 pour `showPrompt()`/`showConfirm()`
+    (mécanisme générique envisageable mais fusion risquant une
+    régression sur une interaction de glisser-déposer directe) — à
+    traiter avec un test manuel dédié dans une session à part, pas dans
+    ce cycle.
+  - Branche défensive `if (!acces.has(section.id))` dans `rolesSection()`
+    (`server/partage.js`), commentée par son propre auteur comme
+    normalement inatteignable (un propriétaire ne devrait jamais
+    apparaître aussi comme cible de partage de sa propre section) —
+    laissée telle quelle, retrait non justifié par un gain clair.
+  - Correctifs reportés des revues n°1 et n°2 toujours non traités
+    (format de réponse API en map, alertes en manipulation DOM directe,
+    logique Yahoo Finance dupliquée `prices.js`/`chart.js`/désormais
+    `updateIndices()`, appels réseau/SMTP séquentiels dans les jobs,
+    absence de cache sur `GET /api/chart/:ticker`, absence de middleware
+    d'erreurs centralisé, poignée de glisser-déposer des sections,
+    duplication `ajouterSection()`/`renommerSection()`/
+    `supprimerSection()` et consœurs, `valeursDeSection()` recalculé à
+    chaque rendu) — voir Revues n°1 et n°2 ci-dessus, aucun n'a été
+    adressé cette session.

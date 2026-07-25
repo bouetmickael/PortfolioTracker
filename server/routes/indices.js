@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT rowid, * FROM indices_marche ORDER BY rowid ASC').all();
+  const rows = db.prepare('SELECT * FROM indices_marche ORDER BY rowid ASC').all();
 
   res.json(
     rows.map((row) => ({

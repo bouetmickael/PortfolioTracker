@@ -4,6 +4,7 @@ const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
 const { ROLES_VALIDES, rolesSection, peutEcrire } = require('../partage');
+const { HAS_ALERTE_SUBQUERY, toValeursMap } = require('../valeurs');
 
 const router = express.Router();
 
@@ -186,26 +187,6 @@ router.delete('/:id/partages/:userId', (req, res) => {
 // d'UNE section a la fois, ce qui reste sans ambiguite de ticker puisqu'une
 // section n'appartient qu'a un seul proprietaire (voir BUSINESS_RULES.md).
 
-function toValeursSectionMap(rows) {
-  const map = {};
-  for (const row of rows) {
-    map[row.ticker] = {
-      id: row.id,
-      type: row.type,
-      nom: row.nom,
-      cours: row.cours,
-      variation: row.variation,
-      volume: row.volume,
-      derniereMaj: row.derniere_maj,
-      ajouteLe: row.ajoute_le,
-      sectionId: row.section_id,
-      ordre: row.ordre,
-      hasAlerte: Boolean(row.has_alerte)
-    };
-  }
-  return map;
-}
-
 router.get('/:id/valeurs', (req, res) => {
   const acces = rolesSection(db, req.session.userId);
   const info = acces.get(Number(req.params.id));
@@ -215,17 +196,13 @@ router.get('/:id/valeurs', (req, res) => {
 
   const rows = db
     .prepare(
-      `SELECT v.*,
-         EXISTS(
-           SELECT 1 FROM alertes a
-           WHERE a.valeur_id = v.id AND a.user_id = v.user_id AND a.active = 1
-         ) AS has_alerte
+      `SELECT v.*, ${HAS_ALERTE_SUBQUERY}
        FROM valeurs v
        WHERE v.section_id = ?`
     )
     .all(Number(req.params.id));
 
-  res.json(toValeursSectionMap(rows));
+  res.json(toValeursMap(rows));
 });
 
 router.post('/:id/valeurs', (req, res) => {
