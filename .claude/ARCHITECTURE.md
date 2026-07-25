@@ -29,19 +29,33 @@
   s'installe comme un simple `<script defer>`, sans pipeline npm côté
   frontend. Le store central `Alpine.store('portfolio', ...)` (déclaré
   dans `public/app.js` via l'évènement `alpine:init`) pilote le rendu
-  réactif (`x-for`/`x-show`/`x-text`) de la liste des valeurs suivies ;
-  le reste de l'UI (alertes, modales, stats) reste en manipulation DOM
-  directe (`document.getElementById`, `innerHTML`) tant qu'il n'a pas
-  été migré à son tour.
+  réactif (`x-for`/`x-show`/`x-text`) de la liste des valeurs suivies,
+  désormais groupée par sections (`store.sections`, méthode
+  `valeursDeSection()`) ; le reste de l'UI (alertes, modales, stats)
+  reste en manipulation DOM directe (`document.getElementById`,
+  `innerHTML`) tant qu'il n'a pas été migré à son tour.
+- **Glisser-déposer** : SortableJS (v1.15.7, `public/vendor/
+  sortable.min.js`, vendorisé localement pour la même raison qu'Alpine —
+  build sur le Raspberry Pi, pas de CDN). Deux instances par page :
+  réordonnancement des sections (poignée `.valeurs-section-nom`) et,
+  une par section, déplacement des valeurs entre/dans les sections
+  (`group: 'valeurs'` partagé). Après un `onEnd`, le DOM déjà déplacé par
+  SortableJS est relu pour resynchroniser `Alpine.store('portfolio')`
+  (évite tout conflit entre la réconciliation Alpine et les mutations DOM
+  de SortableJS), puis l'ordre est persisté via `PUT /api/sections/
+  reorder`.
 - **Graphiques** : Chart.js 4.4.0, chargé depuis un CDN (`jsdelivr`) dans
   `public/index.html`, pas de dépendance npm côté frontend.
 - **Communication frontend/backend** : polling HTTP classique (`fetch`)
   toutes les 30 secondes (`public/app.js`), pas de WebSocket/SSE. Cookie de
   session (`connect.sid`, `httpOnly`, `sameSite=lax`).
-- **Tests** : aucun framework de test n'est configuré à ce jour (pas de
-  script `test` dans `server/package.json`, pas de fichier de test dans le
-  dépôt). À compléter si une session doit introduire des tests (voir
-  `METHOD.md` §0.1 étape 3).
+- **Tests** : `node:test` (natif Node.js, aucune dépendance ajoutée),
+  script `npm test` (`server/package.json`, exécute `node --test test/`
+  depuis `server/`). Chaque fichier de test démarre une instance Express
+  isolée (`app.listen(0)`) sur une base SQLite temporaire dédiée
+  (`DB_PATH` surchargé avant le premier `require('../../app')`, voir
+  `server/test/support/helpers.js`) et communique via `fetch` + gestion
+  manuelle du cookie de session — pas de dépendance type `supertest`.
 
 ## 2. Arborescence réelle
 
@@ -62,11 +76,12 @@
 │   ├── manifest.json             # manifeste PWA
 │   ├── icons/                    # icônes PWA (192/512, provisoires — voir DESIGN.md)
 │   └── vendor/                   # librairies tierces vendorisées (pas de CDN, pas de npm cote frontend)
-│       └── alpine.min.js          # Alpine.js v3, rendu réactif de la liste des valeurs suivies
+│       ├── alpine.min.js          # Alpine.js v3, rendu réactif de la liste des valeurs suivies
+│       └── sortable.min.js        # SortableJS v1.15.7, glisser-déposer sections/valeurs
 └── server/                       # backend Node.js + Express
     ├── index.js                  # bootstrap : dotenv, options add-on, écoute HTTP(+HTTPS), cron
     ├── app.js                    # application Express (session, montage des routes, static)
-    ├── db.js                     # ouverture SQLite + schéma (CREATE TABLE IF NOT EXISTS)
+    ├── db.js                     # ouverture SQLite + schéma (CREATE TABLE IF NOT EXISTS + migrations)
     ├── mailer.js                 # envoi d'email (SMTP optionnel, no-op sinon)
     ├── load-addon-options.js     # traduction /data/options.json -> variables d'environnement
     ├── middleware/auth.js        # requireAuth (garde de session sur les routes API)
@@ -74,10 +89,15 @@
     │   ├── auth.js                # /api/auth (register, login, logout, me)
     │   ├── valeurs.js              # /api/valeurs (CRUD des valeurs suivies)
     │   ├── alertes.js              # /api/alertes (CRUD des alertes de seuil)
+    │   ├── sections.js              # /api/sections (CRUD sections + PUT /reorder)
     │   └── chart.js                 # /api/chart/:ticker (historique Yahoo Finance)
-    └── jobs/
-        ├── prices.js               # mise à jour des cours (cron 2 min)
-        └── alerts.js                # vérification + envoi des alertes (cron 2 min)
+    ├── jobs/
+    │   ├── prices.js               # mise à jour des cours (cron 2 min)
+    │   └── alerts.js                # vérification + envoi des alertes (cron 2 min)
+    └── test/                     # node:test (npm test), voir §1 Tests
+        ├── support/helpers.js     # serveur de test isolé + DB SQLite temporaire
+        ├── sections.test.js
+        └── valeurs.test.js
 ```
 
 ## 3. Découpage en couches et flux
@@ -89,10 +109,10 @@
 2. `server/app.js` construit l'application Express : session cookie,
    montage des routeurs sous `/api/*`, puis sert `public/` en statique
    (`express.static`) pour tout le reste.
-3. Chaque route sous `/api/valeurs` et `/api/alertes` passe par
-   `middleware/auth.js` (`requireAuth`) qui exige `req.session.userId` ; le
-   filtrage par `user_id` est fait explicitement dans chaque requête SQL
-   (voir `BUSINESS_RULES.md`).
+3. Chaque route sous `/api/valeurs`, `/api/alertes` et `/api/sections`
+   passe par `middleware/auth.js` (`requireAuth`) qui exige
+   `req.session.userId` ; le filtrage par `user_id` est fait
+   explicitement dans chaque requête SQL (voir `BUSINESS_RULES.md`).
 4. `server/jobs/prices.js` interroge l'endpoint public non officiel
    `query1.finance.yahoo.com` pour chaque ticker distinct en base et met à
    jour `cours`/`variation`/`volume` ; `server/routes/chart.js` interroge le

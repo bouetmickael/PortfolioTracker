@@ -8,14 +8,15 @@
 
 ## Isolation des données par utilisateur
 
-- Toute lecture/écriture sur `valeurs` ou `alertes` est filtrée par
-  `user_id` dans la requête SQL elle-même (jamais de filtrage a posteriori
-  côté application). Voir `server/routes/valeurs.js` et
-  `server/routes/alertes.js`. Aucune route ne doit exposer les données d'un
-  autre utilisateur, y compris indirectement (agrégats, recherche globale).
-- Toute route sous `/api/valeurs` et `/api/alertes` passe par
-  `requireAuth` (`server/middleware/auth.js`) : une session valide
-  (`req.session.userId`) est obligatoire.
+- Toute lecture/écriture sur `valeurs`, `alertes` ou `sections` est
+  filtrée par `user_id` dans la requête SQL elle-même (jamais de filtrage
+  a posteriori côté application). Voir `server/routes/valeurs.js`,
+  `server/routes/alertes.js` et `server/routes/sections.js`. Aucune route
+  ne doit exposer les données d'un autre utilisateur, y compris
+  indirectement (agrégats, recherche globale).
+- Toute route sous `/api/valeurs`, `/api/alertes` et `/api/sections`
+  passe par `requireAuth` (`server/middleware/auth.js`) : une session
+  valide (`req.session.userId`) est obligatoire.
 
 ## Authentification
 
@@ -34,6 +35,27 @@
 - Supprimer une valeur suivie supprime aussi toutes les alertes associées à
   ce couple `(user_id, ticker)` (cascade applicative explicite dans la
   route, pas une contrainte SQL `ON DELETE CASCADE`).
+
+## Sections (liste des valeurs suivies)
+
+- Chaque utilisateur possede toujours au moins une section : une section
+  "General" est creee automatiquement a l'inscription
+  (`server/routes/auth.js`) et, pour les comptes deja existants avant
+  l'introduction des sections, par la migration/backfill au demarrage du
+  serveur (`server/db.js`). La suppression de la derniere section d'un
+  utilisateur est refusee (400).
+- Supprimer une section reassigne automatiquement (dans la meme
+  transaction) toutes les valeurs qu'elle contient vers une autre section
+  restante de l'utilisateur (`server/routes/sections.js`) — jamais de
+  valeur orpheline sans section.
+- Une section et les valeurs qu'elle contient n'appartiennent qu'a un
+  seul `user_id` ; aucun partage entre utilisateurs a ce stade (prevu
+  dans une session future dediee, avec amendement explicite de ce
+  document au moment ou cette regle changera).
+- Un `sectionId` fourni a la creation d'une valeur (`POST /api/valeurs`)
+  n'est accepte que s'il designe une section appartenant a l'utilisateur
+  courant ; sinon la valeur est rattachee a la section par defaut de
+  l'utilisateur (jamais a une section d'un autre utilisateur).
 
 ## Alertes de seuil
 

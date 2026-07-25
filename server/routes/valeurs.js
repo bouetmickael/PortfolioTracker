@@ -17,10 +17,22 @@ function toValeursMap(rows) {
       variation: row.variation,
       volume: row.volume,
       derniereMaj: row.derniere_maj,
-      ajouteLe: row.ajoute_le
+      ajouteLe: row.ajoute_le,
+      sectionId: row.section_id,
+      ordre: row.ordre
     };
   }
   return map;
+}
+
+function sectionCible(userId, sectionId) {
+  if (sectionId) {
+    const section = db.prepare('SELECT id FROM sections WHERE id = ? AND user_id = ?').get(sectionId, userId);
+    if (section) return section.id;
+  }
+
+  const defaut = db.prepare('SELECT id FROM sections WHERE user_id = ? ORDER BY ordre ASC LIMIT 1').get(userId);
+  return defaut ? defaut.id : null;
 }
 
 router.get('/', (req, res) => {
@@ -45,10 +57,16 @@ router.post('/', (req, res) => {
     return res.status(409).json({ error: 'Cette valeur est deja suivie' });
   }
 
+  const sectionId = sectionCible(req.session.userId, req.body.sectionId);
+  const { maxOrdre } = db
+    .prepare('SELECT MAX(ordre) as maxOrdre FROM valeurs WHERE user_id = ? AND section_id = ?')
+    .get(req.session.userId, sectionId);
+  const ordre = (maxOrdre === null ? -1 : maxOrdre) + 1;
+
   db.prepare(
-    `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le)
-     VALUES (?, ?, ?, ?, 0, 0, 0, NULL, ?)`
-  ).run(req.session.userId, ticker, type, nom, Date.now());
+    `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
+     VALUES (?, ?, ?, ?, 0, 0, 0, NULL, ?, ?, ?)`
+  ).run(req.session.userId, ticker, type, nom, Date.now(), sectionId, ordre);
 
   res.status(201).json({ success: true });
 });

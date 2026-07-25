@@ -29,9 +29,16 @@ router.post('/register', async (req, res) => {
   const displayName = email.split('@')[0];
   const createdAt = Date.now();
 
-  const result = db
-    .prepare('INSERT INTO users (email, password_hash, display_name, created_at) VALUES (?, ?, ?, ?)')
-    .run(email, passwordHash, displayName, createdAt);
+  const creerCompte = db.transaction(() => {
+    const result = db
+      .prepare('INSERT INTO users (email, password_hash, display_name, created_at) VALUES (?, ?, ?, ?)')
+      .run(email, passwordHash, displayName, createdAt);
+
+    db.prepare('INSERT INTO sections (user_id, nom, ordre) VALUES (?, ?, 0)').run(result.lastInsertRowid, 'General');
+
+    return result;
+  });
+  const result = creerCompte();
 
   req.session.userId = result.lastInsertRowid;
 

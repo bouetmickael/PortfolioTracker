@@ -23,6 +23,13 @@ db.exec(`
     created_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS sections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    nom TEXT NOT NULL,
+    ordre INTEGER NOT NULL DEFAULT 0
+  );
+
   CREATE TABLE IF NOT EXISTS valeurs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -49,5 +56,55 @@ db.exec(`
     cree_le INTEGER NOT NULL
   );
 `);
+
+// Migration : ajout de sections + section_id/ordre sur valeurs (introduites
+// apres la creation initiale de la table valeurs, ALTER TABLE necessaire
+// pour les bases existantes ; CREATE TABLE IF NOT EXISTS ne suffit pas).
+const colonnesValeurs = db.prepare('PRAGMA table_info(valeurs)').all().map((c) => c.name);
+
+if (!colonnesValeurs.includes('section_id')) {
+  db.exec('ALTER TABLE valeurs ADD COLUMN section_id INTEGER REFERENCES sections(id)');
+}
+if (!colonnesValeurs.includes('ordre')) {
+  db.exec('ALTER TABLE valeurs ADD COLUMN ordre INTEGER NOT NULL DEFAULT 0');
+}
+
+function backfillSectionsParDefaut() {
+  const NOM_SECTION_DEFAUT = 'General';
+
+  const usersSansSection = db
+    .prepare('SELECT id FROM users WHERE id NOT IN (SELECT DISTINCT user_id FROM sections)')
+    .all();
+
+  const creerSection = db.prepare('INSERT INTO sections (user_id, nom, ordre) VALUES (?, ?, 0)');
+  for (const user of usersSansSection) {
+    creerSection.run(user.id, NOM_SECTION_DEFAUT);
+  }
+
+  const valeursSansSection = db
+    .prepare('SELECT id, user_id FROM valeurs WHERE section_id IS NULL ORDER BY ajoute_le ASC')
+    .all();
+
+  const sectionDefautParUser = new Map();
+  const affecterValeur = db.prepare('UPDATE valeurs SET section_id = ?, ordre = ? WHERE id = ?');
+  const compteurOrdreParSection = new Map();
+
+  for (const valeur of valeursSansSection) {
+    let sectionId = sectionDefautParUser.get(valeur.user_id);
+    if (sectionId === undefined) {
+      const section = db
+        .prepare('SELECT id FROM sections WHERE user_id = ? ORDER BY ordre ASC LIMIT 1')
+        .get(valeur.user_id);
+      sectionId = section.id;
+      sectionDefautParUser.set(valeur.user_id, sectionId);
+    }
+
+    const ordre = compteurOrdreParSection.get(sectionId) || 0;
+    affecterValeur.run(sectionId, ordre, valeur.id);
+    compteurOrdreParSection.set(sectionId, ordre + 1);
+  }
+}
+
+backfillSectionsParDefaut();
 
 module.exports = db;

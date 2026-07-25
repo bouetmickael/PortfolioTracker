@@ -62,24 +62,45 @@
         <div class="spinner-small"></div>
         <span>Chargement...</span>
       </div>
-      <template x-for="valeur in $store.portfolio.valeurs" :key="valeur.ticker">
-        <div class="valeur-row" @click="openGraphique(valeur.ticker)">
-          <div class="valeur-avatar" :style="{ background: avatarCouleur(valeur.ticker) }" x-text="avatarInitiales(valeur.ticker)"></div>
-          <div class="valeur-main">
-            <div class="valeur-nom" x-text="valeur.nom || valeur.ticker"></div>
-            <div class="valeur-sousligne" x-text="valeur.ticker + ' · ' + (valeur.type || 'Action')"></div>
-            <div class="valeur-footer" x-text="'MAJ: ' + formatHeure(valeur.derniereMaj) + (valeur.volume ? ' · Vol: ' + formatVolume(valeur.volume) : '')"></div>
-          </div>
-          <div class="valeur-chiffres">
-            <div class="valeur-cours" x-text="formatCours(valeur.cours)"></div>
-            <div class="valeur-variation" :class="(valeur.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(valeur.variation)"></div>
-          </div>
-          <div class="valeur-actions">
-            <button class="btn-icon-small" @click.stop="openAlerteModal(valeur.ticker)" title="Creer alerte" aria-label="Creer alerte">A</button>
-            <button class="btn-icon-small" @click.stop="supprimerValeur(valeur.ticker)" title="Supprimer" aria-label="Supprimer">X</button>
-          </div>
+      <div class="valeurs-sections" x-show="$store.portfolio.chargee">
+        <div class="valeurs-sections-liste" x-init="initSortableSections($el)">
+          <template x-for="section in $store.portfolio.sections" :key="section.id">
+            <div class="valeurs-section" :data-section-id="section.id">
+              <div class="valeurs-section-header">
+                <h3 class="valeurs-section-nom" x-text="section.nom"></h3>
+                <div class="valeurs-section-actions">
+                  <button class="btn-icon-small" @click="renommerSection(section)" title="Renommer la section" aria-label="Renommer la section">M</button>
+                  <button class="btn-icon-small" @click="supprimerSection(section)" title="Supprimer la section" aria-label="Supprimer la section" x-show="$store.portfolio.sections.length > 1">X</button>
+                </div>
+              </div>
+              <div class="valeurs-section-liste" :data-section-id="section.id" x-init="initSortableValeurs($el)">
+                <template x-for="valeur in $store.portfolio.valeursDeSection(section.id)" :key="valeur.ticker">
+                  <div class="valeur-row" :data-ticker="valeur.ticker" @click="openGraphique(valeur.ticker)">
+                    <div class="valeur-avatar" :style="{ background: avatarCouleur(valeur.ticker) }" x-text="avatarInitiales(valeur.ticker)"></div>
+                    <div class="valeur-main">
+                      <div class="valeur-nom" x-text="valeur.nom || valeur.ticker"></div>
+                      <div class="valeur-sousligne" x-text="valeur.ticker + ' · ' + (valeur.type || 'Action')"></div>
+                      <div class="valeur-footer" x-text="'MAJ: ' + formatHeure(valeur.derniereMaj) + (valeur.volume ? ' · Vol: ' + formatVolume(valeur.volume) : '')"></div>
+                    </div>
+                    <div class="valeur-chiffres">
+                      <div class="valeur-cours" x-text="formatCours(valeur.cours)"></div>
+                      <div class="valeur-variation" :class="(valeur.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(valeur.variation)"></div>
+                    </div>
+                    <div class="valeur-actions">
+                      <button class="btn-icon-small" @click.stop="openAlerteModal(valeur.ticker)" title="Creer alerte" aria-label="Creer alerte">A</button>
+                      <button class="btn-icon-small" @click.stop="supprimerValeur(valeur.ticker)" title="Supprimer" aria-label="Supprimer">X</button>
+                    </div>
+                  </div>
+                </template>
+                <div class="valeurs-section-vide" x-show="$store.portfolio.valeursDeSection(section.id).length === 0">
+                  Aucune valeur - glissez-en une ici
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
-      </template>
+        <button class="btn btn-secondary btn-ajouter-section" @click="ajouterSection()">+ Nouvelle section</button>
+      </div>
       <div class="empty-state" x-show="$store.portfolio.chargee && $store.portfolio.valeurs.length === 0">
         <p>Aucune valeur suivie</p>
         <button @click="openModal('modalAddValeur')" class="btn btn-primary">
@@ -218,6 +239,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="vendor/sortable.min.js"></script>
   <script defer src="vendor/alpine.min.js"></script>
 
   <script src="api.js"></script>

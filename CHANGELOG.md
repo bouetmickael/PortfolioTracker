@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+- Ajout des sections dans la liste des valeurs suivies : creer, renommer
+  et supprimer une section, glisser-deposer une valeur entre sections et
+  a l'interieur d'une section, glisser-deposer pour reordonner les
+  sections elles-memes (SortableJS). Usage personnel uniquement (aucun
+  partage de section entre utilisateurs a ce stade). Les valeurs deja
+  suivies sont automatiquement rattachees a une section "General" creee
+  lors de la migration.
+
 ## 1.1.1
 
 - Correction du graphique 1J/1S : l'intervalle Yahoo Finance etait fixe a

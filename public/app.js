@@ -12,7 +12,14 @@ let chartInstance = null;
 document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
     valeurs: [],
-    chargee: false
+    sections: [],
+    chargee: false,
+
+    valeursDeSection(sectionId) {
+      return this.valeurs
+        .filter((v) => v.sectionId === sectionId)
+        .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+    }
   });
 });
 
@@ -89,11 +96,14 @@ function setupDataPolling() {
 
 async function chargerValeurs() {
   try {
-    const res = await apiFetch('/api/valeurs');
-    if (!res.ok) throw new Error('Erreur chargement des valeurs');
+    const [resValeurs, resSections] = await Promise.all([apiFetch('/api/valeurs'), apiFetch('/api/sections')]);
+    if (!resValeurs.ok) throw new Error('Erreur chargement des valeurs');
+    if (!resSections.ok) throw new Error('Erreur chargement des sections');
 
-    const valeurs = await res.json();
-    displayValeurs(valeurs);
+    const valeurs = await resValeurs.json();
+    const sections = await resSections.json();
+
+    displayValeurs(valeurs, sections);
     updateStats(valeurs);
   } catch (error) {
     console.error('Erreur chargement valeurs:', error);
@@ -116,9 +126,10 @@ async function chargerAlertes() {
 // AFFICHAGE DES DONNEES
 // ========================================
 
-function displayValeurs(valeurs) {
+function displayValeurs(valeurs, sections) {
   const store = Alpine.store('portfolio');
   store.valeurs = Object.entries(valeurs).map(([ticker, valeur]) => ({ ticker, ...valeur }));
+  store.sections = sections;
   store.chargee = true;
 }
 
@@ -252,6 +263,175 @@ async function supprimerValeur(ticker) {
     showToast('Erreur: ' + error.message, 'error');
   } finally {
     showLoader(false);
+  }
+}
+
+// ========================================
+// SECTIONS ET GLISSER-DEPOSER
+// ========================================
+
+async function ajouterSection() {
+  const nom = prompt('Nom de la nouvelle section :');
+  if (!nom || !nom.trim()) return;
+
+  showLoader(true);
+
+  try {
+    const res = await apiFetch('/api/sections', {
+      method: 'POST',
+      body: JSON.stringify({ nom: nom.trim() })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur creation section');
+    }
+
+    await chargerValeurs();
+    showToast('Section creee', 'success');
+  } catch (error) {
+    console.error('Erreur creation section:', error);
+    showToast('Erreur: ' + error.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function renommerSection(section) {
+  const nom = prompt('Nouveau nom de la section :', section.nom);
+  if (!nom || !nom.trim() || nom.trim() === section.nom) return;
+
+  showLoader(true);
+
+  try {
+    const res = await apiFetch(`/api/sections/${section.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nom: nom.trim() })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur renommage section');
+    }
+
+    await chargerValeurs();
+    showToast('Section renommee', 'success');
+  } catch (error) {
+    console.error('Erreur renommage section:', error);
+    showToast('Erreur: ' + error.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function supprimerSection(section) {
+  if (!confirm(`Supprimer la section "${section.nom}" ? Les valeurs qu'elle contient seront deplacees vers une autre section.`)) return;
+
+  showLoader(true);
+
+  try {
+    const res = await apiFetch(`/api/sections/${section.id}`, { method: 'DELETE' });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur suppression section');
+    }
+
+    await chargerValeurs();
+    showToast('Section supprimee', 'success');
+  } catch (error) {
+    console.error('Erreur suppression section:', error);
+    showToast('Erreur: ' + error.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+function initSortableSections(el) {
+  if (el.dataset.sortableInit) return;
+  el.dataset.sortableInit = 'true';
+
+  Sortable.create(el, {
+    handle: '.valeurs-section-nom',
+    draggable: '.valeurs-section',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd: () => {
+      const ordreSections = Array.from(el.querySelectorAll(':scope > .valeurs-section')).map((node) =>
+        Number(node.dataset.sectionId)
+      );
+
+      const store = Alpine.store('portfolio');
+      store.sections = ordreSections
+        .map((id, index) => {
+          const section = store.sections.find((s) => s.id === id);
+          return section ? { ...section, ordre: index } : null;
+        })
+        .filter(Boolean);
+
+      persisterOrdre();
+    }
+  });
+}
+
+function initSortableValeurs(el) {
+  if (el.dataset.sortableInit) return;
+  el.dataset.sortableInit = 'true';
+
+  Sortable.create(el, {
+    group: 'valeurs',
+    draggable: '.valeur-row',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd: (evt) => {
+      const store = Alpine.store('portfolio');
+      const listesTouchees = evt.from === evt.to ? [evt.to] : [evt.from, evt.to];
+
+      for (const liste of listesTouchees) {
+        const sectionId = Number(liste.dataset.sectionId);
+        const tickersOrdonnes = Array.from(liste.querySelectorAll(':scope > .valeur-row')).map(
+          (node) => node.dataset.ticker
+        );
+
+        tickersOrdonnes.forEach((ticker, index) => {
+          const valeur = store.valeurs.find((v) => v.ticker === ticker);
+          if (valeur) {
+            valeur.sectionId = sectionId;
+            valeur.ordre = index;
+          }
+        });
+      }
+
+      persisterOrdre();
+    }
+  });
+}
+
+async function persisterOrdre() {
+  const store = Alpine.store('portfolio');
+
+  const sections = [...store.sections]
+    .sort((a, b) => (a.ordre || 0) - (b.ordre || 0))
+    .map((section) => ({
+      id: section.id,
+      ordre: section.ordre,
+      valeurIds: store
+        .valeursDeSection(section.id)
+        .map((v) => v.ticker)
+    }));
+
+  try {
+    const res = await apiFetch('/api/sections/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ sections })
+    });
+
+    if (!res.ok) throw new Error('Erreur enregistrement ordre');
+  } catch (error) {
+    console.error('Erreur enregistrement ordre:', error);
+    showToast('Erreur lors de l\'enregistrement de l\'ordre', 'error');
   }
 }
 

@@ -6,10 +6,11 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/3** — revue de dette technique effectuée le 2026-07-24 (première
+**1/3** — revue de dette technique effectuée le 2026-07-24 (première
 revue du projet, voir `CLAUDE.md` § Historique des revues de dette
-technique et `TODO.md`). La prochaine session reprend la fonctionnalité
-en cours (Session B ci-dessous).
+technique et `TODO.md`). Session B (sections + drag-and-drop) livrée le
+2026-07-25, compteur incrémenté. La prochaine session reprend la
+fonctionnalité en cours (Session C ci-dessous).
 
 ## Fonctionnalité en cours
 
@@ -23,10 +24,13 @@ partage RW de section entre utilisateurs. Découpage :
   un store réactif (`Alpine.store('portfolio')`), parité visuelle stricte
   avec l'existant (aucune fonctionnalité nouvelle visible). Fait cette
   session.
-- [ ] **Session B — sections + drag-and-drop** (perso, sans partage) :
-  migration DB (`sections`, `section_id`/`ordre` sur `valeurs`), API
-  sections + `PUT /reorder`, UI créer/renommer/supprimer section et
-  glisser-déposer (SortableJS).
+- [x] **Session B — sections + drag-and-drop** (perso, sans partage) :
+  migration DB (`sections`, `section_id`/`ordre` sur `valeurs`, backfill
+  d'une section "General" pour les comptes existants), API sections
+  (`server/routes/sections.js`, CRUD + `PUT /reorder`), UI créer
+  (`+ Nouvelle section`) / renommer (`M`) / supprimer (`X`) une section
+  et glisser-déposer (SortableJS vendorisé, valeurs entre/dans les
+  sections + sections elles-mêmes). Fait cette session (2026-07-25).
 - [ ] **Session C — badges d'alerte** : `alertes.valeur_id` + backfill,
   `hasAlerte` exposé par l'API, badge visuel sur les lignes.
 - [ ] **Session D — partage RW de section** : `section_shares`,

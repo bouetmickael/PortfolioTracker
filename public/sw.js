@@ -2,7 +2,7 @@
  * SERVICE WORKER - PORTFOLIO TRACKER
  */
 
-const CACHE_NAME = 'portfolio-tracker-v3';
+const CACHE_NAME = 'portfolio-tracker-v4';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -12,7 +12,8 @@ const urlsToCache = [
   '/app.js',
   '/auth.js',
   '/manifest.json',
-  '/vendor/alpine.min.js'
+  '/vendor/alpine.min.js',
+  '/vendor/sortable.min.js'
 ];
 
 self.addEventListener('install', (event) => {

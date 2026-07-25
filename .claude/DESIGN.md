@@ -62,17 +62,33 @@ Page de connexion : fond dégradé `linear-gradient(135deg, #667eea 0%,
   version cote a cote (`.header-titre`).
 - **Cartes statistiques** : grille 3 colonnes égales, fond `--bg`, coins
   8px, `--shadow`.
-- **Liste des valeurs suivies** (`.valeurs-liste`) : un seul conteneur
-  avec coins 8px/`--shadow` (pas une carte par valeur) ; chaque valeur
-  est une ligne plate (`.valeur-row`) separee par une bordure fine
-  (`--border`), fond `--bg-secondary` au survol, toute la ligne cliquable
-  pour ouvrir le graphique. Contenu de la ligne : avatar rond a gauche
-  (initiales + couleur par ticker), puis au centre le nom de la valeur en
-  premiere ligne (`.valeur-nom`, 15px/500 ; ticker en repli si le nom est
-  absent) et `ticker · type` en seconde ligne (`.valeur-sousligne`,
-  12px/`--text-secondary`), cours et variation empiles a droite, actions
-  `A`/`X` tout a droite (avec `stopPropagation` pour ne pas declencher
-  l'ouverture du graphique).
+- **Liste des valeurs suivies** (`.valeurs-liste`) : depuis la session
+  Session B (sections + glisser-deposer, usage personnel uniquement, pas
+  de partage entre utilisateurs a ce stade), la liste est decoupee en
+  sections (`.valeurs-section`), chacune un conteneur separe avec coins
+  8px/`--shadow` (plus une carte unique globale). Chaque section a un
+  en-tete (`.valeurs-section-header`, fond `--bg-secondary`) avec son nom
+  (`.valeurs-section-nom`, 13px/500, majuscules, `--text-secondary` ;
+  poignee de glisser-deposer pour reordonner les sections entre elles) et
+  deux boutons lettre unique a droite : `M` (modifier/renommer, invite
+  navigateur `prompt()`) et `X` (supprimer, `confirm()` de confirmation,
+  masque si une seule section reste — la derniere section d'un
+  utilisateur ne peut pas etre supprimee). Une section se cree via le
+  bouton texte `+ Nouvelle section` en bas de liste (memes `prompt()`
+  navigateur que le renommage, coherent avec `confirm()` deja utilise
+  pour la suppression d'une valeur/alerte, pas une nouvelle modale).
+  A l'interieur de chaque section, chaque valeur reste une ligne plate
+  (`.valeur-row`) separee par une bordure fine (`--border`), fond
+  `--bg-secondary` au survol, toute la ligne cliquable pour ouvrir le
+  graphique et egalement glissable (SortableJS, `public/vendor/
+  sortable.min.js`, vendorise localement comme Alpine) vers une autre
+  position dans la meme section ou vers une autre section. Contenu de la
+  ligne : avatar rond a gauche (initiales + couleur par ticker), puis au
+  centre le nom de la valeur en premiere ligne (`.valeur-nom`, 15px/500 ;
+  ticker en repli si le nom est absent) et `ticker · type` en seconde
+  ligne (`.valeur-sousligne`, 12px/`--text-secondary`), cours et
+  variation empiles a droite, actions `A`/`X` tout a droite (avec
+  `stopPropagation` pour ne pas declencher l'ouverture du graphique).
 - **Carte alerte** : coins/ombre façon carte classique (grille séparée de
   la liste des valeurs), actions alignées à droite (icônes lettre
   unique).

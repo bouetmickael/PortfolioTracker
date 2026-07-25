@@ -197,3 +197,83 @@ complet (portée, correctifs appliqués, correctifs reportés) consigné dans
   centralisé.
 - Compteur `BACKLOG.md` réinitialisé à 0/3. Prochaine session : reprise de
   la Session B (sections + drag-and-drop) du plan en cours.
+
+## 2026-07-25 — Session B : sections + glisser-deposer (refonte ergonomie)
+
+Deuxieme etape du plan multi-sessions (voir plan reference dans
+`BACKLOG.md`), apres la revue de dette technique n1. Perimetre : sections
+personnelles (sans partage entre utilisateurs, prevu Session D) et
+glisser-deposer, en s'appuyant sur le store Alpine mis en place Session A.
+
+- **Migration DB** (`server/db.js`) : nouvelle table `sections` (`id`,
+  `user_id`, `nom`, `ordre`) et colonnes `section_id`/`ordre` ajoutees a
+  `valeurs` via `ALTER TABLE` (guarde par `PRAGMA table_info`, `CREATE
+  TABLE IF NOT EXISTS` ne suffit pas pour des colonnes ajoutees apres
+  coup). Backfill automatique au demarrage : une section "General" est
+  creee pour tout utilisateur qui n'en a encore aucune, puis les valeurs
+  sans `section_id` y sont rattachees dans leur ordre d'ajout actuel
+  (`ajoute_le`). Les nouveaux comptes recoivent leur section "General"
+  directement a l'inscription (`server/routes/auth.js`, transaction),
+  la migration seule ne suffisant pas pour un utilisateur cree apres le
+  demarrage du process.
+- **API** (`server/routes/sections.js`, montee sur `/api/sections`,
+  `requireAuth` sur tout le routeur) : `GET /` (liste triee par `ordre`),
+  `POST /` (creation en fin de liste), `PUT /:id` (renommage), `DELETE
+  /:id` (refuse si derniere section de l'utilisateur ; sinon reassigne
+  ses valeurs vers une autre section restante dans la meme transaction),
+  `PUT /reorder` (persiste en une transaction l'ordre des sections et,
+  pour chacune, l'ordre + le rattachement de ses valeurs, apres
+  verification que toutes les sections visees appartiennent bien a
+  l'utilisateur). `server/routes/valeurs.js` : `GET /` expose desormais
+  `sectionId`/`ordre` par valeur ; `POST /` accepte un `sectionId`
+  optionnel (ignore et retombe sur la section par defaut de
+  l'utilisateur s'il ne lui appartient pas, isolation stricte) et calcule
+  un `ordre` sequentiel au sein de la section cible.
+- **UI** (`public/index.html`/`public/app.js`/`public/styles.css`) : la
+  liste des valeurs suivies est decoupee en cartes `.valeurs-section`
+  (une par section, en-tete avec nom + boutons lettre unique `M`
+  modifier/renommer et `X` supprimer, ce dernier masque s'il ne reste
+  qu'une section). Renommage et creation via `prompt()` navigateur
+  (coherent avec le `confirm()` deja utilise pour les suppressions,
+  pas de nouvelle modale). Glisser-deposer via SortableJS (v1.15.7,
+  vendorise dans `public/vendor/sortable.min.js`, meme raison qu'Alpine :
+  pas de CDN, build sur le Raspberry Pi) : une instance par section pour
+  deplacer les valeurs entre/dans les sections (`group` SortableJS
+  partage), une instance globale pour reordonner les sections
+  elles-memes (poignee = nom de la section). Apres chaque `onEnd`, le DOM
+  deja reordonne par SortableJS est relu pour resynchroniser
+  `Alpine.store('portfolio')` avant persistance API (`PUT /api/sections/
+  reorder`), ce qui evite tout conflit entre la reconciliation Alpine
+  (`x-for` garde par cle) et les mutations DOM directes de SortableJS.
+  `DESIGN.md`/`ARCHITECTURE.md`/`BUSINESS_RULES.md` mis a jour en
+  consequence (nouveau composant, nouvelle dependance vendorisee,
+  nouvelle regle d'isolation par section).
+- **Tests** : premiere introduction d'un framework de test dans le projet
+  (`node:test`, natif Node.js, aucune dependance ajoutee ; script `npm
+  test` -> `node --test test/` dans `server/`). 13 tests
+  (`server/test/sections.test.js`, `server/test/valeurs.test.js`) : CRUD
+  sections, refus de supprimer la derniere section, reassignation des
+  valeurs a la suppression d'une section, `PUT /reorder` (sections +
+  valeurs), isolation stricte entre deux comptes (renommage/suppression/
+  reorder refuses sur une section d'un autre utilisateur, `sectionId`
+  etranger ignore a la creation d'une valeur), section par defaut a
+  l'inscription. Chaque fichier de test demarre une instance Express
+  isolee sur une base SQLite temporaire (`server/test/support/
+  helpers.js`).
+- **Verification reelle** : suite `node --test` (13/13 verts) ; parcours
+  API complet via `curl` sur un serveur local (inscription, section par
+  defaut, creation/renommage/suppression de section avec reassignation,
+  `PUT /reorder`, refus de suppression de la derniere section) ; parcours
+  navigateur reel via Playwright (Chromium local) - connexion, capture
+  d'ecran de la liste avec sections, glisser-depose reel d'une valeur
+  vers une autre section (verifie en base via l'API apres le drag), clic
+  sur une ligne restee fonctionnel apres le drag (ouverture de la modale
+  graphique, pas d'interference entre clic et glisser-depose). Les seules
+  erreurs console observees viennent de Yahoo Finance/Chart.js CDN
+  bloques par la politique reseau de cet environnement de session, sans
+  rapport avec cette session.
+- Version : `server/package.json`/`config.yaml` 1.1.1 -> 1.2.0
+  (increment mineur, fonctionnalite utilisateur significative plutot
+  qu'un correctif), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 0/3 -> 1/3. Prochaine session : Session C
+  (badges d'alerte) du plan en cours.
