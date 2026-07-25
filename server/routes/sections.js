@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
+const { nextOrdre } = require('../ordre');
 
 const router = express.Router();
 
@@ -23,10 +24,7 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Nom de section requis' });
   }
 
-  const { maxOrdre } = db
-    .prepare('SELECT MAX(ordre) as maxOrdre FROM sections WHERE user_id = ?')
-    .get(req.session.userId);
-  const ordre = (maxOrdre === null ? -1 : maxOrdre) + 1;
+  const ordre = nextOrdre(db, 'sections', 'user_id = ?', [req.session.userId]);
 
   const info = db
     .prepare('INSERT INTO sections (user_id, nom, ordre) VALUES (?, ?, ?)')
@@ -106,10 +104,7 @@ router.delete('/:id', (req, res) => {
     .get(req.session.userId, sectionId);
 
   const supprimerSection = db.transaction(() => {
-    const { maxOrdre } = db
-      .prepare('SELECT MAX(ordre) as maxOrdre FROM valeurs WHERE user_id = ? AND section_id = ?')
-      .get(req.session.userId, fallback.id);
-    let ordreSuivant = (maxOrdre === null ? -1 : maxOrdre) + 1;
+    let ordreSuivant = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [req.session.userId, fallback.id]);
 
     const valeursADeplacer = db
       .prepare('SELECT id FROM valeurs WHERE user_id = ? AND section_id = ? ORDER BY ordre ASC')

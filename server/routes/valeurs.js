@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
+const { nextOrdre } = require('../ordre');
 
 const router = express.Router();
 
@@ -58,10 +59,7 @@ router.post('/', (req, res) => {
   }
 
   const sectionId = sectionCible(req.session.userId, req.body.sectionId);
-  const { maxOrdre } = db
-    .prepare('SELECT MAX(ordre) as maxOrdre FROM valeurs WHERE user_id = ? AND section_id = ?')
-    .get(req.session.userId, sectionId);
-  const ordre = (maxOrdre === null ? -1 : maxOrdre) + 1;
+  const ordre = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [req.session.userId, sectionId]);
 
   db.prepare(
     `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)

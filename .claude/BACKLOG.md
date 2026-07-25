@@ -6,18 +6,13 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/3** — revue de dette technique effectuée le 2026-07-24 (première
-revue du projet, voir `CLAUDE.md` § Historique des revues de dette
-technique et `TODO.md`). Session B (sections + drag-and-drop) livrée le
-2026-07-25, puis une session hors plan (refonte visuelle + thème clair/
-sombre, demande explicite utilisateur, voir ci-dessous) et ses deux
-correctifs directs (poignée de glisser-déposer, puis modales prompt/
-confirm stylées — même jour, retours utilisateur immédiats après
-vérification visuelle), regroupés sous la même session hors plan sans
-incrémenter le compteur au-delà de 3/3 (itération continue sur une même
-demande, pas de nouvelles fonctionnalités distinctes). **Compteur à 3/3 :
-la prochaine session doit être la revue de dette technique obligatoire
-(`METHOD.md` §0.2), avant de reprendre la Session C ci-dessous.**
+**0/3** — revue de dette technique n°2 effectuée le 2026-07-25 (voir
+`CLAUDE.md` § Historique des revues de dette technique et `TODO.md`),
+portant sur le diff cumulé depuis la revue n°1 (Session B sections +
+drag-and-drop, refonte visuelle + thème clair/sombre, et les deux
+correctifs directs poignée de glisser-déposer / modales prompt-confirm).
+Compteur réinitialisé : la prochaine session peut reprendre la Session C
+ci-dessous.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 

@@ -69,7 +69,7 @@ if (!colonnesValeurs.includes('ordre')) {
   db.exec('ALTER TABLE valeurs ADD COLUMN ordre INTEGER NOT NULL DEFAULT 0');
 }
 
-function backfillSectionsParDefaut() {
+const backfillSectionsParDefaut = db.transaction(() => {
   const NOM_SECTION_DEFAUT = 'General';
 
   const usersSansSection = db
@@ -103,7 +103,7 @@ function backfillSectionsParDefaut() {
     affecterValeur.run(sectionId, ordre, valeur.id);
     compteurOrdreParSection.set(sectionId, ordre + 1);
   }
-}
+});
 
 backfillSectionsParDefaut();
 

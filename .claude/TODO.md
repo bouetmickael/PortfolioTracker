@@ -438,3 +438,58 @@ section/valeur/alerte) : aucune des deux ne suit le theme clair/sombre.
   nouvelle fonctionnalite). **Revue de dette technique toujours
   obligatoire a la prochaine session** (`METHOD.md` §0.2) avant la
   Session C.
+
+## 2026-07-25 — Revue de dette technique n°2 (`METHOD.md` §0.2)
+
+- **Portee** : `git diff bb0790f..HEAD -- server/ public/` (hors
+  `public/vendor/` et `.claude/*.md`), depuis la revue n°1 (2026-07-24)
+  jusqu'a `HEAD` : Session B (sections + glisser-deposer), refonte
+  visuelle + theme clair/sombre, et les deux correctifs directs (poignee
+  de glisser-depose dediee, modales prompt/confirm). Outillage : skill
+  `/simplify`, 4 agents en parallele (reutilisation, simplification,
+  efficacite, altitude) sur le diff cumule.
+- **Correctifs appliques** (risque faible, comportement inchange) :
+  - `server/ordre.js` (nouveau) : extraction de `nextOrdre(db, table,
+    whereSql, params)`, remplace trois occurrences du calcul `SELECT
+    MAX(ordre)... + 1` dans `server/routes/sections.js` (creation de
+    section, repli lors d'une suppression) et `server/routes/valeurs.js`
+    (creation de valeur).
+  - `server/db.js` : `backfillSectionsParDefaut()` enveloppee dans
+    `db.transaction(...)` (alignee sur le pattern deja utilise dans
+    `sections.js`) - evite un commit disque implicite par ligne a chaque
+    demarrage du serveur.
+  - `public/app.js` : extraction de `getTheme()` (remplace trois lectures
+    directes de `data-theme` sur `document.documentElement`) et de
+    `marquerSortableInit()` (garde d'initialisation dupliquee entre
+    `initSortableSections()`/`initSortableValeurs()`). Dans
+    `initSortableValeurs()`, remplacement d'un `store.valeurs.find(...)`
+    par ticker (O(n) par ticker deplace) par une `Map` construite une
+    fois par `onEnd`.
+- **Verification reelle** : `npm test` (12/12 verts) ; serveur demarre en
+  local (`DB_PATH` temporaire) sans erreur au demarrage (backfill en
+  transaction) ; parcours API reel (register/login, creation de deux
+  sections, ajout de deux valeurs avec verification de l'`ordre`
+  sequentiel attribue, suppression d'une section avec verification du
+  repli et de l'`ordre` recalcule, `PUT /sections/reorder`) ; parcours
+  navigateur (Playwright, Chromium local) : connexion, bascule du theme
+  clair/sombre (`getTheme()`), sections et poignees de glisser-depose
+  rendues, `sortableInit` correctement pose sur les trois conteneurs
+  triables (liste des sections + deux listes de valeurs).
+  Aucun changement de comportement observable pour l'utilisateur : pas
+  d'incrementation de version (`METHOD.md` §5.5, un correctif purement
+  interne n'en necessite pas).
+- **Correctifs reportes** (voir le detail complet dans `CLAUDE.md` §
+  Historique des revues de dette technique, Revue n°2) : poignee de
+  glisser-depose dediee manquante sur l'en-tete de section (meme risque
+  de conflit tactile mobile que le correctif deja applique aux lignes de
+  valeurs, mais necessite une modification visuelle documentee dans
+  `DESIGN.md`) ; duplication de forme entre `showPrompt()`/
+  `showConfirm()` (deux resolveurs de `Promise` a emplacement unique) ;
+  duplication de forme entre `ajouterSection()`/`renommerSection()`/
+  `supprimerSection()` et les fonctions CRUD deja existantes
+  (`ajouterValeur()`, etc., convention etablie du projet) ;
+  `valeursDeSection()` refiltre/retrie a chaque appel reactif Alpine
+  (impact negligeable a l'echelle du projet) ; les six correctifs
+  reportes de la revue n°1, toujours non traites.
+- Compteur `BACKLOG.md` : reinitialise a 0/3. Prochaine session : Session
+  C (badges d'alerte, voir `BACKLOG.md`).

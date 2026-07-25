@@ -51,13 +51,17 @@ async function initApp() {
 // THEME CLAIR/SOMBRE
 // ========================================
 
+function getTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+}
+
 function initTheme() {
   const btn = document.getElementById('themeToggleBtn');
   const iconMoon = document.getElementById('themeIconMoon');
   const iconSun = document.getElementById('themeIconSun');
 
   function appliquerIcone() {
-    const theme = document.documentElement.getAttribute('data-theme');
+    const theme = getTheme();
     iconMoon.style.display = theme === 'dark' ? 'none' : 'block';
     iconSun.style.display = theme === 'dark' ? 'block' : 'none';
   }
@@ -65,8 +69,7 @@ function initTheme() {
   appliquerIcone();
 
   btn.addEventListener('click', () => {
-    const actuel = document.documentElement.getAttribute('data-theme');
-    const nouveau = actuel === 'dark' ? 'light' : 'dark';
+    const nouveau = getTheme() === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', nouveau);
     localStorage.setItem('theme', nouveau);
     appliquerIcone();
@@ -381,9 +384,14 @@ async function supprimerSection(section) {
   }
 }
 
-function initSortableSections(el) {
-  if (el.dataset.sortableInit) return;
+function marquerSortableInit(el) {
+  if (el.dataset.sortableInit) return false;
   el.dataset.sortableInit = 'true';
+  return true;
+}
+
+function initSortableSections(el) {
+  if (!marquerSortableInit(el)) return;
 
   Sortable.create(el, {
     handle: '.valeurs-section-nom',
@@ -410,8 +418,7 @@ function initSortableSections(el) {
 }
 
 function initSortableValeurs(el) {
-  if (el.dataset.sortableInit) return;
-  el.dataset.sortableInit = 'true';
+  if (!marquerSortableInit(el)) return;
 
   Sortable.create(el, {
     group: 'valeurs',
@@ -422,6 +429,7 @@ function initSortableValeurs(el) {
     dragClass: 'sortable-drag',
     onEnd: (evt) => {
       const store = Alpine.store('portfolio');
+      const valeursParTicker = new Map(store.valeurs.map((v) => [v.ticker, v]));
       const listesTouchees = evt.from === evt.to ? [evt.to] : [evt.from, evt.to];
 
       for (const liste of listesTouchees) {
@@ -431,7 +439,7 @@ function initSortableValeurs(el) {
         );
 
         tickersOrdonnes.forEach((ticker, index) => {
-          const valeur = store.valeurs.find((v) => v.ticker === ticker);
+          const valeur = valeursParTicker.get(ticker);
           if (valeur) {
             valeur.sectionId = sectionId;
             valeur.ordre = index;
@@ -598,7 +606,7 @@ async function chargerGraphique(ticker, period) {
       chartInstance.destroy();
     }
 
-    const themeSombre = document.documentElement.getAttribute('data-theme') === 'dark';
+    const themeSombre = getTheme() === 'dark';
     const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';
     const couleurGrille = themeSombre ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
 

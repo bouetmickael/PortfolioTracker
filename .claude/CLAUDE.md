@@ -121,3 +121,79 @@ variables d'environnement, vérification).
     (`chart.js` est la seule route avec un `try/catch` ; `valeurs.js` et
     `alertes.js` n'en ont pas et retomberaient sur la page d'erreur HTML
     par défaut d'Express en cas d'erreur inattendue).
+
+### 2026-07-25 — Revue n°2
+
+- **Portée** : diff cumulé depuis la revue n°1 jusqu'à `HEAD`
+  (`git diff bb0790f..HEAD -- server/ public/` hors `public/vendor/` et
+  `.claude/*.md`), couvrant Session B (sections + glisser-déposer), la
+  refonte visuelle + thème clair/sombre, et les deux correctifs directs
+  (poignée de glisser-déposer dédiée, modales prompt/confirm). Outillage
+  utilisé : `/simplify` (4 agents en parallèle : réutilisation,
+  simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement inchangé, vérifiés
+  par tests unitaires (`npm test`, 12/12) et un parcours réel serveur +
+  navigateur — register/login, création/suppression de sections avec
+  vérification de l'`ordre` attribué, réordonnancement glisser-déposer,
+  bascule thème clair/sombre) :
+  - Extraction de `nextOrdre()` (`server/ordre.js`), utilisée dans
+    `server/routes/sections.js` (création, suppression avec repli) et
+    `server/routes/valeurs.js` (création) à la place de trois occurrences
+    séparées du calcul `SELECT MAX(ordre)... + 1`.
+  - `backfillSectionsParDefaut()` (`server/db.js`) enveloppée dans
+    `db.transaction(...)`, alignée sur le même pattern que
+    `sections.js`/`auth.js` — évitait auparavant un commit disque
+    implicite par ligne insérée/mise à jour à chaque démarrage du
+    serveur.
+  - Extraction de `getTheme()` (`public/app.js`), remplace trois lectures
+    séparées de `document.documentElement.getAttribute('data-theme')`
+    (bascule du thème, icône du bouton, couleurs du graphique Chart.js).
+  - Extraction de `marquerSortableInit()` (`public/app.js`), factorise la
+    garde d'initialisation dupliquée entre `initSortableSections()` et
+    `initSortableValeurs()`.
+  - `initSortableValeurs()` (`public/app.js`) : remplacement d'un
+    `store.valeurs.find(...)` par ticker (O(n) par ticker déplacé, donc
+    O(n²) sur un glisser-déposer multi-valeurs) par une `Map` construite
+    une fois par `onEnd`.
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - Poignée de glisser-déposer des **sections** (`.valeurs-section-nom`,
+    `public/index.html`/`app.js`) : contrairement aux lignes de valeurs
+    (correctif dédié v1.3.1), le glisser-déposer d'une section se
+    déclenche encore depuis le titre cliquable (qui sert aussi à
+    replier/déplier) et n'a pas de `touch-action: none` — même risque de
+    conflit avec le scroll tactile mobile que celui déjà corrigé pour les
+    valeurs. Nécessite l'ajout d'une poignée dédiée (icône `icon-grip`)
+    dans l'en-tête de section, donc une modification visuelle documentée
+    dans `DESIGN.md`, hors périmètre d'un correctif de dette technique à
+    risque faible.
+  - Duplication de forme entre `showPrompt()`/`showConfirm()`
+    (`public/app.js`) : deux résolveurs de `Promise` à emplacement unique
+    (`promptResolve`/`confirmResolve`) suivant le même patron (ouvrir la
+    modale, stocker le résolveur, résoudre-et-fermer, gérer `Échap`).
+    Unifiables en un mécanisme générique unique, mais la fusion change la
+    forme du code autour de la résolution/l'`Échap` des deux modales
+    (risque de régression sur une interaction utilisateur directe) —
+    à traiter avec un test manuel dédié dans une session à part.
+  - Duplication de forme entre `ajouterSection()`/`renommerSection()`/
+    `supprimerSection()` (`public/app.js`) : même squelette
+    `showLoader`/`try`/`catch`/`finally`/toast, déjà présent avant cette
+    revue pour `ajouterValeur()`/`supprimerValeur()`/`creerAlerte()`/
+    `supprimerAlerte()` (convention établie du projet, pas une régression
+    de cette session) — une factorisation toucherait 7 fonctions et leurs
+    messages d'erreur, à évaluer dans une session dédiée plutôt qu'en
+    correctif ponctuel.
+  - `Alpine.store('portfolio').valeursDeSection()` (`public/app.js`) :
+    refiltre et retrie `valeurs` à chaque appel (appelé plusieurs fois par
+    rendu réactif Alpine, plus dans `persisterOrdre()`) plutôt que de
+    dériver une structure groupée une seule fois par changement de
+    `valeurs`/`sections`. Impact réel négligible à l'échelle de ce projet
+    personnel (quelques dizaines de valeurs au plus), mais toucherait le
+    modèle réactif Alpine — à traiter avec prudence, pas en correctif
+    rapide.
+  - Correctifs reportés de la revue n°1 toujours non traités (format de
+    réponse API en map, alertes en manipulation DOM directe, logique
+    Yahoo Finance dupliquée entre `prices.js`/`chart.js`, appels
+    réseau/SMTP séquentiels dans les jobs, absence de cache sur
+    `GET /api/chart/:ticker`, absence de middleware d'erreurs centralisé)
+    — voir Revue n°1 ci-dessus, aucun n'a été adressé cette session.
