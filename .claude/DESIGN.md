@@ -282,11 +282,20 @@ délibéré antérieur, non remis en cause).
 
 ## Responsive
 
-- Breakpoint unique `max-width: 640px` : réduction de la taille de police
-  des stats, largeur des modales à 95%, hauteur du conteneur de graphique
-  réduite (300px au lieu de 400px), FAB rapproché des bords. La liste des
-  valeurs suivies est déjà compacte par défaut, pas de règle mobile
-  dédiée.
+**Mobile-only, sans breakpoint (révision v1.6.1, 2026-07-25, demande
+explicite utilisateur — voir `CLAUDE.md` § Présentation du projet).**
+L'application n'étant destinée qu'à un usage smartphone, `public/
+styles.css` ne comporte plus aucune règle `@media` de largeur : les
+valeurs auparavant réservées à un correctif `max-width: 640px` (tuiles de
+stats compactes, modales à 95% de largeur, hauteur du conteneur de
+graphique à 300px, FAB rapproché des bords) sont désormais les valeurs
+par défaut, sans variante « desktop » à maintenir en parallèle. Ceci
+remplace l'ancien système à deux niveaux (style de base plus large,
+surchargé par un point de rupture mobile) : ne pas réintroduire de
+`@media` pour un affichage large écran sans nouvelle demande explicite de
+l'utilisateur. Seul le `@supports (padding: max(0px))` des zones sûres
+iOS (safe-area, voir § PWA) subsiste, car il ne dépend pas de la largeur
+d'écran.
 
 ## PWA
 

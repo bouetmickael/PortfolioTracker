@@ -903,3 +903,42 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   `config.yaml` 1.6.0 -> 1.6.1 (increment PATCH, correctif visible pour
   l'utilisateur), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 0/3 -> 1/3.
+
+## 2026-07-25 — Precision de perimetre : usage exclusivement smartphone + simplification CSS responsive (v1.6.2)
+
+- **Demande utilisateur** : l'application n'a pour unique but que d'etre
+  accedee depuis un smartphone (PWA), jamais depuis un navigateur de
+  bureau ou une tablette. Question posee a l'utilisateur sur la portee
+  du changement (documentation seule vs. simplification du CSS) -
+  reponse : simplifier le CSS aussi.
+- **Documentation** : `CLAUDE.md` § Presentation du projet, nouveau
+  paragraphe explicite (usage exclusivement smartphone, aucune mise en
+  page desktop a preserver). `DESIGN.md` § Responsive reecrit : retrait
+  du systeme a deux niveaux (style de base large + correctif `@media
+  (max-width: 640px)`), les valeurs mobiles deviennent les valeurs par
+  defaut, absence de tout `@media` de largeur documentee comme choix
+  assume (ne pas en reintroduire sans nouvelle demande explicite).
+- **Correctif** (`public/styles.css`) : fusion des regles du bloc
+  `@media (max-width: 640px)` (retire) dans les regles de base -
+  `.stats-container`/`.stat-card`/`.stat-label`/`.stat-value`/
+  `.stat-variation` (tailles compactes desormais par defaut),
+  `.modal-content` (largeur 95% au lieu de 90%), `#graphiqueContainer`
+  (hauteur 300px au lieu de 400px), `.fab` (rapproche des bords, 16px au
+  lieu de 24px - le bloc `@supports` de zones sures iOS mis a jour en
+  consequence pour rester coherent, `max(16px, env(safe-area-inset-
+  bottom))` au lieu de `max(24px, ...)`).
+- **Verification reelle** : `npm test` (`node --test test/*.test.js`,
+  29/29 verts, aucune route serveur modifiee). Parcours navigateur reel
+  (Playwright + Chromium local) a deux largeurs de telephone distinctes
+  (375px, iPhone SE-like, et 430px, iPhone Pro Max-like) : hauteur des
+  tuiles d'indices identique aux deux largeurs (80.5px), coherente avec
+  le rendu obtenu apres le correctif v1.6.1 (aucune regression) ;
+  ouverture du graphique d'une valeur ajoutee (`AAPL`) : largeur de
+  modale a 95% du viewport (408.5px sur 430px), hauteur du conteneur de
+  graphique a 300px comme attendu, aucune erreur console applicative
+  nouvelle.
+- Version : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.6.1 -> 1.6.2 (increment PATCH, `METHOD.md` §0.1 etape 4 :
+  toute session fonctionnelle incremente la version meme pour un
+  changement interne sans impact visuel), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 1/3 -> 2/3.

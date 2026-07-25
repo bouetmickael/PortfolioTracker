@@ -6,12 +6,14 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/3** — revue de dette technique n°3 effectuée le 2026-07-25 (voir
+**2/3** — revue de dette technique n°3 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°2 (Session 11 badges d'alerte, Session 12
 partage RW de section, Session 13 tuiles d'indices de marché). Compteur
-réinitialisé à 0/3. Correctif tuiles d'indices (v1.6.1, ci-dessous) livré
-le 2026-07-25, compteur incrémenté à 1/3.
+réinitialisé à 0/3. Correctif tuiles d'indices (v1.6.1) livré le
+2026-07-25, compteur incrémenté à 1/3. Précision de périmètre usage
+smartphone uniquement + simplification CSS responsive (v1.6.2,
+ci-dessous) livré le 2026-07-25, compteur incrémenté à 2/3.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -112,6 +114,17 @@ produit ci-après, à arbitrer avec l'utilisateur.
   cliquables (ouvrent le graphique historique de l'indice via le même
   mécanisme `openGraphique()` que les valeurs suivies) et compactées sur
   mobile (`DESIGN.md` § Cartes statistiques). Fait le 2026-07-25.
+- [x] **Précision de périmètre : usage exclusivement smartphone (v1.6.2)**
+  (demande explicite utilisateur) : documenté dans `CLAUDE.md` §
+  Présentation du projet — l'application n'a jamais vocation à être
+  utilisée depuis un navigateur de bureau ou une tablette. Conséquence
+  appliquée à `public/styles.css` (`DESIGN.md` § Responsive) : retrait du
+  système à deux niveaux (style de base large + correctif
+  `@media (max-width: 640px)`), les valeurs mobiles deviennent les
+  valeurs par défaut uniques, plus aucune règle `@media` de largeur dans
+  la feuille de style. Aucun changement visuel pour l'utilisateur sur un
+  vrai téléphone (déjà piloté par le correctif mobile auparavant). Fait
+  le 2026-07-25.
 
 ## Backlog produit
 

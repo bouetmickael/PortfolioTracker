@@ -250,8 +250,8 @@ body {
 
 .fab {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 16px;
+  right: 16px;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -283,13 +283,13 @@ body {
 .stats-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 16px;
+  gap: 6px;
+  padding: 10px 12px;
 }
 
 .stat-card {
   background: var(--bg);
-  padding: 16px;
+  padding: 8px 6px;
   border-radius: 8px;
   border-top: 3px solid var(--header-bg);
   box-shadow: var(--shadow);
@@ -311,22 +311,23 @@ body {
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 16px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .stat-variation {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 500;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .stat-variation.success {
@@ -728,7 +729,7 @@ body {
   background: var(--bg);
   border-radius: 8px;
   max-width: 500px;
-  width: 90%;
+  width: 95%;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
@@ -842,7 +843,7 @@ body {
 }
 
 #graphiqueContainer {
-  height: 400px;
+  height: 300px;
   position: relative;
 }
 
@@ -1079,47 +1080,6 @@ body {
   text-decoration: underline;
 }
 
-/* RESPONSIVE */
-
-@media (max-width: 640px) {
-  .stats-container {
-    gap: 6px;
-    padding: 10px 12px;
-  }
-
-  .stat-card {
-    padding: 8px 6px;
-  }
-
-  .stat-label {
-    font-size: 10px;
-    margin-bottom: 4px;
-  }
-
-  .stat-value {
-    font-size: 16px;
-    white-space: nowrap;
-  }
-
-  .stat-variation {
-    font-size: 11px;
-    margin-top: 2px;
-  }
-
-  .modal-content {
-    width: 95%;
-  }
-
-  #graphiqueContainer {
-    height: 300px;
-  }
-
-  .fab {
-    bottom: 16px;
-    right: 16px;
-  }
-}
-
 /* PWA SAFE AREAS (iOS) */
 
 @supports (padding: max(0px)) {
@@ -1130,7 +1090,7 @@ body {
   }
 
   .fab {
-    bottom: max(24px, env(safe-area-inset-bottom));
-    right: max(24px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: max(16px, env(safe-area-inset-right));
   }
 }

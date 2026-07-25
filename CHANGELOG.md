@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.6.2
+
+- Precision de perimetre (demande explicite utilisateur) : l'application
+  n'a vocation qu'a etre utilisee depuis un smartphone (PWA), jamais
+  depuis un navigateur de bureau ou une tablette. `public/styles.css` est
+  simplifie en consequence : le systeme a deux niveaux (style de base
+  large + correctif `@media (max-width: 640px)` pour mobile) est retire,
+  les valeurs mobiles deviennent les valeurs par defaut uniques. Aucun
+  changement visuel pour l'utilisateur (le rendu sur un vrai telephone
+  etait deja pilote par le correctif mobile, desormais applique par
+  defaut).
+
 ## 1.6.1
 
 - Correctif tuiles d'indices de marche (SBF 120/Nasdaq-100/S&P 500,

@@ -21,6 +21,14 @@ Raspberry Pi (Home Assistant OS ou Linux générique). Il permet de suivre
 des cours en quasi temps réel, de recevoir des alertes de seuil par email
 et de consulter des graphiques historiques.
 
+**Usage exclusivement smartphone (demande explicite utilisateur,
+2026-07-25).** L'application n'a pas vocation à être consultée depuis un
+navigateur de bureau ou une tablette : la PWA est installée et utilisée
+sur téléphone uniquement. Conséquence directe sur `DESIGN.md` (voir §
+Responsive) : aucune mise en page « desktop » à préserver ni à faire
+cohabiter avec un affichage mobile — l'UI cible directement un viewport
+de smartphone, sans point de rupture (`@media`) séparé.
+
 ## Stack technique & architecture
 
 Voir `ARCHITECTURE.md` (stack réelle, découpage en couches, arborescence,
