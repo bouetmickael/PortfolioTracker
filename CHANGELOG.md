@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.8.2
+
+- Correctif zoom intempestif (demande explicite utilisateur) : la page se
+  retrouvait parfois zoomee sans action volontaire, cachant une partie de
+  l'ecran. Cause principale : les champs de formulaire (connexion, ajout
+  de valeur, creation d'alerte, modales) etaient en police 14px, sous le
+  seuil de 16px a partir duquel iOS declenche un zoom automatique au focus
+  d'un champ. Passes a 16px. Pincement-zoom et double-tap-zoom egalement
+  desactives (meta viewport + `touch-action: manipulation`).
+- Tuiles d'indices de marche (SBF 120/Nasdaq-100/S&P 500) reduites une
+  seconde fois (retour utilisateur : toujours trop grandes une fois la
+  liste des valeurs suivies compactee en 1.8.1) : padding, polices et
+  bordure superieure encore reduits, voir `DESIGN.md` § Cartes
+  statistiques.
+
 ## 1.8.1
 
 - Densite de la liste des valeurs suivies (demande explicite utilisateur) :

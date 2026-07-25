@@ -124,34 +124,35 @@ délibéré antérieur, non remis en cause).
   menu utilisateur (`icon-user`).
 - **Cartes statistiques** (`.stats-container`/`.stat-card`, session
   2026-07-25 « suivi d'indices de marché ») : grille 3 colonnes égales,
-  fond `--bg`, coins 8px, `--shadow`, **bordure supérieure colorée 3px**.
-  Affichent désormais 3 indices de marché suivis (`SBF 120`,
-  `Nasdaq-100`, `S&P 500`, voir `BUSINESS_RULES.md`/`ARCHITECTURE.md`
-  pour la source des cours) plutôt que le comptage Total/Hausse/Baisse
-  des valeurs suivies (ancien contenu, retiré cette session). Rendu par
-  un `<template x-for>` sur `$store.portfolio.indices` (nouvel état du
-  store Alpine, peuplé par `GET /api/indices`, rafraîchi par le même
-  polling que les valeurs/alertes). Chaque tuile : nom de l'indice
-  (`.stat-label`), cours avec sa devise d'origine EUR/USD
-  (`.stat-value`, ex. « 5 432.10 EUR », voir composant ci-dessous),
-  variation du jour en dessous (`.stat-variation`, 13px/500, coloré
+  fond `--bg`, coins 6px, `--shadow`, **bordure supérieure colorée 2px**.
+  Affichent 3 indices de marché suivis (`SBF 120`, `Nasdaq-100`,
+  `S&P 500`, voir `BUSINESS_RULES.md`/`ARCHITECTURE.md` pour la source des
+  cours). Rendu par un `<template x-for>` sur `$store.portfolio.indices`
+  (état du store Alpine, peuplé par `GET /api/indices`, rafraîchi par le
+  même polling que les valeurs/alertes). Chaque tuile : nom de l'indice
+  (`.stat-label`, 9px), cours avec sa devise d'origine EUR/USD
+  (`.stat-value`, 13px/500 sans retour à la ligne, ex. « 5 432.10 EUR »),
+  variation du jour en dessous (`.stat-variation`, 9px/500, coloré
   `--success`/`--danger` selon le signe, même convention que
   `.valeur-variation` sur la liste des valeurs). La bordure supérieure
   suit également le signe de la variation de chaque indice
-  (`--success`/`--danger`/`--header-bg` si nul), plutôt que d'être fixée
-  par colonne comme l'ancien contenu Total/Hausse/Baisse. Chaque tuile
-  est cliquable (`cursor: pointer`, survol `--bg-secondary` comme
+  (`--success`/`--danger`/`--header-bg` si nul). Chaque tuile est
+  cliquable (`cursor: pointer`, survol `--bg-secondary` comme
   `.valeur-row`) et ouvre le graphique historique de l'indice via le même
-  mécanisme que les valeurs suivies (`openGraphique(ticker, nom)`,
-  titre de la modale affichant le nom lisible de l'indice plutôt que son
-  ticker Yahoo Finance brut ; correctif v1.6.1, les tuiles ne réagissaient
-  auparavant à aucune interaction). Sur mobile (`max-width: 640px`), la
-  tuile est nettement plus compacte qu'aux tailles d'écran supérieures
-  (padding `8px 6px`, `.stat-label` 10px, `.stat-value` 16px sans
-  retour à la ligne, `.stat-variation` 11px) — correctif v1.6.1, le
-  cours suivi de sa devise (ex. « 28128.34 USD ») repassait à la ligne à
-  28/24px et rendait les tuiles disproportionnellement hautes sur un
-  écran de téléphone (retour utilisateur du 2026-07-25).
+  mécanisme que les valeurs suivies (`openGraphique(ticker, nom)`, titre
+  de la modale affichant le nom lisible de l'indice plutôt que son ticker
+  Yahoo Finance brut ; correctif v1.6.1, les tuiles ne réagissaient
+  auparavant à aucune interaction). **Tailles réduites une seconde fois en
+  v1.8.2** (retour utilisateur explicite : les tuiles restaient
+  disproportionnées une fois la liste des valeurs suivies compactée en
+  v1.8.1, voir § Densité de la liste des valeurs suivies) : padding
+  `8px 6px` → `5px 4px`, `.stat-label` 10px → 9px, `.stat-value` 16px →
+  13px, `.stat-variation` 11px → 9px, `line-height: 1.2` explicite sur les
+  trois (au lieu de l'interligne global 1.5 du `body`). Plus aucune
+  distinction de taille par largeur d'écran depuis v1.6.2 (application
+  mobile-only, un seul jeu de valeurs, voir § Responsive) : ces valeurs
+  compactes sont désormais les seules, sans variante plus grande à
+  maintenir en parallèle.
 - **Sections repliables** (`Valeurs suivies`, `Alertes actives`, et
   chaque sous-section de la liste des valeurs) : titre précédé d'une
   icône chevron (`icon-chevron-down`) qui pivote -90° quand la section
@@ -384,6 +385,23 @@ d'écran.
   pas des icônes définitives. Sans impact fonctionnel, purement
   cosmétique — à remplacer un jour par un vrai jeu d'icônes si souhaité
   (pas un item de bug).
+- **Zoom désactivé** (v1.8.2, demande explicite utilisateur : la page se
+  retrouvait parfois zoomée sans action volontaire de sa part, cachant
+  une partie de l'écran). Deux causes distinctes corrigées ensemble :
+  - Le meta viewport (`public/index.html`/`public/login.html`) n'avait ni
+    `maximum-scale` ni `user-scalable`, laissant le pincement-zoom actif ;
+    ajout de `maximum-scale=1.0, user-scalable=no`. `html { touch-action:
+    manipulation }` (`public/styles.css`) complète en désactivant le
+    double-tap-zoom au niveau moteur, indépendamment du meta viewport.
+  - Cause la plus probable du zoom **intempestif** signalé (pas un geste
+    volontaire) : `.input` (`public/styles.css`, tous les champs de
+    formulaire de l'app — connexion, ajout de valeur, création d'alerte,
+    modales prompt/partage) était en 14px. iOS Safari/WKWebView zoome
+    automatiquement la page au focus de tout champ de formulaire dont la
+    taille de police calculée est inférieure à 16px, indépendamment du
+    meta viewport — comportement natif du moteur, pas un bug applicatif.
+    `.input` passé à 16px (le minimum sous lequel ce zoom automatique se
+    déclenche).
 
 ## Hors périmètre de cette révision
 

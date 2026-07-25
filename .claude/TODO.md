@@ -1182,3 +1182,55 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   `config.yaml` 1.8.0 -> 1.8.1 (increment PATCH - reduction de gabarit
   visuel, pas de nouvelle fonctionnalite), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 1/3 -> 2/3.
+
+## 2026-07-25 — Session 21 - zoom desactive + tuiles d'indices recompactees (v1.8.2)
+
+- **Demandes explicites utilisateur** (memes session) : (1) desactiver
+  toute forme de zoom, la page se retrouvant parfois zoomee sans action
+  volontaire, cachant une partie de l'ecran ; (2) les 3 tuiles d'indices
+  de marche sont trop grosses.
+- **Diagnostic du zoom intempestif** : deux causes distinctes.
+  1. Le meta viewport (`public/index.html`/`public/login.html`) n'avait ni
+     `maximum-scale` ni `user-scalable`, laissant le pincement-zoom actif.
+  2. Cause la plus probable du zoom **subi** (pas un geste volontaire de
+     pincement) : `.input` (`public/styles.css`) etait en police 14px.
+     iOS Safari/WKWebView zoome automatiquement la page au focus de tout
+     champ de formulaire dont la police calculee est sous 16px,
+     independamment du meta viewport - comportement natif du moteur, pas
+     un bug applicatif. Tous les champs de l'app partagent cette classe
+     (connexion, ajout de valeur, creation d'alerte, modales prompt/
+     partage), donc un seul point de correction.
+- **Implementation** :
+  - `public/index.html`/`public/login.html` : meta viewport `width=
+    device-width, initial-scale=1.0` -> ajout de `maximum-scale=1.0,
+    user-scalable=no`.
+  - `public/styles.css` : `html { touch-action: manipulation }` (nouveau)
+    desactive le double-tap-zoom au niveau moteur, independamment du meta
+    viewport. `.input` : police 14px -> 16px (seuil sous lequel iOS
+    declenche le zoom automatique au focus).
+  - `public/styles.css` (`.stats-container`/`.stat-card`) : deuxieme
+    reduction des tuiles d'indices (apres celle deja actee en v1.6.1) -
+    padding `10px 12px`/`8px 6px` -> `8px 10px`/`5px 4px`, coins 8px ->
+    6px, bordure superieure 3px -> 2px, `.stat-label` 10px -> 9px,
+    `.stat-value` 16px -> 13px, `.stat-variation` 11px -> 9px,
+    `line-height: 1.2` explicite sur les trois.
+  - `.claude/DESIGN.md` : § PWA (nouveau point "Zoom desactive") et §
+    Cartes statistiques mis a jour avec les nouvelles tailles ; au passage,
+    suppression d'une mention obsolete de breakpoint `max-width: 640px`
+    dans ce paragraphe (retire depuis v1.6.2, jamais corrige dans la doc).
+- **Verification reelle** : `npm test` (`node --test test/*.test.js`,
+  29/29 verts, aucun fichier serveur modifie). Parcours navigateur reel
+  (Playwright + Chromium local, viewport 375x667) : meta viewport et
+  police des champs de formulaire verifies par lecture directe du DOM
+  (`getComputedStyle`) sur la page de connexion et sur la modale d'ajout
+  de valeur - `font-size` de `#email`/`#inputTicker` confirme a 16px apres
+  correctif. Hauteur de tuile d'indice mesuree avant/apres : 80.5px ->
+  52.2px (~35% de reduction). Capture d'ecran des tuiles recompactees
+  verifiee en theme clair et sombre (lisibilite conservee, cours avec
+  devise du type "28128.34 USD" toujours affiche sur une seule ligne).
+- Version : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.8.1 -> 1.8.2 (increment PATCH - correctifs visuels/UX,
+  pas de nouvelle fonctionnalite), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 2/3 -> 3/3 - **seuil atteint, la prochaine
+  session est obligatoirement le cycle de revue de dette technique**
+  (`METHOD.md` §0.2), pas un nouveau point du backlog produit.

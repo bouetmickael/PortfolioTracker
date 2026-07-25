@@ -6,14 +6,17 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/3** — revue de dette technique n°4 effectuée le 2026-07-25 (voir
+**3/3** — revue de dette technique n°4 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°3 (Session 15 tuiles d'indices, Session 16
 périmètre smartphone-only + CSS, Session 17 alerte depuis le graphique).
 Compteur réinitialisé à 0/3, puis incrémenté à 1/3 par la Session 19
-(alertes existantes affichées sur le graphique, v1.8.0) et à 2/3 par la
-Session 20 (densité de la liste des valeurs suivies, v1.8.1, voir
-ci-dessous).
+(alertes existantes affichées sur le graphique, v1.8.0), à 2/3 par la
+Session 20 (densité de la liste des valeurs suivies, v1.8.1) et à 3/3 par
+la Session 21 (zoom désactivé + tuiles d'indices recompactées, v1.8.2,
+voir ci-dessous). **Seuil atteint : la prochaine session est
+obligatoirement le cycle de revue de dette technique** (`METHOD.md`
+§0.2), pas un nouveau point du backlog produit.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -154,6 +157,13 @@ produit ci-après, à arbitrer avec l'utilisateur.
   `.valeur-row` et de son contenu (voir `DESIGN.md` § Densité de la liste
   des valeurs suivies). Reste de l'application inchangé (en-tête, cartes
   d'indices, modales, carte alerte). Fait le 2026-07-25.
+- [x] **Zoom désactivé + tuiles d'indices recompactées (v1.8.2)** (deux
+  demandes explicites utilisateur dans la même session) : correctif du
+  zoom intempestif (cause principale : champs de formulaire en 14px, sous
+  le seuil de 16px déclenchant le zoom automatique iOS au focus ; voir
+  `DESIGN.md` § PWA) et deuxième réduction des tuiles `.stat-card`
+  (toujours disproportionnées une fois la liste des valeurs compactée en
+  v1.8.1, voir `DESIGN.md` § Cartes statistiques). Fait le 2026-07-25.
 
 ## Backlog produit
 
@@ -165,5 +175,6 @@ ci-dessus. Ne pas confondre avec les « limites connues » listées dans
 volatilité implicite, parité) : ce sont des limites assumées par le
 README public, pas des éléments déjà priorisés pour une future session —
 à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
-de revue est à 2/3 (voir ci-dessus) : la prochaine session peut être un
-nouveau point de ce backlog, à arbitrer avec l'utilisateur.
+de revue a atteint 3/3 (voir ci-dessus) : la prochaine session est de
+toute façon le cycle de revue de dette technique (`METHOD.md` §0.2), pas
+un nouveau point de ce backlog.
