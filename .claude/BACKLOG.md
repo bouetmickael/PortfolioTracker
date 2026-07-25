@@ -6,12 +6,14 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/3** — revue de dette technique n°4 effectuée le 2026-07-25 (voir
+**2/3** — revue de dette technique n°4 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°3 (Session 15 tuiles d'indices, Session 16
 périmètre smartphone-only + CSS, Session 17 alerte depuis le graphique).
 Compteur réinitialisé à 0/3, puis incrémenté à 1/3 par la Session 19
-(alertes existantes affichées sur le graphique, v1.8.0, voir ci-dessous).
+(alertes existantes affichées sur le graphique, v1.8.0) et à 2/3 par la
+Session 20 (densité de la liste des valeurs suivies, v1.8.1, voir
+ci-dessous).
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -146,6 +148,12 @@ produit ci-après, à arbitrer avec l'utilisateur.
   de masquer silencieusement l'alerte. Même restriction que la Session
   17 : uniquement sur mes propres valeurs suivies, jamais sur un indice
   de marché ni sur une valeur d'une section partagée. Fait le 2026-07-25.
+- [x] **Densité de la liste des valeurs suivies (v1.8.1)** (demande
+  explicite utilisateur : voir au moins 8 valeurs sur un même écran sans
+  scroller) : réduction des tailles de police et du padding de
+  `.valeur-row` et de son contenu (voir `DESIGN.md` § Densité de la liste
+  des valeurs suivies). Reste de l'application inchangé (en-tête, cartes
+  d'indices, modales, carte alerte). Fait le 2026-07-25.
 
 ## Backlog produit
 
@@ -157,5 +165,5 @@ ci-dessus. Ne pas confondre avec les « limites connues » listées dans
 volatilité implicite, parité) : ce sont des limites assumées par le
 README public, pas des éléments déjà priorisés pour une future session —
 à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
-de revue est à 1/3 (voir ci-dessus) : la prochaine session peut être un
+de revue est à 2/3 (voir ci-dessus) : la prochaine session peut être un
 nouveau point de ce backlog, à arbitrer avec l'utilisateur.

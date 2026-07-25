@@ -1139,3 +1139,46 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   les sessions precedentes versionnees en MINEUR), journalise dans
   `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 0/3 -> 1/3.
+
+## 2026-07-25 — Session 20 - densite de la liste des valeurs suivies (v1.8.1)
+
+- **Demande explicite utilisateur** : reduire la taille des polices pour
+  voir au moins 8 valeurs sur un meme ecran sans avoir a scroller.
+- **Implementation** (`public/styles.css`, uniquement `.valeur-row` et son
+  contenu - reste de l'application inchange) :
+  - `.valeur-row` : padding vertical 12px -> 3px (padding complet `12px
+    16px 12px 8px` -> `3px 8px 3px 6px`), `gap` 8px -> 6px.
+  - `.valeur-avatar` : 40px -> 28px, police 14px -> 10px.
+  - `.valeur-nom` : 15px -> 13px, `line-height: 1.25` explicite (au lieu
+    de l'interligne global 1.5 du `body`, qui aurait annule une partie du
+    gain de place).
+  - `.valeur-sousligne` : 12px -> 10px, meme traitement `line-height`.
+  - `.badge-type`/`.badge-alerte` : police 10px -> 9px, padding et
+    margin-left legerement reduits.
+  - `.valeur-footer` (deux lignes `MAJ:`/`Vol:`, voir Session 7) : 11px ->
+    9px, `line-height: 1.25`.
+  - `.valeur-cours` : 15px -> 13px ; `.valeur-variation` : 13px -> 10px.
+  - `.valeur-actions .btn-icon-small` (boutons `icon-bell`/`icon-trash` de
+    la ligne) : padding 6px -> 4px, regle scopee a `.valeur-actions` pour
+    ne pas affecter les autres usages de `.btn-icon-small` (en-tetes de
+    section, carte alerte, modale de partage).
+  - `.claude/DESIGN.md` : nouvelle sous-section « Densite de la liste des
+    valeurs suivies » sous le composant « Liste des valeurs suivies »,
+    tableau de typographie mis a jour (`valeur-cours`/`valeur-variation`).
+- **Verification reelle** : `npm test` (`node --test test/*.test.js`,
+  29/29 verts, aucun fichier serveur modifie). Mesure reelle au navigateur
+  (Playwright + Chromium local) avec 10 valeurs suivies dans la section
+  par defaut : sur un viewport 375x667 (iPhone SE, le plus petit gabarit
+  de smartphone couramment cible), 8 lignes desormais pleinement visibles
+  sans scroll (contre 4 avant ce correctif, meme jeu de donnees) ; sur un
+  viewport 390x844, les 10 lignes tiennent entierement a l'ecran avec le
+  bouton "+ Nouvelle section" visible en dessous. Capture d'ecran verifiee
+  en theme clair et sombre (lisibilite conservee aux tailles reduites).
+  Fonctionnellement : clic sur l'icone cloche d'une ligne ouvre bien la
+  modale de creation d'alerte avec le bon ticker (le `stopPropagation` et
+  la zone cliquable des boutons d'action restent fonctionnels malgre le
+  padding reduit).
+- Version : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.8.0 -> 1.8.1 (increment PATCH - reduction de gabarit
+  visuel, pas de nouvelle fonctionnalite), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 1/3 -> 2/3.

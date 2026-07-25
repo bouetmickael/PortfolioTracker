@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.1
+
+- Densite de la liste des valeurs suivies (demande explicite utilisateur) :
+  reduction des tailles de police et du padding de chaque ligne de valeur
+  (nom, cours, variation, badges, footer, avatar) pour afficher au moins
+  8 valeurs sur un meme ecran sans avoir a faire defiler la page, meme sur
+  un petit smartphone. Aucun changement de comportement, uniquement une
+  reduction du gabarit visuel de la liste (le reste de l'application -
+  en-tete, cartes d'indices, modales, carte alerte - est inchange).
+
 ## 1.8.0
 
 - Affichage des alertes de seuil existantes directement sur le graphique

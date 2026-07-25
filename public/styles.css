@@ -472,8 +472,8 @@ body {
 .valeur-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px 12px 8px;
+  gap: 6px;
+  padding: 3px 8px 3px 6px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.15s;
@@ -508,14 +508,14 @@ body {
 
 .valeur-avatar {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -525,8 +525,9 @@ body {
 }
 
 .valeur-nom {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -535,9 +536,9 @@ body {
 .valeur-sousligne {
   display: flex;
   align-items: center;
-  font-size: 12px;
+  font-size: 10px;
+  line-height: 1.25;
   color: var(--text-secondary);
-  margin-top: 1px;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -552,12 +553,12 @@ body {
   display: inline-block;
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
-  margin-left: 6px;
+  margin-left: 5px;
 }
 
 .badge-alerte {
@@ -567,18 +568,18 @@ body {
   justify-content: center;
   background: var(--primary);
   color: #ffffff;
-  padding: 2px 5px;
+  padding: 1px 4px;
   border-radius: 4px;
-  margin-left: 6px;
+  margin-left: 5px;
 }
 
 .valeur-footer {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  font-size: 11px;
+  gap: 0;
+  font-size: 9px;
+  line-height: 1.25;
   color: var(--text-secondary);
-  margin-top: 2px;
 }
 
 .valeur-chiffres {
@@ -587,14 +588,15 @@ body {
 }
 
 .valeur-cours {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
+  line-height: 1.25;
 }
 
 .valeur-variation {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
-  margin-top: 2px;
+  line-height: 1.25;
 }
 
 .valeur-variation.success {
@@ -609,6 +611,10 @@ body {
   flex-shrink: 0;
   display: flex;
   gap: 0;
+}
+
+.valeur-actions .btn-icon-small {
+  padding: 4px;
 }
 
 /* CARTES ALERTES */

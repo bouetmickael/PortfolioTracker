@@ -106,11 +106,12 @@ délibéré antérieur, non remis en cause).
   `stat-variation` (13px/500) empilé juste en dessous sur les tuiles
   d'indices de marché, même convention de coloration `--success`/
   `--danger` que `valeur-variation` ci-dessous. `valeur-cours`
-  (ligne de la liste des valeurs suivies) : 15px/500, aligné à droite avec
-  `valeur-variation` (13px/500) empilé juste en dessous, coloré en
-  `--success`/`--danger` selon le signe, sans fond de pastille (texte
-  simple).
-- Texte secondaire (labels, aide, footers de ligne) : 11-13px,
+  (ligne de la liste des valeurs suivies) : **13px/500** (réduit depuis
+  15px, voir § Densité de la liste des valeurs suivies), aligné à droite
+  avec `valeur-variation` (**10px/500**, réduit depuis 13px) empilé juste
+  en dessous, coloré en `--success`/`--danger` selon le signe, sans fond
+  de pastille (texte simple).
+- Texte secondaire (labels, aide, footers de ligne) : 9-13px,
   `--text-secondary`.
 
 ## Composants
@@ -192,15 +193,16 @@ délibéré antérieur, non remis en cause).
   la ligne n'a aucune restriction de `touch-action` et scrolle
   normalement. Contenu de la ligne :
   - poignée de glisser-déposer (icône `icon-grip`) ;
-  - avatar rond à gauche (initiales + couleur générée depuis le ticker) ;
-  - au centre : nom de la valeur (`.valeur-nom`, 15px/500 ; ticker en
-    repli si le nom est absent), puis ticker + **badge pilule** du type
-    (`.badge-type`, ex. "ACTION"/"WARRANT", fond `--bg-secondary`,
-    10px/600, majuscules), suivi si la valeur a au moins une alerte de
-    seuil active d'un second badge pilule (`.badge-alerte`, icône
-    `icon-bell` en `.icon-xs`, fond `--primary` (or), icône blanche —
-    même gabarit que `.badge-type` mais coloré pour signaler l'état actif
-    plutôt que le type de valeur), sur la ligne suivante
+  - avatar rond à gauche (initiales + couleur générée depuis le ticker,
+    28px de diamètre — voir § Densité de la liste des valeurs suivies) ;
+  - au centre : nom de la valeur (`.valeur-nom`, 13px/500, réduit depuis
+    15px ; ticker en repli si le nom est absent), puis ticker + **badge
+    pilule** du type (`.badge-type`, ex. "ACTION"/"WARRANT", fond
+    `--bg-secondary`, 9px/600, majuscules), suivi si la valeur a au moins
+    une alerte de seuil active d'un second badge pilule (`.badge-alerte`,
+    icône `icon-bell` en `.icon-xs`, fond `--primary` (or), icône blanche
+    — même gabarit que `.badge-type` mais coloré pour signaler l'état
+    actif plutôt que le type de valeur), sur la ligne suivante
     (`.valeur-sousligne`) ; `hasAlerte` (booléen calculé côté API par
     jointure sur les alertes actives de l'utilisateur, voir
     `BACKLOG.md` Session C) pilote son affichage (`x-show`), pas de
@@ -214,6 +216,24 @@ délibéré antérieur, non remis en cause).
   - actions `icon-bell` (créer alerte) / `icon-trash` (supprimer) tout à
     droite (avec `stopPropagation` pour ne pas déclencher l'ouverture du
     graphique).
+  - **Densité de la liste des valeurs suivies** (session 2026-07-25,
+    demande explicite utilisateur : voir au moins 8 valeurs sur un même
+    écran sans avoir à scroller). Réduction ciblée de `.valeur-row` et de
+    son contenu, sans toucher au reste de l'application (header, cartes
+    stats, modales, carte alerte) : padding vertical de la ligne 12px ->
+    3px, avatar 40px -> 28px (police 14px -> 10px), `.valeur-nom` 15px ->
+    13px, `.valeur-sousligne`/`.badge-type`/`.badge-alerte` 12px/10px ->
+    10px/9px, `.valeur-footer` 11px -> 9px, `.valeur-cours` 15px -> 13px,
+    `.valeur-variation` 13px -> 10px, boutons d'action (`icon-bell`/
+    `icon-trash`) padding 6px -> 4px. `line-height` explicite à 1.25 sur
+    ces éléments (au lieu de l'interligne global 1.5 du `body`) pour
+    empêcher l'interligne de regonfler l'économie de place gagnée par la
+    réduction de police. Résultat vérifié : 8 lignes pleinement visibles
+    sur un écran de 375x667 (le plus petit gabarit de smartphone
+    couramment testé), 10+ sur un gabarit plus grand (390x844). Aucun
+    changement de comportement (glisser-déposer, `stopPropagation` des
+    actions, affichage conditionnel du volume) — uniquement une réduction
+    de gabarit visuel.
 - **Carte alerte** : coins/ombre façon carte classique (grille séparée de
   la liste des valeurs), action de suppression à droite (`icon-trash`).
 - **Partage de section** (Session D de `BACKLOG.md`, voir
