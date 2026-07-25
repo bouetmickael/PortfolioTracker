@@ -294,6 +294,12 @@ body {
   border-top: 3px solid var(--header-bg);
   box-shadow: var(--shadow);
   text-align: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.stat-card:hover {
+  background: var(--bg-secondary);
 }
 
 .stat-success {
@@ -1077,11 +1083,27 @@ body {
 
 @media (max-width: 640px) {
   .stats-container {
-    gap: 8px;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .stat-card {
+    padding: 8px 6px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    margin-bottom: 4px;
   }
 
   .stat-value {
-    font-size: 24px;
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  .stat-variation {
+    font-size: 11px;
+    margin-top: 2px;
   }
 
   .modal-content {

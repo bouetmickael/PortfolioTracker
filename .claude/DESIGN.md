@@ -136,7 +136,19 @@ délibéré antérieur, non remis en cause).
   `.valeur-variation` sur la liste des valeurs). La bordure supérieure
   suit également le signe de la variation de chaque indice
   (`--success`/`--danger`/`--header-bg` si nul), plutôt que d'être fixée
-  par colonne comme l'ancien contenu Total/Hausse/Baisse.
+  par colonne comme l'ancien contenu Total/Hausse/Baisse. Chaque tuile
+  est cliquable (`cursor: pointer`, survol `--bg-secondary` comme
+  `.valeur-row`) et ouvre le graphique historique de l'indice via le même
+  mécanisme que les valeurs suivies (`openGraphique(ticker, nom)`,
+  titre de la modale affichant le nom lisible de l'indice plutôt que son
+  ticker Yahoo Finance brut ; correctif v1.6.1, les tuiles ne réagissaient
+  auparavant à aucune interaction). Sur mobile (`max-width: 640px`), la
+  tuile est nettement plus compacte qu'aux tailles d'écran supérieures
+  (padding `8px 6px`, `.stat-label` 10px, `.stat-value` 16px sans
+  retour à la ligne, `.stat-variation` 11px) — correctif v1.6.1, le
+  cours suivi de sa devise (ex. « 28128.34 USD ») repassait à la ligne à
+  28/24px et rendait les tuiles disproportionnellement hautes sur un
+  écran de téléphone (retour utilisateur du 2026-07-25).
 - **Sections repliables** (`Valeurs suivies`, `Alertes actives`, et
   chaque sous-section de la liste des valeurs) : titre précédé d'une
   icône chevron (`icon-chevron-down`) qui pivote -90° quand la section

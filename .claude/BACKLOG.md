@@ -6,12 +6,12 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/3** — revue de dette technique n°3 effectuée le 2026-07-25 (voir
+**1/3** — revue de dette technique n°3 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°2 (Session 11 badges d'alerte, Session 12
 partage RW de section, Session 13 tuiles d'indices de marché). Compteur
-réinitialisé à 0/3 — la prochaine session est une nouvelle fonctionnalité
-du backlog produit ci-dessous, pas une revue.
+réinitialisé à 0/3. Correctif tuiles d'indices (v1.6.1, ci-dessous) livré
+le 2026-07-25, compteur incrémenté à 1/3.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -104,6 +104,14 @@ produit ci-après, à arbitrer avec l'utilisateur.
 - [x] **Revue de dette technique n°3** : voir `CLAUDE.md` § Historique
   des revues de dette technique. Compteur remis à 0/3 (voir ci-dessus).
   Fait le 2026-07-25.
+- [x] **Correctif tuiles d'indices de marché (v1.6.1)** : retour
+  utilisateur sur la Session E (v1.6.0) — les tuiles `.stat-card`
+  n'avaient aucune interaction au clic, et le cours suivi de sa devise
+  (ex. « 28128.34 USD ») repassait à la ligne sur mobile, rendant les
+  tuiles disproportionnellement hautes. Les tuiles sont désormais
+  cliquables (ouvrent le graphique historique de l'indice via le même
+  mécanisme `openGraphique()` que les valeurs suivies) et compactées sur
+  mobile (`DESIGN.md` § Cartes statistiques). Fait le 2026-07-25.
 
 ## Backlog produit
 

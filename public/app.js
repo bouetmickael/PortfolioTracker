@@ -789,9 +789,9 @@ async function supprimerAlerte(id) {
 // GRAPHIQUES
 // ========================================
 
-async function openGraphique(ticker) {
+async function openGraphique(ticker, nom = null) {
   openModal('modalGraphique');
-  document.getElementById('graphiqueTitre').textContent = `Graphique - ${ticker}`;
+  document.getElementById('graphiqueTitre').textContent = `Graphique - ${nom || ticker}`;
 
   const periodeBtn = document.querySelector('[data-period="1M"]');
   await chargerGraphique(ticker, '1M');

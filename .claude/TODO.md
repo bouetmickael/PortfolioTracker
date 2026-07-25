@@ -859,3 +859,47 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - Compteur `BACKLOG.md` : reinitialise a 0/3. Prochaine session : a
   arbitrer avec l'utilisateur (aucun point supplementaire du backlog
   produit n'est encore priorise au-dela du plan livre).
+
+## 2026-07-25 — Correctif : tuiles d'indices de marche cliquables + compactage mobile (v1.6.1)
+
+- **Retour utilisateur** (capture d'ecran de l'app en v1.6.0 sur mobile) :
+  les tuiles `.stat-card` (SBF 120/Nasdaq-100/S&P 500, Session E) etaient
+  disproportionnellement hautes sur mobile - le cours suivi de sa devise
+  (ex. "28128.34 USD") repassait a la ligne a 24px - et ne reagissaient
+  a aucun clic.
+- **Correctifs** :
+  - `public/index.html` : ajout de `@click="openGraphique(indice.ticker,
+    indice.nom)"` sur `.stat-card`.
+  - `public/app.js` : `openGraphique(ticker)` accepte desormais un
+    second parametre optionnel `nom = null` (titre de la modale =
+    `nom || ticker`), comportement des appels existants depuis les
+    lignes de valeurs inchange (pas de `nom` passe, titre = ticker comme
+    avant).
+  - `public/styles.css` : `.stat-card` recoit `cursor: pointer` et un
+    survol `--bg-secondary` (meme convention que `.valeur-row`) ; bloc
+    mobile (`max-width: 640px`) recompacte `.stats-container`
+    (`padding`/`gap` reduits), `.stat-card` (`padding: 8px 6px`),
+    `.stat-label` (10px), `.stat-value` (16px, `white-space: nowrap`) et
+    `.stat-variation` (11px).
+  - `.claude/DESIGN.md` § Cartes statistiques mis a jour (tuiles
+    cliquables + gabarit mobile compact).
+- **Verification reelle** : `npm test` (`node --test test/*.test.js`,
+  29/29 verts, aucune route serveur modifiee - `GET /api/chart/:ticker`
+  est deja generique et fonctionnait deja pour n'importe quel ticker).
+  Serveur demarre en local (`DB_PATH` temporaire), parcours navigateur
+  reel (Playwright + Chromium local, viewport mobile 390x844) : capture
+  avant/apres, clic sur une tuile ouvre bien la modale de graphique avec
+  le titre "Graphique - SBF 120" (nom lisible, pas le ticker Yahoo brut
+  `^SBF120`) ; donnees historiques bloquees par le meme blocage reseau
+  Yahoo Finance deja documente dans cet environnement sandbox (sans
+  rapport avec ce correctif). Valeurs d'indices injectees directement en
+  base pour verifier le rendu avec des cours reels (memes valeurs que la
+  capture utilisateur, 6338.08 EUR / 28128.34 USD / 7411.98 USD) : les
+  trois tuiles tiennent desormais sur une seule ligne chacune, hauteur de
+  carte mesuree a 80.5px (contre une hauteur bien plus importante avant
+  correctif, valeur+devise passant sur deux lignes). Verification theme
+  sombre : rendu coherent, mêmes proportions compactes.
+- Version : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.6.0 -> 1.6.1 (increment PATCH, correctif visible pour
+  l'utilisateur), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 0/3 -> 1/3.

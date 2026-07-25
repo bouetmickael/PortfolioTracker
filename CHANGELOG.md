@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.1
+
+- Correctif tuiles d'indices de marche (SBF 120/Nasdaq-100/S&P 500,
+  v1.6.0) : les tuiles sont desormais cliquables et ouvrent le graphique
+  historique de l'indice (meme modale que pour une valeur suivie), et
+  leur taille est reduite sur mobile ou le cours + devise pouvait passer
+  sur deux lignes et occuper une hauteur disproportionnee.
+
 ## 1.6.0
 
 - Remplacement des 3 tuiles statistiques du haut (Total/Hausse/Baisse,
