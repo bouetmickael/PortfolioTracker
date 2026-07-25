@@ -6,11 +6,27 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/3** — revue de dette technique effectuée le 2026-07-24 (première
+**2/3** — revue de dette technique effectuée le 2026-07-24 (première
 revue du projet, voir `CLAUDE.md` § Historique des revues de dette
 technique et `TODO.md`). Session B (sections + drag-and-drop) livrée le
-2026-07-25, compteur incrémenté. La prochaine session reprend la
-fonctionnalité en cours (Session C ci-dessous).
+2026-07-25, puis une session hors plan (refonte visuelle + thème clair/
+sombre, demande explicite utilisateur, voir ci-dessous), compteur
+incrémenté à chaque fois. La prochaine session reprend la fonctionnalité
+en cours (Session C ci-dessous).
+
+## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
+
+Demande explicite de l'utilisateur (captures d'écran de l'ancienne
+version du projet, avant la refonte Material sobre) : retour au style
+visuel de l'ancienne version (en-tête bleu marine, accent or, icônes SVG,
+sections repliables, cartes stats à bordure colorée) + thème clair/sombre
+fonctionnel. Détail complet dans `DESIGN.md` (nouvelle direction
+générale) et `TODO.md`. Deux éléments vus sur les captures explicitement
+**non repris** cette session (voir arbitrage utilisateur) :
+- badges de recommandation (ACHAT/NEUTRE) : aucune donnée correspondante
+  dans le modèle actuel, pas demandé comme nouvelle fonctionnalité ;
+- portefeuilles partagés : correspond à la Session D déjà planifiée
+  ci-dessous, ordre du backlog conservé (Session C avant Session D).
 
 ## Fonctionnalité en cours
 

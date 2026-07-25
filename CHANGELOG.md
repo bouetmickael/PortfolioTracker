@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.0
+
+- Retour au style visuel de l'ancienne version du projet (demande
+  explicite utilisateur, captures d'ecran a l'appui) : en-tete bleu
+  marine fixe, accent or/gold, icones SVG a la place des boutons lettre
+  unique, sections repliables (chevron), cartes statistiques a bordure
+  coloree. Nouveau theme clair/sombre fonctionnel (bascule dans l'en-
+  tete, persistance locale). La ligne de chaque valeur suivie garde son
+  avatar rond et sa hierarchie de texte actuels, avec correction : le
+  volume s'affiche desormais sur sa propre ligne complete au lieu de
+  risquer d'etre coupe en cours de mot. Portefeuilles partages non
+  inclus (reste planifie en Session D, voir BACKLOG.md).
+
 ## 1.2.0
 
 - Ajout des sections dans la liste des valeurs suivies : creer, renommer

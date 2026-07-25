@@ -44,6 +44,16 @@
   (évite tout conflit entre la réconciliation Alpine et les mutations DOM
   de SortableJS), puis l'ordre est persisté via `PUT /api/sections/
   reorder`.
+- **Icônes** : SVG inline hand-écrites (pas de police d'icônes, pas de
+  bibliothèque externe/CDN), définies une fois comme `<symbol>` dans un
+  sprite caché en tête de `public/index.html` et référencées via `<svg
+  class="icon"><use href="#icon-xxx"></use></svg>` — voir `DESIGN.md`
+  pour le détail des composants et la liste des icônes.
+- **Thème clair/sombre** : CSS variables + attribut `data-theme` sur
+  `<html>`, basculé par `initTheme()` (`public/app.js`) et persisté en
+  `localStorage`. Un script inline synchrone en tête de `public/
+  index.html` applique le thème avant le premier rendu (anti-FOUC). Voir
+  `DESIGN.md` pour la palette claire/sombre complète.
 - **Graphiques** : Chart.js 4.4.0, chargé depuis un CDN (`jsdelivr`) dans
   `public/index.html`, pas de dépendance npm côté frontend.
 - **Communication frontend/backend** : polling HTTP classique (`fetch`)

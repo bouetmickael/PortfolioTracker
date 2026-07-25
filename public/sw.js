@@ -2,7 +2,7 @@
  * SERVICE WORKER - PORTFOLIO TRACKER
  */
 
-const CACHE_NAME = 'portfolio-tracker-v4';
+const CACHE_NAME = 'portfolio-tracker-v5';
 const urlsToCache = [
   '/',
   '/index.html',

@@ -277,3 +277,72 @@ glisser-deposer, en s'appuyant sur le store Alpine mis en place Session A.
   qu'un correctif), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 0/3 -> 1/3. Prochaine session : Session C
   (badges d'alerte) du plan en cours.
+
+## 2026-07-25 — Session hors plan : refonte visuelle + theme clair/sombre
+
+L'utilisateur a fourni des captures d'ecran de l'ancienne version du
+projet (avant la refonte Material sobre des sessions precedentes) et a
+demande explicitement d'en retrouver le style, tout en gardant l'avatar
+rond + la hierarchie de texte actuels pour chaque valeur (juste corriger
+le retour a la ligne du volume). Avant de coder, clarification en 3
+questions (AskUserQuestion) vu l'ampleur du changement (contredit
+plusieurs regles de `DESIGN.md` etablies avec l'utilisateur au fil des
+sessions precedentes) : refonte complete confirmee, bascule clair/sombre
+fonctionnelle demandee, mais ordre du backlog conserve (Session C avant
+Session D "portefeuilles partages", vue elle aussi sur les captures mais
+pas implementee cette session).
+
+- **Direction visuelle** (`DESIGN.md` entierement revu, ancienne regle
+  "sobre, sans icone" barree et remplacee) : en-tete bleu marine fixe
+  (`--header-bg: #1b2438`, inchange entre themes), accent or/gold
+  (`--primary: #c9a227`, remplace le bleu `#1a73e8` partout : boutons
+  primaires, FAB, ligne de graphique Chart.js, sélecteur de periode),
+  cartes statistiques a bordure superieure coloree (navy/vert/rouge),
+  sections repliables (chevron pivotant, etat local Alpine
+  `x-data="{ ouvert: true }"`, non persiste) a la fois sur les blocs
+  top-level ("Valeurs suivies"/"Alertes actives") et sur chaque
+  sous-section de valeurs.
+- **Icones SVG inline** : jeu d'icones ecrites a la main (refresh, user,
+  moon, sun, bell, trash, pencil, chevron-down, x, plus), definies une
+  seule fois comme `<symbol>` dans un sprite cache en tete de
+  `public/index.html`, reference partout via `<use href="#icon-xxx">` —
+  aucune police d'icones ni bibliotheque externe, coherent avec la
+  philosophie zero-dependance/zero-CDN deja appliquee a Alpine/
+  SortableJS. Remplacent tous les boutons lettre unique (R/U/A/X/M/+)
+  sauf le "+" texte des boutons d'ajout de section (deja un simple
+  caractere dans l'ancienne version aussi).
+- **Theme clair/sombre fonctionnel** : variables CSS + attribut
+  `data-theme` sur `<html>`, bascule via un nouveau bouton lune/soleil
+  dans l'en-tete (`initTheme()` dans `public/app.js`), persistance
+  `localStorage`, script inline synchrone en tete de `public/index.html`
+  pour appliquer le theme avant le premier rendu (anti-FOUC). Chart.js
+  (grille/ticks/courbe) et l'overlay du loader plein ecran adaptent aussi
+  leurs couleurs au theme actif.
+- **Ligne de valeur** : avatar rond + hierarchie de texte conserves
+  (nom, puis ticker + badge pilule du type au lieu du texte brut "ticker
+  · type"), mais le footer passe de "MAJ: hh:mm · Vol: xxx" sur une seule
+  ligne (pouvait couper "Vol: xxx" au milieu par un retour a la ligne
+  intempestif) a deux lignes distinctes ("MAJ: hh:mm" puis "Vol: xxx"
+  entierement sur sa propre ligne, jamais coupee).
+- **Explicitement hors perimetre** (documente dans `DESIGN.md` § Hors
+  perimetre de cette revision et `BACKLOG.md`) : badges de recommandation
+  ACHAT/NEUTRE (aucune donnee correspondante dans le modele, pas demande
+  comme fonctionnalite), portefeuilles partages (Session D deja
+  planifiee, ordre du backlog conserve sur demande explicite).
+- **Verification reelle** : aucune route API modifiee cette session
+  (changement frontend uniquement) — suite `node --test` deja existante
+  re-executee (13/13 verts, aucune regression backend). Verification
+  principale via Playwright (Chromium local) : capture theme clair et
+  theme sombre, bascule fonctionnelle avec persistance verifiee apres
+  rechargement de page, sections repliables (4 chevrons detectes,
+  repli/depli visuel confirme), glisser-depose d'une valeur entre
+  sections toujours fonctionnel avec la nouvelle structure de markup
+  (verifie en base via l'API apres le drag), clic sur une ligne toujours
+  fonctionnel (ouverture de la modale graphique, pas d'interference avec
+  le glisser-depose), creation d'alerte avec icone de suppression
+  correcte sur la carte alerte, rendu correct a 360px (mobile etroit).
+- Version : `server/package.json`/`config.yaml` 1.2.0 -> 1.3.0
+  (increment mineur, changement visuel majeur sur l'ensemble de
+  l'application), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 1/3 -> 2/3. Prochaine session : Session C
+  (badges d'alerte) du plan en cours.

@@ -42,8 +42,35 @@ async function initApp() {
 
   setupDataPolling();
   setupEventListeners();
+  initTheme();
   registerServiceWorker();
   chargerVersion();
+}
+
+// ========================================
+// THEME CLAIR/SOMBRE
+// ========================================
+
+function initTheme() {
+  const btn = document.getElementById('themeToggleBtn');
+  const iconMoon = document.getElementById('themeIconMoon');
+  const iconSun = document.getElementById('themeIconSun');
+
+  function appliquerIcone() {
+    const theme = document.documentElement.getAttribute('data-theme');
+    iconMoon.style.display = theme === 'dark' ? 'none' : 'block';
+    iconSun.style.display = theme === 'dark' ? 'block' : 'none';
+  }
+
+  appliquerIcone();
+
+  btn.addEventListener('click', () => {
+    const actuel = document.documentElement.getAttribute('data-theme');
+    const nouveau = actuel === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', nouveau);
+    localStorage.setItem('theme', nouveau);
+    appliquerIcone();
+  });
 }
 
 async function chargerVersion() {
@@ -180,7 +207,9 @@ function createAlerteCard(id, alerte) {
       <div class="alerte-ticker">${alerte.ticker}</div>
       <div class="alerte-seuils">${seuils.join(' - ')}</div>
     </div>
-    <button class="btn-icon-small" onclick="supprimerAlerte('${id}')" title="Supprimer" aria-label="Supprimer">X</button>
+    <button class="btn-icon-small" onclick="supprimerAlerte('${id}')" title="Supprimer" aria-label="Supprimer">
+      <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
+    </button>
   `;
 
   return div;
@@ -562,6 +591,10 @@ async function chargerGraphique(ticker, period) {
       chartInstance.destroy();
     }
 
+    const themeSombre = document.documentElement.getAttribute('data-theme') === 'dark';
+    const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';
+    const couleurGrille = themeSombre ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+
     chartInstance = new Chart(ctx, {
       type: 'line',
       data: {
@@ -570,8 +603,8 @@ async function chargerGraphique(ticker, period) {
           {
             label: ticker,
             data: prices,
-            borderColor: '#1a73e8',
-            backgroundColor: 'rgba(26, 115, 232, 0.1)',
+            borderColor: '#c9a227',
+            backgroundColor: 'rgba(201, 162, 39, 0.12)',
             borderWidth: 2,
             pointRadius: 0,
             pointHoverRadius: 4,
@@ -598,12 +631,14 @@ async function chargerGraphique(ticker, period) {
         scales: {
           x: {
             display: true,
-            grid: { display: false }
+            grid: { display: false },
+            ticks: { color: couleurTexte }
           },
           y: {
             display: true,
-            grid: { color: 'rgba(0,0,0,0.05)' },
+            grid: { color: couleurGrille },
             ticks: {
+              color: couleurTexte,
               callback(value) {
                 return value.toFixed(2) + ' EUR';
               }
