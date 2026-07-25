@@ -3,18 +3,57 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
+const { ROLES_VALIDES, rolesSection, peutEcrire } = require('../partage');
 
 const router = express.Router();
 
 router.use(requireAuth);
 
-function toSectionsArray(rows) {
-  return rows.map((row) => ({ id: row.id, nom: row.nom, ordre: row.ordre }));
+function toSectionsArray(rows, acces, emailParUserId) {
+  return rows.map((row) => {
+    const info = acces.get(row.id);
+    const section = { id: row.id, nom: row.nom, ordre: row.ordre, role: info.role };
+    if (info.role !== 'proprietaire') {
+      section.proprietaireEmail = emailParUserId.get(info.proprietaireId) || null;
+    }
+    return section;
+  });
+}
+
+// Verifie que la section appartient bien a l'utilisateur courant (seul le
+// proprietaire peut la renommer/supprimer/partager, voir BUSINESS_RULES.md).
+function sectionPossedee(userId, sectionId) {
+  return db.prepare('SELECT id FROM sections WHERE id = ? AND user_id = ?').get(sectionId, userId);
 }
 
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM sections WHERE user_id = ? ORDER BY ordre ASC').all(req.session.userId);
-  res.json(toSectionsArray(rows));
+  const acces = rolesSection(db, req.session.userId);
+  const ids = [...acces.keys()];
+
+  if (ids.length === 0) {
+    return res.json([]);
+  }
+
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = db.prepare(`SELECT * FROM sections WHERE id IN (${placeholders})`).all(...ids);
+
+  const idsProprietairesPartages = [...new Set(rows.filter((r) => acces.get(r.id).role !== 'proprietaire').map((r) => r.user_id))];
+  const emailParUserId = new Map();
+  if (idsProprietairesPartages.length > 0) {
+    const placeholdersUsers = idsProprietairesPartages.map(() => '?').join(',');
+    const users = db.prepare(`SELECT id, email FROM users WHERE id IN (${placeholdersUsers})`).all(...idsProprietairesPartages);
+    for (const user of users) emailParUserId.set(user.id, user.email);
+  }
+
+  const sections = toSectionsArray(rows, acces, emailParUserId);
+  sections.sort((a, b) => {
+    if (a.role === 'proprietaire' && b.role !== 'proprietaire') return -1;
+    if (a.role !== 'proprietaire' && b.role === 'proprietaire') return 1;
+    if (a.role === 'proprietaire') return a.ordre - b.ordre;
+    return a.nom.localeCompare(b.nom);
+  });
+
+  res.json(sections);
 });
 
 router.post('/', (req, res) => {
@@ -37,33 +76,207 @@ router.post('/', (req, res) => {
 // parametree (Express matche les routes dans l'ordre de declaration).
 router.put('/reorder', (req, res) => {
   const sections = Array.isArray(req.body.sections) ? req.body.sections : [];
-
-  const sectionsUser = db.prepare('SELECT id FROM sections WHERE user_id = ?').all(req.session.userId);
-  const idsSectionsUser = new Set(sectionsUser.map((s) => s.id));
+  const acces = rolesSection(db, req.session.userId);
 
   for (const section of sections) {
-    if (!idsSectionsUser.has(section.id)) {
+    const info = acces.get(section.id);
+    if (!peutEcrire(info)) {
       return res.status(403).json({ error: 'Section invalide' });
     }
   }
 
   const updateOrdreSection = db.prepare('UPDATE sections SET ordre = ? WHERE id = ? AND user_id = ?');
-  const updateValeur = db.prepare(
-    'UPDATE valeurs SET section_id = ?, ordre = ? WHERE user_id = ? AND ticker = ?'
-  );
+  const updateValeur = db.prepare('UPDATE valeurs SET section_id = ?, ordre = ? WHERE id = ? AND user_id = ?');
 
   const appliquerReorder = db.transaction(() => {
     sections.forEach((section, indexSection) => {
-      const ordreSection = Number.isInteger(section.ordre) ? section.ordre : indexSection;
-      updateOrdreSection.run(ordreSection, section.id, req.session.userId);
+      const info = acces.get(section.id);
+
+      if (info.role === 'proprietaire') {
+        const ordreSection = Number.isInteger(section.ordre) ? section.ordre : indexSection;
+        updateOrdreSection.run(ordreSection, section.id, req.session.userId);
+      }
 
       const valeurIds = Array.isArray(section.valeurIds) ? section.valeurIds : [];
-      valeurIds.forEach((ticker, indexValeur) => {
-        updateValeur.run(section.id, indexValeur, req.session.userId, normalizeTicker(ticker));
+      valeurIds.forEach((valeurId, indexValeur) => {
+        updateValeur.run(section.id, indexValeur, valeurId, info.proprietaireId);
       });
     });
   });
   appliquerReorder();
+
+  res.json({ success: true });
+});
+
+// Partage d'une section (lecture/ecriture) : reserve au proprietaire, voir
+// BUSINESS_RULES.md § Partage de section.
+
+router.get('/:id/partages', (req, res) => {
+  const section = sectionPossedee(req.session.userId, req.params.id);
+  if (!section) {
+    return res.status(404).json({ error: 'Section introuvable' });
+  }
+
+  const rows = db
+    .prepare(
+      `SELECT ss.user_id as userId, ss.role as role, u.email as email, u.display_name as displayName
+       FROM section_shares ss
+       JOIN users u ON u.id = ss.user_id
+       WHERE ss.section_id = ?
+       ORDER BY u.email ASC`
+    )
+    .all(section.id);
+
+  res.json(rows);
+});
+
+router.post('/:id/partages', (req, res) => {
+  const section = sectionPossedee(req.session.userId, req.params.id);
+  if (!section) {
+    return res.status(404).json({ error: 'Section introuvable' });
+  }
+
+  const email = (req.body.email || '').trim().toLowerCase();
+  const role = req.body.role;
+
+  if (!ROLES_VALIDES.includes(role)) {
+    return res.status(400).json({ error: 'Role invalide' });
+  }
+
+  const cible = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  if (!cible) {
+    return res.status(404).json({ error: 'Aucun utilisateur avec cet email' });
+  }
+  if (cible.id === req.session.userId) {
+    return res.status(400).json({ error: 'Impossible de partager une section avec vous-meme' });
+  }
+
+  const existant = db
+    .prepare('SELECT id FROM section_shares WHERE section_id = ? AND user_id = ?')
+    .get(section.id, cible.id);
+
+  if (existant) {
+    db.prepare('UPDATE section_shares SET role = ? WHERE id = ?').run(role, existant.id);
+  } else {
+    db.prepare('INSERT INTO section_shares (section_id, user_id, role, cree_le) VALUES (?, ?, ?, ?)').run(
+      section.id,
+      cible.id,
+      role,
+      Date.now()
+    );
+  }
+
+  res.status(201).json({ success: true });
+});
+
+router.delete('/:id/partages/:userId', (req, res) => {
+  const section = sectionPossedee(req.session.userId, req.params.id);
+  if (!section) {
+    return res.status(404).json({ error: 'Section introuvable' });
+  }
+
+  db.prepare('DELETE FROM section_shares WHERE section_id = ? AND user_id = ?').run(section.id, req.params.userId);
+
+  res.json({ success: true });
+});
+
+// Valeurs d'une section partagee (lecture/ecriture). GET /api/valeurs reste
+// strictement limite aux valeurs propres de l'utilisateur (voir
+// server/routes/valeurs.js) ; ces routes exposent uniquement les valeurs
+// d'UNE section a la fois, ce qui reste sans ambiguite de ticker puisqu'une
+// section n'appartient qu'a un seul proprietaire (voir BUSINESS_RULES.md).
+
+function toValeursSectionMap(rows) {
+  const map = {};
+  for (const row of rows) {
+    map[row.ticker] = {
+      id: row.id,
+      type: row.type,
+      nom: row.nom,
+      cours: row.cours,
+      variation: row.variation,
+      volume: row.volume,
+      derniereMaj: row.derniere_maj,
+      ajouteLe: row.ajoute_le,
+      sectionId: row.section_id,
+      ordre: row.ordre,
+      hasAlerte: Boolean(row.has_alerte)
+    };
+  }
+  return map;
+}
+
+router.get('/:id/valeurs', (req, res) => {
+  const acces = rolesSection(db, req.session.userId);
+  const info = acces.get(Number(req.params.id));
+  if (!info) {
+    return res.status(404).json({ error: 'Section introuvable' });
+  }
+
+  const rows = db
+    .prepare(
+      `SELECT v.*,
+         EXISTS(
+           SELECT 1 FROM alertes a
+           WHERE a.valeur_id = v.id AND a.user_id = v.user_id AND a.active = 1
+         ) AS has_alerte
+       FROM valeurs v
+       WHERE v.section_id = ?`
+    )
+    .all(Number(req.params.id));
+
+  res.json(toValeursSectionMap(rows));
+});
+
+router.post('/:id/valeurs', (req, res) => {
+  const acces = rolesSection(db, req.session.userId);
+  const info = acces.get(Number(req.params.id));
+  if (!peutEcrire(info)) {
+    return res.status(403).json({ error: 'Section invalide' });
+  }
+
+  const ticker = normalizeTicker(req.body.ticker);
+  const type = req.body.type === 'Warrant' ? 'Warrant' : 'Action';
+  const nom = (req.body.nom || '').trim();
+
+  if (!ticker) {
+    return res.status(400).json({ error: 'Ticker requis' });
+  }
+
+  const existing = db
+    .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?')
+    .get(info.proprietaireId, ticker);
+  if (existing) {
+    return res.status(409).json({ error: 'Cette valeur est deja suivie' });
+  }
+
+  const sectionId = Number(req.params.id);
+  const ordre = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [info.proprietaireId, sectionId]);
+
+  db.prepare(
+    `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
+     VALUES (?, ?, ?, ?, 0, 0, 0, NULL, ?, ?, ?)`
+  ).run(info.proprietaireId, ticker, type, nom, Date.now(), sectionId, ordre);
+
+  res.status(201).json({ success: true });
+});
+
+router.delete('/:id/valeurs/:ticker', (req, res) => {
+  const acces = rolesSection(db, req.session.userId);
+  const info = acces.get(Number(req.params.id));
+  if (!peutEcrire(info)) {
+    return res.status(403).json({ error: 'Section invalide' });
+  }
+
+  const ticker = normalizeTicker(req.params.ticker);
+  const valeur = db
+    .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ? AND section_id = ?')
+    .get(info.proprietaireId, ticker, Number(req.params.id));
+
+  if (valeur) {
+    db.prepare('DELETE FROM valeurs WHERE id = ?').run(valeur.id);
+    db.prepare('DELETE FROM alertes WHERE valeur_id = ?').run(valeur.id);
+  }
 
   res.json({ success: true });
 });

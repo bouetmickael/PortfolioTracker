@@ -8,6 +8,7 @@ const valeursRoutes = require('./routes/valeurs');
 const alertesRoutes = require('./routes/alertes');
 const chartRoutes = require('./routes/chart');
 const sectionsRoutes = require('./routes/sections');
+const usersRoutes = require('./routes/users');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/api/valeurs', valeursRoutes);
 app.use('/api/alertes', alertesRoutes);
 app.use('/api/chart', chartRoutes);
 app.use('/api/sections', sectionsRoutes);
+app.use('/api/users', usersRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

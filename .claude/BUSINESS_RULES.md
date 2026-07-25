@@ -49,13 +49,70 @@
   restante de l'utilisateur (`server/routes/sections.js`) — jamais de
   valeur orpheline sans section.
 - Une section et les valeurs qu'elle contient n'appartiennent qu'a un
-  seul `user_id` ; aucun partage entre utilisateurs a ce stade (prevu
-  dans une session future dediee, avec amendement explicite de ce
-  document au moment ou cette regle changera).
+  seul `user_id` (son proprietaire) ; elle peut neanmoins etre partagee
+  en lecture ou en ecriture avec d'autres utilisateurs sans changer de
+  proprietaire — voir § Partage de section (lecture/ecriture) ci-dessous
+  pour le detail de cette exception.
 - Un `sectionId` fourni a la creation d'une valeur (`POST /api/valeurs`)
   n'est accepte que s'il designe une section appartenant a l'utilisateur
   courant ; sinon la valeur est rattachee a la section par defaut de
   l'utilisateur (jamais a une section d'un autre utilisateur).
+
+## Partage de section (lecture/ecriture)
+
+> **Amendement explicite a la regle d'isolation stricte ci-dessus** (Session
+> D, voir `BACKLOG.md`) : une section peut desormais etre visible et, selon
+> le role, modifiable par un utilisateur autre que son proprietaire. Ceci ne
+> remet pas en cause l'isolation par defaut (une section non partagee reste
+> invisible a tout autre utilisateur) ; c'est une exception explicite,
+> opt-in par le proprietaire, jamais un filtrage a posteriori.
+
+- Une section peut etre partagee par son proprietaire avec un autre
+  utilisateur connu (par email), avec un role `lecture` ou `ecriture`
+  (table `section_shares`, colonnes `section_id`/`user_id`/`role`). Voir
+  `server/partage.js` (`rolesSection`, `peutEcrire`) et
+  `server/routes/sections.js`.
+- Seul le proprietaire d'une section (`sections.user_id`) peut la renommer,
+  la supprimer, la partager ou revoquer un partage — un utilisateur avec qui
+  une section est partagee n'a jamais ces droits, quel que soit son role
+  (`PUT/DELETE /api/sections/:id` et `GET/POST/DELETE /api/sections/:id/
+  partages` verifient explicitement `user_id = proprietaire` en SQL).
+- Role `lecture` : consultation seule des valeurs de la section partagee
+  (`GET /api/sections/:id/valeurs`), aucune ecriture possible.
+- Role `ecriture` : peut en plus ajouter et supprimer des valeurs dans la
+  section partagee via des routes dediees
+  (`POST`/`DELETE /api/sections/:id/valeurs/:ticker`), mais ne peut
+  toujours pas renommer/supprimer la section ni gerer son partage.
+- Les valeurs ajoutees dans une section partagee par un utilisateur en
+  ecriture restent rattachees au `user_id` du **proprietaire** de la
+  section, pas de l'utilisateur agissant : c'est la section qui est
+  partagee (avec ses valeurs), jamais une copie de donnees creee chez
+  l'utilisateur invite. La contrainte `UNIQUE(user_id, ticker)` s'applique
+  donc toujours par rapport au proprietaire de la section, pas a
+  l'utilisateur qui effectue l'ajout.
+- `GET /api/valeurs` (liste principale de l'utilisateur courant) continue de
+  ne renvoyer que ses propres valeurs, filtrees par `user_id` en SQL —
+  **inchange par cette fonctionnalite**. Les valeurs des sections partagees
+  avec l'utilisateur ne sont exposees que par les routes dediees
+  `GET /api/sections/:id/valeurs` (une section a la fois, donc sans
+  ambiguite de ticker entre utilisateurs), elles-memes protegees par un
+  controle d'acces explicite (`section_shares` ou propriete), jamais par un
+  filtrage a posteriori cote application.
+- `PUT /api/sections/reorder` accepte desormais aussi bien les sections
+  possedees que les sections partagees en ecriture, mais ne modifie
+  l'`ordre` de la section elle-meme (position dans la liste) que pour son
+  proprietaire — un utilisateur en ecriture peut reordonner les valeurs a
+  l'interieur d'une section partagee, jamais la position de cette section
+  parmi les sections d'un autre utilisateur.
+- Les alertes de seuil restent strictement privees par utilisateur
+  (`alertes.user_id`), **non affectees par le partage de section** : un
+  utilisateur avec un acces en ecriture a une section partagee ne peut pas
+  creer d'alerte "au nom" du proprietaire de la section — hors perimetre de
+  cette fonctionnalite, non demande.
+- `GET /api/users` expose une liste restreinte (id, email, displayName) des
+  autres comptes connus, utilisee uniquement pour choisir un destinataire de
+  partage — aucune autre donnee (mot de passe, valeurs, sections) n'est
+  exposee par cette route.
 
 ## Alertes de seuil
 

@@ -12,6 +12,7 @@ function toValeursMap(rows) {
   const map = {};
   for (const row of rows) {
     map[row.ticker] = {
+      id: row.id,
       type: row.type,
       nom: row.nom,
       cours: row.cours,

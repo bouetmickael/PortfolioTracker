@@ -148,13 +148,15 @@ test('reorder persiste l ordre des sections et des valeurs', async () => {
     body: JSON.stringify({ ticker: 'MSFT', sectionId: sectionDefaut.id })
   });
 
+  const valeursAvant = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
+
   const reorder = await fetch(`${baseUrl}/api/sections/reorder`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', Cookie: cookie },
     body: JSON.stringify({
       sections: [
         { id: section2.id, ordre: 0, valeurIds: [] },
-        { id: sectionDefaut.id, ordre: 1, valeurIds: ['MSFT', 'AAPL'] }
+        { id: sectionDefaut.id, ordre: 1, valeurIds: [valeursAvant.MSFT.id, valeursAvant.AAPL.id] }
       ]
     })
   });

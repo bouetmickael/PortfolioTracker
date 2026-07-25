@@ -82,6 +82,13 @@
       <circle cx="9" cy="18" r="1.5"></circle>
       <circle cx="15" cy="18" r="1.5"></circle>
     </symbol>
+    <symbol id="icon-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="18" cy="5" r="3"></circle>
+      <circle cx="6" cy="12" r="3"></circle>
+      <circle cx="18" cy="19" r="3"></circle>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+    </symbol>
   </svg>
 
   <header class="header">
@@ -152,6 +159,9 @@
                   <h3 class="valeurs-section-nom" x-text="section.nom"></h3>
                 </div>
                 <div class="valeurs-section-actions">
+                  <button class="btn-icon-small" @click="ouvrirPartageModal(section)" title="Partager la section" aria-label="Partager la section">
+                    <svg class="icon icon-sm"><use href="#icon-share"></use></svg>
+                  </button>
                   <button class="btn-icon-small" @click="renommerSection(section)" title="Renommer la section" aria-label="Renommer la section">
                     <svg class="icon icon-sm"><use href="#icon-pencil"></use></svg>
                   </button>
@@ -161,8 +171,8 @@
                 </div>
               </div>
               <div class="valeurs-section-liste" :data-section-id="section.id" x-init="initSortableValeurs($el)" x-show="ouvert" x-transition>
-                <template x-for="valeur in $store.portfolio.valeursDeSection(section.id)" :key="valeur.ticker">
-                  <div class="valeur-row" :data-ticker="valeur.ticker" @click="openGraphique(valeur.ticker)">
+                <template x-for="valeur in $store.portfolio.valeursDeSection(section.id)" :key="valeur.id">
+                  <div class="valeur-row" :data-valeur-id="valeur.id" @click="openGraphique(valeur.ticker)">
                     <div class="valeur-drag-handle" @click.stop title="Glisser pour deplacer" aria-hidden="true">
                       <svg class="icon icon-sm"><use href="#icon-grip"></use></svg>
                     </div>
@@ -206,10 +216,72 @@
       </div>
       <div class="empty-state" x-show="$store.portfolio.chargee && $store.portfolio.valeurs.length === 0">
         <p>Aucune valeur suivie</p>
-        <button @click="openModal('modalAddValeur')" class="btn btn-primary">
+        <button @click="ouvrirAjoutValeurDefaut()" class="btn btn-primary">
           Ajouter une valeur
         </button>
       </div>
+    </div>
+  </section>
+
+  <section class="section" x-data="{ ouvert: true }" x-show="$store.portfolio.sectionsPartagees.length > 0">
+    <div class="section-header">
+      <div class="section-header-titre" @click="ouvert = !ouvert">
+        <svg class="icon icon-chevron" :class="{ collapsed: !ouvert }"><use href="#icon-chevron-down"></use></svg>
+        <h2>Partage avec moi</h2>
+      </div>
+    </div>
+    <div class="valeurs-sections-liste" x-show="ouvert" x-transition>
+      <template x-for="section in $store.portfolio.sectionsPartagees" :key="section.id">
+        <div class="valeurs-section valeurs-section-partagee" x-data="{ ouvert: true }">
+          <div class="valeurs-section-header">
+            <div class="valeurs-section-titre" @click="ouvert = !ouvert">
+              <svg class="icon icon-sm icon-chevron" :class="{ collapsed: !ouvert }"><use href="#icon-chevron-down"></use></svg>
+              <div class="valeurs-section-info">
+                <h3 class="valeurs-section-nom valeurs-section-nom-partagee" x-text="section.nom"></h3>
+                <span class="valeurs-section-partage-info" x-text="'Partage par ' + section.proprietaireEmail + ' - ' + (section.role === 'ecriture' ? 'Lecture et ecriture' : 'Lecture seule')"></span>
+              </div>
+            </div>
+            <div class="valeurs-section-actions">
+              <button class="btn-icon-small" @click="ouvrirAjoutValeurSection(section)" title="Ajouter une valeur" aria-label="Ajouter une valeur" x-show="section.role === 'ecriture'">
+                <svg class="icon icon-sm"><use href="#icon-plus"></use></svg>
+              </button>
+            </div>
+          </div>
+          <div class="valeurs-section-liste" x-init="section.role === 'ecriture' && initSortableValeursPartagees($el, section)" x-show="ouvert" x-transition>
+            <template x-for="valeur in [...section.valeurs].sort((a, b) => (a.ordre || 0) - (b.ordre || 0))" :key="valeur.id">
+              <div class="valeur-row" :data-valeur-id="valeur.id" @click="openGraphique(valeur.ticker)">
+                <div class="valeur-drag-handle" @click.stop x-show="section.role === 'ecriture'" title="Glisser pour deplacer" aria-hidden="true">
+                  <svg class="icon icon-sm"><use href="#icon-grip"></use></svg>
+                </div>
+                <div class="valeur-avatar" :style="{ background: avatarCouleur(valeur.ticker) }" x-text="avatarInitiales(valeur.ticker)"></div>
+                <div class="valeur-main">
+                  <div class="valeur-nom" x-text="valeur.nom || valeur.ticker"></div>
+                  <div class="valeur-sousligne">
+                    <span class="ticker" x-text="valeur.ticker"></span>
+                    <span class="badge-type" x-text="(valeur.type || 'Action').toUpperCase()"></span>
+                  </div>
+                  <div class="valeur-footer">
+                    <div x-text="'MAJ: ' + formatHeure(valeur.derniereMaj)"></div>
+                    <div x-show="valeur.volume" x-text="'Vol: ' + formatVolume(valeur.volume)"></div>
+                  </div>
+                </div>
+                <div class="valeur-chiffres">
+                  <div class="valeur-cours" x-text="formatCours(valeur.cours)"></div>
+                  <div class="valeur-variation" :class="(valeur.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(valeur.variation)"></div>
+                </div>
+                <div class="valeur-actions" x-show="section.role === 'ecriture'">
+                  <button class="btn-icon-small" @click.stop="supprimerValeurSection(section, valeur.ticker)" title="Supprimer" aria-label="Supprimer">
+                    <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
+                  </button>
+                </div>
+              </div>
+            </template>
+            <div class="valeurs-section-vide" x-show="section.valeurs.length === 0">
+              Aucune valeur dans cette section
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </section>
 
@@ -236,7 +308,7 @@
     <div class="modal-backdrop" onclick="closeAllModals()"></div>
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Ajouter une valeur</h3>
+        <h3 id="modalAddValeurTitre">Ajouter une valeur</h3>
         <button class="btn-close" onclick="closeAllModals()" aria-label="Fermer"><svg class="icon icon-sm"><use href="#icon-x"></use></svg></button>
       </div>
       <div class="modal-body">
@@ -351,6 +423,33 @@
       <div class="modal-footer">
         <button onclick="resolvePrompt(null)" class="btn btn-secondary">Annuler</button>
         <button onclick="resolvePromptOk()" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalPartage" class="modal">
+    <div class="modal-backdrop" onclick="closeAllModals()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="partageTitre">Partager la section</h3>
+        <button class="btn-close" onclick="closeAllModals()" aria-label="Fermer"><svg class="icon icon-sm"><use href="#icon-x"></use></svg></button>
+      </div>
+      <div class="modal-body">
+        <div id="partageListe" class="partage-liste"></div>
+
+        <label class="label">Email de l'utilisateur</label>
+        <input type="email" id="inputPartageEmail" list="listeUtilisateurs" placeholder="Ex: proche@example.com" class="input" autocomplete="off">
+        <datalist id="listeUtilisateurs"></datalist>
+
+        <label class="label">Droits</label>
+        <select id="selectPartageRole" class="input">
+          <option value="lecture">Lecture seule</option>
+          <option value="ecriture">Lecture et ecriture</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeAllModals()" class="btn btn-secondary">Fermer</button>
+        <button onclick="ajouterPartage()" class="btn btn-primary">Partager</button>
       </div>
     </div>
   </div>

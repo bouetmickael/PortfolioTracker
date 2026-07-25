@@ -6,13 +6,16 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/3** — revue de dette technique n°2 effectuée le 2026-07-25 (voir
+**2/3** — revue de dette technique n°2 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique et `TODO.md`),
 portant sur le diff cumulé depuis la revue n°1 (Session B sections +
 drag-and-drop, refonte visuelle + thème clair/sombre, et les deux
 correctifs directs poignée de glisser-déposer / modales prompt-confirm).
-Session C (badges d'alerte, ci-dessous) livrée le 2026-07-25, compteur
-incrémenté à 1/3 en conséquence.
+Session C (badges d'alerte) livrée le 2026-07-25, compteur incrémenté à
+1/3. Session D (partage RW de section, ci-dessous) livrée le 2026-07-25,
+compteur incrémenté à 2/3 — le compteur n'ayant pas encore atteint 3/3,
+la prochaine session reste un point du backlog produit (`METHOD.md`
+§0.1), pas le cycle de revue.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -50,7 +53,10 @@ réutilisables (`#modalPrompt`/`#modalConfirm`, résolues comme des
 **Refonte ergonomie liste des valeurs** (plan multi-sessions approuvé le
 2026-07-24, voir `/root/.claude/plans/fluttering-spinning-swing.md` pour
 l'architecture complète) : glisser-déposer, sections, badges d'alerte,
-partage RW de section entre utilisateurs. Découpage :
+partage RW de section entre utilisateurs. **Plan complet, les quatre
+sessions sont livrées** (voir découpage ci-dessous) — la prochaine
+session porte sur le prochain point du backlog produit ci-après
+(compteur de revue à 2/3, voir ci-dessus).
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé
   (`public/vendor/alpine.min.js`), rendu de la liste des valeurs migré sur
@@ -67,10 +73,20 @@ partage RW de section entre utilisateurs. Découpage :
 - [x] **Session C — badges d'alerte** : `alertes.valeur_id` + backfill,
   `hasAlerte` exposé par l'API, badge visuel sur les lignes. Fait cette
   session (2026-07-25).
-- [ ] **Session D — partage RW de section** : `section_shares`,
-  `GET /api/users`, contrôle d'accès, modale de partage, amendement
-  explicite de `BUSINESS_RULES.md` (isolation stricte), tests d'accès
-  croisé entre deux comptes.
+- [x] **Session D — partage RW de section** : table `section_shares`
+  (section_id/user_id/role), `GET /api/users` (liste restreinte pour la
+  sélection d'un destinataire), routes imbriquées
+  `/api/sections/:id/partages` (CRUD des partages, réservé au
+  propriétaire) et `/api/sections/:id/valeurs` (consultation/écriture
+  d'une section partagée selon le rôle), modale de partage
+  (`#modalPartage`) et nouveau bloc "Partagé avec moi" dans l'UI,
+  amendement explicite de `BUSINESS_RULES.md` (§ Partage de section),
+  tests d'accès croisé entre deux comptes
+  (`server/test/partage.test.js`). Fait cette session (2026-07-25).
+  `GET /api/valeurs` (liste principale) reste inchangée et strictement
+  limitée aux valeurs propres de l'utilisateur ; les valeurs des sections
+  partagées ne sont exposées que par les nouvelles routes dédiées, une
+  section à la fois (évite toute ambiguïté de ticker entre comptes).
 
 ## Backlog produit
 

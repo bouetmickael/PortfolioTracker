@@ -557,3 +557,127 @@ alertes.
   increment mineur), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 0/3 -> 1/3. Prochaine session : Session D
   (partage RW de section, voir `BACKLOG.md`).
+
+## 2026-07-25 — Session D : partage de section (lecture/ecriture)
+
+Derniere session du plan "Refonte ergonomie liste des valeurs" (Sessions
+A a D, voir `BACKLOG.md`). Objectif : permettre au proprietaire d'une
+section de la partager avec un autre compte connu, en lecture seule ou en
+lecture/ecriture, sans casser l'isolation stricte par defaut.
+
+- **Migration DB** (`server/db.js`) : nouvelle table `section_shares`
+  (`section_id`, `user_id` du destinataire, `role` (`lecture`/`ecriture`),
+  `cree_le`, `UNIQUE(section_id, user_id)`, `ON DELETE CASCADE` sur les
+  deux cles etrangeres) - ajoutee directement dans le bloc `CREATE TABLE
+  IF NOT EXISTS` principal (table neuve, pas de migration `ALTER TABLE`
+  necessaire contrairement aux colonnes ajoutees aux Sessions B/C).
+- **Controle d'acces** (`server/partage.js`, nouveau) : `rolesSection(db,
+  userId)` retourne une `Map<sectionId, {role, proprietaireId}>` pour
+  toutes les sections visibles par un utilisateur (les siennes, role
+  `proprietaire`, et celles partagees avec lui) ; `peutEcrire(acces)`
+  factorise le test `role === 'proprietaire' || role === 'ecriture'`.
+  Reutilise par `server/routes/sections.js`.
+- **API** :
+  - `GET /api/users` (nouveau, `server/routes/users.js`) : liste
+    restreinte (id/email/displayName) des autres comptes connus, pour la
+    modale de partage.
+  - `GET /api/sections` : etendue pour inclure les sections partagees en
+    plus des sections possedees, chacune avec `role` et, si non
+    proprietaire, `proprietaireEmail`. `POST/PUT/DELETE /api/sections(/:id)`
+    et `PUT /api/sections/reorder` restent par ailleurs inchanges dans
+    leur contrat (reorder accepte desormais aussi les sections partagees
+    en ecriture, mais ne modifie l'ordre de la section elle-meme que pour
+    son proprietaire - voir `BUSINESS_RULES.md`).
+  - Nouvelles routes imbriquees, reservees au proprietaire :
+    `GET/POST /api/sections/:id/partages` (lister/creer un partage) et
+    `DELETE /api/sections/:id/partages/:userId` (revoquer).
+  - Nouvelles routes imbriquees, accessibles avec le role adequat :
+    `GET /api/sections/:id/valeurs` (lecture/ecriture) et `POST/DELETE
+    /api/sections/:id/valeurs(/:ticker)` (ecriture uniquement) - exposent
+    les valeurs d'**une seule section a la fois** (toujours un seul
+    proprietaire, donc sans ambiguite de ticker), a la difference de
+    `GET /api/valeurs` qui reste **strictement inchangee** (uniquement
+    les valeurs propres de l'utilisateur courant, filtrees par `user_id`
+    en SQL) - decision de conception cle pour ne pas casser le contrat
+    existant ni introduire de collision de ticker entre comptes en
+    fusionnant des valeurs de plusieurs proprietaires dans une seule
+    reponse cle par ticker.
+  - Une valeur ajoutee par un utilisateur en ecriture dans une section
+    partagee est rattachee au `user_id` du **proprietaire** de la
+    section, jamais a celui de l'utilisateur agissant (c'est la section
+    qui est partagee, pas une copie de donnees cote invite) - verifie
+    par test (`server/test/partage.test.js`).
+  - `server/routes/valeurs.js` : seul changement, ajout du champ `id`
+    (id numerique de la valeur) dans la reponse de `GET /api/valeurs`,
+    necessaire cote client pour le nouveau contrat de
+    `PUT /api/sections/reorder` (qui identifie desormais les valeurs par
+    `id` plutot que par `ticker`, pour rester valide y compris sur une
+    section partagee). Le reste de la route (cle du map par ticker,
+    `POST`/`DELETE /:ticker`) est inchange.
+- **UI** (`public/index.html`, `public/app.js`, `public/styles.css`) :
+  - Bouton `icon-share` (nouvelle icone SVG) dans l'en-tete de chaque
+    section possedee, ouvre la modale generique `#modalPartage` (liste
+    des partages existants avec revocation, formulaire email + role avec
+    autocompletion via `<datalist>` alimentee par `GET /api/users`).
+  - Nouveau bloc repliable "Partage avec moi" (sous "Valeurs suivies"),
+    visible uniquement si au moins une section est partagee avec
+    l'utilisateur courant. Chaque section y reprend le gabarit
+    `.valeurs-section`/`.valeur-row` existant, sans les actions
+    reservees au proprietaire, avec un sous-titre indiquant qui a
+    partage et avec quel role. En ecriture : bouton d'ajout dedie et
+    glisser-deposer isole a l'interieur de cette seule section (groupe
+    SortableJS unique par section partagee, pour qu'un glisser-depose ne
+    puisse jamais faire passer une valeur d'un proprietaire a un autre).
+  - `Alpine.store('portfolio')` : `store.sections`/`store.valeurs`
+    restent strictement les sections/valeurs **possedees** (filtrage
+    `role === 'proprietaire'` a la reception de `GET /api/sections`) -
+    aucune regression sur le glisser-deposer/reordonnancement existant
+    des sections personnelles. Les sections partagees vivent dans un
+    etat separe (`store.sectionsPartagees`), peuple par un appel
+    supplementaire a `GET /api/sections/:id/valeurs` par section
+    partagee.
+  - Correction securite en cours de session : premiere version de
+    `createPartageRow()`/de la liste `<datalist>` construisait le HTML
+    par interpolation de chaine (`innerHTML` avec l'email de
+    l'utilisateur partage) - remplace par une construction DOM
+    (`createElement`/`textContent`) avant commit, pour ne pas introduire
+    de vecteur XSS stocke via un email de compte contenant des
+    caracteres HTML.
+- **BUSINESS_RULES.md** : nouvelle section "Partage de section
+  (lecture/ecriture)", amendement explicite de la regle d'isolation
+  stricte (regle historique inchangee par defaut, partage strictement
+  opt-in par le proprietaire). `DESIGN.md` : nouveau composant "Partage
+  de section", mise a jour de la liste des icones et du "Hors perimetre"
+  de la revision visuelle (le partage, precedemment differe, est
+  desormais implemente).
+- **Tests** (`server/test/partage.test.js`, nouveau, 9 sous-tests) :
+  `GET /api/users` exclut l'utilisateur courant, section non partagee
+  invisible pour un tiers, role lecture (consultation OK, ecriture
+  refusee sur toutes les routes concernees y compris gestion des
+  partages), role ecriture (ajout/suppression de valeur OK, valeur
+  rattachee au proprietaire), revocation d'un partage, validation
+  (role invalide, email inconnu, partage avec soi-meme refuses),
+  seul le proprietaire peut lister/creer des partages, authentification
+  requise. `server/test/sections.test.js` : test de reorder adapte au
+  nouveau contrat par `id` de valeur (au lieu de `ticker`).
+- **Verification reelle** : suite complete verte (35 sous-tests,
+  `node --test test/*.test.js` - `npm test`/`node --test test/` echoue
+  toujours dans cet environnement sandbox avec la meme erreur
+  `MODULE_NOT_FOUND` sans rapport avec le code, deja notee et reproduite
+  a l'identique sur `HEAD` avant modification en Session C). Parcours API
+  reel via `curl` avec deux comptes (partage ecriture, ajout/suppression
+  de valeur croisee, reorder croise, revocation, verification des 403/404
+  attendus). Parcours navigateur reel (Playwright + Chromium local,
+  `chromium-cli` indisponible dans cet environnement) : ouverture de la
+  modale de partage, partage effectif, verification visuelle du bloc
+  "Partage avec moi" cote destinataire (captures d'ecran) - aucune erreur
+  console applicative (seules des erreurs `401` attendues avant connexion
+  et un blocage reseau du CDN Chart.js propre au bac a sable, sans lien
+  avec cette session).
+- Version : `server/package.json`/`config.yaml` 1.4.0 -> 1.5.0
+  (increment MINEUR, nouvelle fonctionnalite utilisateur visible de
+  premier plan), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 1/3 -> 2/3 (revue non due, seuil 3/3 pas
+  atteint). Plan "Refonte ergonomie liste des valeurs" (Sessions A a D)
+  desormais complet. Prochaine session : prochain point du backlog
+  produit (tuiles d'indices boursiers, voir `BACKLOG.md`).

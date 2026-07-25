@@ -13,6 +13,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
     valeurs: [],
     sections: [],
+    sectionsPartagees: [],
     chargee: false,
 
     valeursDeSection(sectionId) {
@@ -135,9 +136,30 @@ async function chargerValeurs() {
 
     displayValeurs(valeurs, sections);
     updateStats(valeurs);
+
+    await chargerSectionsPartagees(sections.filter((s) => s.role !== 'proprietaire'));
   } catch (error) {
     console.error('Erreur chargement valeurs:', error);
   }
+}
+
+async function chargerSectionsPartagees(sections) {
+  const store = Alpine.store('portfolio');
+
+  const resultats = await Promise.all(
+    sections.map(async (section) => {
+      try {
+        const res = await apiFetch(`/api/sections/${section.id}/valeurs`);
+        const valeurs = res.ok ? await res.json() : {};
+        return { ...section, valeurs: Object.entries(valeurs).map(([ticker, v]) => ({ ticker, ...v })) };
+      } catch (error) {
+        console.error('Erreur chargement valeurs partagees:', error);
+        return { ...section, valeurs: [] };
+      }
+    })
+  );
+
+  store.sectionsPartagees = resultats;
 }
 
 async function chargerAlertes() {
@@ -159,7 +181,7 @@ async function chargerAlertes() {
 function displayValeurs(valeurs, sections) {
   const store = Alpine.store('portfolio');
   store.valeurs = Object.entries(valeurs).map(([ticker, valeur]) => ({ ticker, ...valeur }));
-  store.sections = sections;
+  store.sections = sections.filter((s) => s.role === 'proprietaire');
   store.chargee = true;
 }
 
@@ -234,6 +256,23 @@ function updateStats(valeurs) {
 // ACTIONS CRUD
 // ========================================
 
+// Section partagee ciblee par la modale d'ajout ("+ ajouter" sur une section
+// partagee en ecriture), ou null pour le comportement par defaut (ajout dans
+// la section proprietaire par defaut de l'utilisateur, voir ouvrirAjoutValeurSection).
+let sectionCibleAjoutPartagee = null;
+
+function ouvrirAjoutValeurSection(section) {
+  sectionCibleAjoutPartagee = section;
+  document.getElementById('modalAddValeurTitre').textContent = `Ajouter une valeur - ${section.nom}`;
+  openModal('modalAddValeur');
+}
+
+function ouvrirAjoutValeurDefaut() {
+  sectionCibleAjoutPartagee = null;
+  document.getElementById('modalAddValeurTitre').textContent = 'Ajouter une valeur';
+  openModal('modalAddValeur');
+}
+
 async function ajouterValeur() {
   const ticker = document.getElementById('inputTicker').value.trim().toUpperCase();
   const type = document.getElementById('selectType').value;
@@ -247,7 +286,11 @@ async function ajouterValeur() {
   showLoader(true);
 
   try {
-    const res = await apiFetch('/api/valeurs', {
+    const url = sectionCibleAjoutPartagee
+      ? `/api/sections/${sectionCibleAjoutPartagee.id}/valeurs`
+      : '/api/valeurs';
+
+    const res = await apiFetch(url, {
       method: 'POST',
       body: JSON.stringify({ ticker, type, nom })
     });
@@ -289,6 +332,27 @@ async function supprimerValeur(ticker) {
 
     await chargerValeurs();
     await chargerAlertes();
+
+    showToast(`${ticker} supprime`, 'success');
+  } catch (error) {
+    console.error('Erreur suppression valeur:', error);
+    showToast('Erreur: ' + error.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function supprimerValeurSection(section, ticker) {
+  const ok = await showConfirm(`Supprimer ${ticker} de la section "${section.nom}" ?`, 'Supprimer la valeur');
+  if (!ok) return;
+
+  showLoader(true);
+
+  try {
+    const res = await apiFetch(`/api/sections/${section.id}/valeurs/${ticker}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erreur suppression valeur');
+
+    await chargerValeurs();
 
     showToast(`${ticker} supprime`, 'success');
   } catch (error) {
@@ -384,6 +448,145 @@ async function supprimerSection(section) {
   }
 }
 
+// ========================================
+// PARTAGE DE SECTION
+// ========================================
+
+let sectionCiblePartage = null;
+
+async function ouvrirPartageModal(section) {
+  sectionCiblePartage = section;
+  document.getElementById('partageTitre').textContent = `Partager "${section.nom}"`;
+  document.getElementById('inputPartageEmail').value = '';
+  document.getElementById('selectPartageRole').value = 'lecture';
+  openModal('modalPartage');
+
+  await Promise.all([chargerPartagesSection(section.id), chargerListeUtilisateurs()]);
+}
+
+async function chargerPartagesSection(sectionId) {
+  const container = document.getElementById('partageListe');
+  container.innerHTML = '<div class="loader-inline"><div class="spinner-small"></div></div>';
+
+  try {
+    const res = await apiFetch(`/api/sections/${sectionId}/partages`);
+    if (!res.ok) throw new Error('Erreur chargement des partages');
+
+    const partages = await res.json();
+    container.innerHTML = '';
+
+    if (partages.length === 0) {
+      container.innerHTML = '<div class="empty-state-small"><p>Section non partagee</p></div>';
+      return;
+    }
+
+    partages.forEach((partage) => container.appendChild(createPartageRow(sectionId, partage)));
+  } catch (error) {
+    console.error('Erreur chargement des partages:', error);
+    container.innerHTML = '<div class="empty-state-small"><p>Erreur chargement des partages</p></div>';
+  }
+}
+
+function createPartageRow(sectionId, partage) {
+  const div = document.createElement('div');
+  div.className = 'partage-row';
+
+  const info = document.createElement('div');
+  info.className = 'partage-info';
+
+  const email = document.createElement('div');
+  email.className = 'partage-email';
+  email.textContent = partage.email;
+
+  const role = document.createElement('div');
+  role.className = 'partage-role';
+  role.textContent = partage.role === 'ecriture' ? 'Lecture et ecriture' : 'Lecture seule';
+
+  info.append(email, role);
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-icon-small';
+  btn.title = 'Retirer l\'acces';
+  btn.setAttribute('aria-label', 'Retirer l\'acces');
+  btn.innerHTML = '<svg class="icon icon-sm"><use href="#icon-trash"></use></svg>';
+  btn.addEventListener('click', () => supprimerPartage(sectionId, partage.userId));
+
+  div.append(info, btn);
+
+  return div;
+}
+
+async function chargerListeUtilisateurs() {
+  try {
+    const res = await apiFetch('/api/users');
+    if (!res.ok) throw new Error('Erreur chargement des utilisateurs');
+
+    const users = await res.json();
+    const datalist = document.getElementById('listeUtilisateurs');
+    datalist.innerHTML = '';
+    users.forEach((u) => {
+      const option = document.createElement('option');
+      option.value = u.email;
+      datalist.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Erreur chargement des utilisateurs:', error);
+  }
+}
+
+async function ajouterPartage() {
+  const email = document.getElementById('inputPartageEmail').value.trim();
+  const role = document.getElementById('selectPartageRole').value;
+
+  if (!email) {
+    showToast('Email requis', 'warning');
+    return;
+  }
+
+  showLoader(true);
+
+  try {
+    const res = await apiFetch(`/api/sections/${sectionCiblePartage.id}/partages`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur partage de la section');
+    }
+
+    document.getElementById('inputPartageEmail').value = '';
+    await chargerPartagesSection(sectionCiblePartage.id);
+    showToast('Section partagee', 'success');
+  } catch (error) {
+    console.error('Erreur partage de la section:', error);
+    showToast('Erreur: ' + error.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function supprimerPartage(sectionId, userId) {
+  const ok = await showConfirm('Retirer l\'acces de cet utilisateur a la section ?', 'Retirer l\'acces');
+  if (!ok) return;
+
+  showLoader(true);
+
+  try {
+    const res = await apiFetch(`/api/sections/${sectionId}/partages/${userId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erreur suppression du partage');
+
+    await chargerPartagesSection(sectionId);
+    showToast('Acces retire', 'success');
+  } catch (error) {
+    console.error('Erreur suppression du partage:', error);
+    showToast('Erreur: ' + error.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
 function marquerSortableInit(el) {
   if (el.dataset.sortableInit) return false;
   el.dataset.sortableInit = 'true';
@@ -429,17 +632,17 @@ function initSortableValeurs(el) {
     dragClass: 'sortable-drag',
     onEnd: (evt) => {
       const store = Alpine.store('portfolio');
-      const valeursParTicker = new Map(store.valeurs.map((v) => [v.ticker, v]));
+      const valeursParId = new Map(store.valeurs.map((v) => [v.id, v]));
       const listesTouchees = evt.from === evt.to ? [evt.to] : [evt.from, evt.to];
 
       for (const liste of listesTouchees) {
         const sectionId = Number(liste.dataset.sectionId);
-        const tickersOrdonnes = Array.from(liste.querySelectorAll(':scope > .valeur-row')).map(
-          (node) => node.dataset.ticker
+        const idsOrdonnes = Array.from(liste.querySelectorAll(':scope > .valeur-row')).map((node) =>
+          Number(node.dataset.valeurId)
         );
 
-        tickersOrdonnes.forEach((ticker, index) => {
-          const valeur = valeursParTicker.get(ticker);
+        idsOrdonnes.forEach((id, index) => {
+          const valeur = valeursParId.get(id);
           if (valeur) {
             valeur.sectionId = sectionId;
             valeur.ordre = index;
@@ -448,6 +651,25 @@ function initSortableValeurs(el) {
       }
 
       persisterOrdre();
+    }
+  });
+}
+
+function initSortableValeursPartagees(el, section) {
+  if (!marquerSortableInit(el)) return;
+
+  Sortable.create(el, {
+    group: `valeurs-partagee-${section.id}`,
+    draggable: '.valeur-row',
+    handle: '.valeur-drag-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd: () => {
+      const idsOrdonnes = Array.from(el.querySelectorAll(':scope > .valeur-row')).map((node) =>
+        Number(node.dataset.valeurId)
+      );
+      persisterOrdreSectionPartagee(section, idsOrdonnes);
     }
   });
 }
@@ -462,7 +684,7 @@ async function persisterOrdre() {
       ordre: section.ordre,
       valeurIds: store
         .valeursDeSection(section.id)
-        .map((v) => v.ticker)
+        .map((v) => v.id)
     }));
 
   try {
@@ -474,6 +696,29 @@ async function persisterOrdre() {
     if (!res.ok) throw new Error('Erreur enregistrement ordre');
   } catch (error) {
     console.error('Erreur enregistrement ordre:', error);
+    showToast('Erreur lors de l\'enregistrement de l\'ordre', 'error');
+  }
+}
+
+async function persisterOrdreSectionPartagee(section, valeurIds) {
+  const store = Alpine.store('portfolio');
+  const cible = store.sectionsPartagees.find((s) => s.id === section.id);
+  if (cible) {
+    valeurIds.forEach((id, index) => {
+      const valeur = cible.valeurs.find((v) => v.id === id);
+      if (valeur) valeur.ordre = index;
+    });
+  }
+
+  try {
+    const res = await apiFetch('/api/sections/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ sections: [{ id: section.id, valeurIds }] })
+    });
+
+    if (!res.ok) throw new Error('Erreur enregistrement ordre');
+  } catch (error) {
+    console.error('Erreur enregistrement ordre section partagee:', error);
     showToast('Erreur lors de l\'enregistrement de l\'ordre', 'error');
   }
 }
@@ -701,13 +946,9 @@ function setupEventListeners() {
     userMenu.classList.remove('active');
   });
 
-  document.getElementById('addValeurBtn').addEventListener('click', () => {
-    openModal('modalAddValeur');
-  });
+  document.getElementById('addValeurBtn').addEventListener('click', ouvrirAjoutValeurDefaut);
 
-  document.getElementById('fab').addEventListener('click', () => {
-    openModal('modalAddValeur');
-  });
+  document.getElementById('fab').addEventListener('click', ouvrirAjoutValeurDefaut);
 
   document.getElementById('promptInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {

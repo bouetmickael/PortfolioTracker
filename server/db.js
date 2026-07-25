@@ -55,6 +55,15 @@ db.exec(`
     derniere_alerte INTEGER,
     cree_le INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS section_shares (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    section_id INTEGER NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL DEFAULT 'lecture',
+    cree_le INTEGER NOT NULL,
+    UNIQUE(section_id, user_id)
+  );
 `);
 
 // Migration : ajout de sections + section_id/ordre sur valeurs (introduites

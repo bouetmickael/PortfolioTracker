@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.5.0
+
+- Ajout du partage de section entre utilisateurs (Session D) : le
+  propriétaire d'une section peut la partager avec un autre compte connu
+  (email), en lecture seule ou en lecture/écriture. Un utilisateur avec
+  qui une section est partagée la voit apparaître dans un nouveau bloc
+  "Partagé avec moi", peut consulter ses valeurs et, en écriture,
+  ajouter/supprimer des valeurs dans cette section (les valeurs restent
+  rattachées au compte du propriétaire). Renommer, supprimer ou partager
+  une section reste réservé à son propriétaire. Nouvelle table
+  `section_shares`, nouvelle route `GET /api/users` (liste restreinte
+  pour choisir un destinataire), nouvelles routes imbriquées
+  `/api/sections/:id/partages` et `/api/sections/:id/valeurs`.
+
 ## 1.4.0
 
 - Ajout d'un badge d'alerte sur la liste des valeurs suivies : un pictogramme

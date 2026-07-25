@@ -33,8 +33,10 @@ Jeu d'icônes actuel (tenir cette liste à jour si une icône est
 ajoutée/retirée) : `icon-refresh` (actualiser), `icon-user` (menu
 utilisateur), `icon-moon`/`icon-sun` (bascule thème clair/sombre),
 `icon-bell` (créer alerte), `icon-trash` (supprimer), `icon-pencil`
-(renommer une section), `icon-chevron-down` (replier/déplier une
-section), `icon-x` (fermer une modale), `icon-plus` (ajouter). Toutes
+(renommer une section), `icon-share` (partager une section, voir
+composant « Partage de section » ci-dessous), `icon-chevron-down`
+(replier/déplier une section), `icon-x` (fermer une modale), `icon-plus`
+(ajouter). Toutes
 en `stroke="currentColor"` (la couleur suit `color` du bouton parent),
 `stroke-width="2"`, viewBox `0 0 24 24`, style trait rond (`stroke-
 linecap`/`stroke-linejoin: round`), taille `20x20` (`.icon`), `16x16`
@@ -128,8 +130,10 @@ délibéré antérieur, non remis en cause).
   fonctionnalité), chacune un conteneur séparé avec coins 8px/`--shadow`.
   En-tête de section (`.valeurs-section-header`, fond `--bg-secondary`) :
   titre repliable (chevron + nom, poignée de glisser-déposer pour
-  réordonner les sections entre elles) et deux boutons icône à droite :
-  `icon-pencil` (renommer) et `icon-trash` (supprimer, masqué s'il ne
+  réordonner les sections entre elles) et trois boutons icône à droite,
+  dans cet ordre : `icon-share` (partager la section, voir composant
+  « Partage de section » ci-dessous), `icon-pencil` (renommer) et
+  `icon-trash` (supprimer, masqué s'il ne
   reste qu'une section — la dernière section d'un utilisateur ne peut pas
   être supprimée). Une section se crée via le bouton texte `+ Nouvelle
   section` en bas de liste. Renommer/créer une section et confirmer une
@@ -180,6 +184,38 @@ délibéré antérieur, non remis en cause).
     graphique).
 - **Carte alerte** : coins/ombre façon carte classique (grille séparée de
   la liste des valeurs), action de suppression à droite (`icon-trash`).
+- **Partage de section** (Session D de `BACKLOG.md`, voir
+  `BUSINESS_RULES.md` § Partage de section pour les règles d'accès) :
+  - Bouton `icon-share` dans l'en-tête de chaque section possédée ouvre
+    une modale générique `#modalPartage` (même gabarit que les autres
+    modales) : liste des partages existants (`.partage-row`, un par
+    utilisateur avec qui la section est partagée — email + libellé du
+    rôle « Lecture seule »/« Lecture et écriture » + `icon-trash` pour
+    révoquer), puis un formulaire (email avec autocomplétion via
+    `<datalist>` alimentée par `GET /api/users`, sélecteur de rôle) et un
+    bouton `Partager`. Aucune modale dédiée à la révocation : l'icône
+    poubelle de chaque `.partage-row` déclenche directement
+    `showConfirm()` puis la suppression.
+  - Section « Partagé avec moi » : nouvelle section repliable (même
+    gabarit que « Valeurs suivies »/« Alertes actives »), affichée
+    uniquement si au moins une section a été partagée avec l'utilisateur
+    courant (`x-show`). Chaque section partagée y est rendue avec le même
+    gabarit `.valeurs-section`/`.valeur-row` que la liste des valeurs
+    suivies, mais son en-tête n'a ni chevron de glisser-déposer, ni
+    `icon-pencil`/`icon-trash`/`icon-share` (l'utilisateur invité ne peut
+    pas renommer/supprimer/repartager une section qui ne lui appartient
+    pas) : à la place, un sous-titre `.valeurs-section-partage-info`
+    (12px, `--text-secondary`) indique « Partagé par
+    &lt;email du propriétaire&gt; · Lecture seule » ou « · Lecture et
+    écriture ». Si le rôle est « Lecture et écriture », un bouton
+    `icon-plus` apparaît dans l'en-tête (ajouter une valeur dans cette
+    section précise) et chaque ligne garde sa poignée de glisser-déposer
+    (réordonnancement à l'intérieur de cette seule section, jamais vers
+    une autre section) et son action `icon-trash` ; en lecture seule, ni
+    poignée ni action de ligne, la valeur reste cliquable pour ouvrir son
+    graphique. Aucune action de création d'alerte sur les valeurs de
+    cette section (les alertes restent strictement privées, voir
+    `BUSINESS_RULES.md`).
 - **FAB** (bouton flottant) : 56px, cercle, `--primary` (or), icône
   `icon-plus` blanche, coin bas-droit, respecte les safe-area iOS (`env
   (safe-area-inset-*)`).
@@ -240,12 +276,16 @@ délibéré antérieur, non remis en cause).
   aucune donnée de recommandation dans le modèle actuel (`valeurs` n'a
   pas de champ correspondant) et personne n'a demandé d'ajouter cette
   donnée. Ne pas fabriquer de valeur pour occuper ce badge visuellement.
-- **Portefeuilles partagés** (écran "Portefeuilles partagés" de l'ancienne
-  version, gestion de membres par email avec rôle "Consulter") :
-  correspond à la Session D déjà planifiée dans `BACKLOG.md` (partage RW
-  d'une section entre utilisateurs), pas encore implémentée — l'ordre du
-  backlog a été conservé (Session C avant Session D) à la demande de
-  l'utilisateur (session du 2026-07-25).
+- ~~**Portefeuilles partagés** (écran "Portefeuilles partagés" de
+  l'ancienne version, gestion de membres par email avec rôle
+  "Consulter") : correspond à la Session D déjà planifiée dans
+  `BACKLOG.md` (partage RW d'une section entre utilisateurs), pas encore
+  implémentée.~~ Implémenté en Session D (voir composant « Partage de
+  section » ci-dessus) : la modale de partage n'est pas un écran dédié
+  comme dans l'ancienne version, mais rattachée à chaque section
+  (partage granulaire par section plutôt que par portefeuille entier),
+  avec deux rôles (« Lecture seule »/« Lecture et écriture ») plutôt que
+  le seul rôle "Consulter" de l'ancienne version.
 
 ## Langue
 
