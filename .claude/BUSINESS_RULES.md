@@ -129,13 +129,27 @@
   l'alerte est seulement loguée (`Email non envoye (SMTP non configure)`),
   jamais une erreur qui bloque le reste de l'application.
 
+## Indices de marché (données globales)
+
+- Les 3 indices suivis (SBF 120, Nasdaq-100, S&P 500, table
+  `indices_marche`, `server/indices.js`) sont des données de marché
+  **globales**, pas des données utilisateur : contrairement à `valeurs`/
+  `alertes`/`sections`, ils ne sont pas filtrés par `user_id` et sont
+  identiques pour tous les comptes. `GET /api/indices` reste protégée par
+  `requireAuth` (cohérence avec le reste de l'API, pas de fuite
+  d'information avant authentification), mais ce n'est pas une exception
+  à isoler comme le partage de section — il n'y a jamais eu de
+  `user_id` sur ces données.
+
 ## Intégrité des cours
 
 - **Aucune donnée n'est simulée** : si la récupération du cours échoue
   (Yahoo Finance indisponible, ticker invalide, etc.), la tâche planifiée
   logue l'erreur et n'écrit rien en base — le `cours` reste à sa dernière
   valeur connue (ou `0` si jamais mis à jour). Ne jamais introduire de
-  valeur par défaut inventée pour masquer un échec de récupération.
+  valeur par défaut inventée pour masquer un échec de récupération. Règle
+  identique pour les indices de marché (`indices_marche`,
+  `server/jobs/prices.js` § `updateIndices`).
 
 ## Sécurité opérationnelle
 

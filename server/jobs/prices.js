@@ -1,4 +1,5 @@
 const db = require('../db');
+const { INDICES } = require('../indices');
 
 async function fetchYahooFinance(ticker) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
@@ -52,4 +53,28 @@ async function updatePrices() {
   console.log(`Mise a jour terminee : ${updated} valeurs`);
 }
 
-module.exports = { updatePrices, fetchYahooFinance };
+async function updateIndices() {
+  console.log('Demarrage mise a jour des indices de marche');
+
+  const update = db.prepare(
+    'UPDATE indices_marche SET cours = ?, variation = ?, devise = ?, derniere_maj = ? WHERE ticker = ?'
+  );
+
+  let updated = 0;
+
+  for (const indice of INDICES) {
+    try {
+      const priceData = await fetchYahooFinance(indice.ticker);
+      const result = update.run(priceData.price, priceData.changePct, priceData.currency, Date.now(), indice.ticker);
+      updated += result.changes;
+
+      console.log(`${indice.ticker}: ${priceData.price} (${priceData.changePct.toFixed(2)}%)`);
+    } catch (error) {
+      console.error(`Erreur ${indice.ticker}:`, error.message);
+    }
+  }
+
+  console.log(`Mise a jour des indices terminee : ${updated} indices`);
+}
+
+module.exports = { updatePrices, updateIndices, fetchYahooFinance };

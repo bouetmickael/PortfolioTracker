@@ -7,6 +7,7 @@ const POLL_INTERVAL_MS = 30000;
 let currentUser = null;
 let valeursPollInterval = null;
 let alertesPollInterval = null;
+let indicesPollInterval = null;
 let chartInstance = null;
 
 document.addEventListener('alpine:init', () => {
@@ -14,6 +15,7 @@ document.addEventListener('alpine:init', () => {
     valeurs: [],
     sections: [],
     sectionsPartagees: [],
+    indices: [],
     chargee: false,
 
     valeursDeSection(sectionId) {
@@ -120,9 +122,11 @@ function registerServiceWorker() {
 function setupDataPolling() {
   chargerValeurs();
   chargerAlertes();
+  chargerIndices();
 
   valeursPollInterval = setInterval(chargerValeurs, POLL_INTERVAL_MS);
   alertesPollInterval = setInterval(chargerAlertes, POLL_INTERVAL_MS);
+  indicesPollInterval = setInterval(chargerIndices, POLL_INTERVAL_MS);
 }
 
 async function chargerValeurs() {
@@ -135,11 +139,21 @@ async function chargerValeurs() {
     const sections = await resSections.json();
 
     displayValeurs(valeurs, sections);
-    updateStats(valeurs);
 
     await chargerSectionsPartagees(sections.filter((s) => s.role !== 'proprietaire'));
   } catch (error) {
     console.error('Erreur chargement valeurs:', error);
+  }
+}
+
+async function chargerIndices() {
+  try {
+    const res = await apiFetch('/api/indices');
+    if (!res.ok) throw new Error('Erreur chargement des indices');
+
+    Alpine.store('portfolio').indices = await res.json();
+  } catch (error) {
+    console.error('Erreur chargement indices:', error);
   }
 }
 
@@ -238,18 +252,6 @@ function createAlerteCard(id, alerte) {
   `;
 
   return div;
-}
-
-function updateStats(valeurs) {
-  const valeursArray = Object.values(valeurs);
-
-  const total = valeursArray.length;
-  const hausse = valeursArray.filter((v) => (v.variation || 0) > 0).length;
-  const baisse = valeursArray.filter((v) => (v.variation || 0) < 0).length;
-
-  document.getElementById('statTotal').textContent = total;
-  document.getElementById('statHausse').textContent = hausse;
-  document.getElementById('statBaisse').textContent = baisse;
 }
 
 // ========================================
@@ -932,6 +934,7 @@ function setupEventListeners() {
     showToast('Actualisation...', 'info');
     chargerValeurs();
     chargerAlertes();
+    chargerIndices();
   });
 
   const userMenuBtn = document.getElementById('userMenuBtn');
@@ -1090,6 +1093,11 @@ function formatVariation(variation) {
   return `${signe}${v.toFixed(2)}%`;
 }
 
+function formatCoursDevise(cours, devise) {
+  if (!cours) return '-';
+  return cours.toFixed(2) + ' ' + (devise || 'EUR');
+}
+
 // ========================================
 // NETTOYAGE
 // ========================================
@@ -1097,4 +1105,5 @@ function formatVariation(variation) {
 window.addEventListener('beforeunload', () => {
   if (valeursPollInterval) clearInterval(valeursPollInterval);
   if (alertesPollInterval) clearInterval(alertesPollInterval);
+  if (indicesPollInterval) clearInterval(indicesPollInterval);
 });

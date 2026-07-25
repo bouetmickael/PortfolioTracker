@@ -681,3 +681,113 @@ lecture/ecriture, sans casser l'isolation stricte par defaut.
   atteint). Plan "Refonte ergonomie liste des valeurs" (Sessions A a D)
   desormais complet. Prochaine session : prochain point du backlog
   produit (tuiles d'indices boursiers, voir `BACKLOG.md`).
+
+## 2026-07-25 — Session E : tuiles d'indices de marche (v1.6.0)
+
+Point suivant du backlog produit (`BACKLOG.md`, demande explicite
+utilisateur du 2026-07-24) : remplacer les 3 cartes statistiques du haut
+(`#statTotal`/`#statHausse`/`#statBaisse`, comptage des valeurs suivies
+en hausse/baisse) par le suivi de 3 indices de marche. Avant
+implementation, arbitrage utilisateur demande via `AskUserQuestion`
+(consigne explicite du prompt de session) sur trois points : source des
+cours, frequence de rafraichissement, contenu de chaque tuile.
+
+- **Arbitrage utilisateur** (les trois options recommandees ont ete
+  retenues) :
+  - Source : Yahoo Finance, meme mecanisme que les valeurs suivies
+    (`server/jobs/prices.js`, `fetchYahooFinance`), tickers `^SBF120`
+    (SBF 120), `^NDX` (Nasdaq-100), `^GSPC` (S&P 500).
+  - Frequence : meme cron que les valeurs suivies (toutes les 2 minutes,
+    `server/index.js`), pas de job separe.
+  - Contenu de la tuile : nom de l'indice + cours + variation du jour.
+  - **Limite connue de cette session** : l'acces reseau sortant vers
+    `query1.finance.yahoo.com` est bloque par la politique reseau de cet
+    environnement sandbox (403 sur le CONNECT, confirme via
+    `curl`/`$HTTPS_PROXY/__agentproxy/status` avant implementation) - les
+    3 tickers pressentis n'ont donc pas pu etre verifies en direct dans
+    cette session (meme limite deja documentee pour le CDN Chart.js dans
+    des sessions precedentes). Le code gere l'echec normalement (erreur
+    loguee par ticker, rien ecrit en base, voir `BUSINESS_RULES.md` §
+    Integrite des cours) - a verifier une fois deploye sur un environnement
+    avec acces reseau reel (Raspberry Pi) que les 3 tickers renvoient
+    effectivement des donnees.
+- **Backend** :
+  - `server/indices.js` (nouveau) : liste fixe des 3 indices suivis
+    (ticker + nom).
+  - `server/db.js` : nouvelle table `indices_marche` (ticker cle
+    primaire, nom, cours, variation, devise, derniere_maj), amorcee au
+    demarrage (`INSERT OR IGNORE`) a partir de `server/indices.js` -
+    donnees de marche globales, pas de `user_id` (voir
+    `BUSINESS_RULES.md` § Indices de marche, nouvelle exception
+    documentee a la regle d'isolation par utilisateur).
+  - `server/jobs/prices.js` : nouvelle fonction `updateIndices()`,
+    reutilise `fetchYahooFinance()` existant (y compris la devise
+    d'origine renvoyee par Yahoo, EUR pour le SBF 120, USD pour les deux
+    indices americains) ; meme gestion d'erreur non bloquante par ticker
+    que `updatePrices()`.
+  - `server/index.js` : troisieme `cron.schedule('*/2 * * * *', ...)`
+    appelant `updateIndices()`, meme timezone/pattern que les deux jobs
+    existants.
+  - `server/routes/indices.js` (nouveau) : `GET /api/indices`, protegee
+    par `requireAuth` (coherence avec le reste de l'API) mais sans
+    filtrage par utilisateur (donnee globale), renvoie un tableau ordonne
+    des 3 indices (camelCase, meme convention de mapping explicite que
+    les autres routes) plutot qu'une map par ticker (pas de cle naturelle
+    a exposer, liste fixe et courte).
+  - `server/app.js` : montage de la nouvelle route sous `/api/indices`.
+- **Frontend** (`public/index.html`/`app.js`/`styles.css`) :
+  - `Alpine.store('portfolio').indices` (nouvel etat), peuple par
+    `chargerIndices()` (nouvelle fonction, meme patron que
+    `chargerAlertes()`), appelee au demarrage, sur le meme polling 30s
+    que les valeurs/alertes, et sur le bouton actualiser.
+  - Tuiles statistiques reecrites en `<template x-for="indice in
+    $store.portfolio.indices">` (`.stat-card` existant reutilise) :
+    nom (`.stat-label`), cours avec devise d'origine
+    (`formatCoursDevise()`, nouvelle fonction, distincte de
+    `formatCours()` qui suppose EUR pour les valeurs suivies du
+    portefeuille), variation du jour en dessous (nouvelle classe
+    `.stat-variation`, meme convention `.success`/`.danger` que
+    `.valeur-variation`). La bordure superieure coloree de la tuile
+    (`.stat-success`/`.stat-danger`, classes existantes) suit desormais
+    le signe de la variation de chaque indice au lieu d'etre fixee par
+    colonne.
+  - Suppression du code mort correspondant a l'ancien contenu :
+    fonction `updateStats()` et son appel dans `chargerValeurs()`,
+    markup `#statTotal`/`#statHausse`/`#statBaisse`, regles CSS
+    `.stat-success .stat-value`/`.stat-danger .stat-value` (coloraient le
+    cours lui-meme, plus pertinent avec des indices - seule la nouvelle
+    ligne de variation est coloree, comme pour une valeur suivie).
+- **Documentation** : `DESIGN.md` (composant "Cartes statistiques"
+  reecrit, typographie `.stat-variation`), `ARCHITECTURE.md` (arborescence,
+  flux §3, description du store Alpine), `BUSINESS_RULES.md` (nouvelle
+  section "Indices de marche", extension de "Integrite des cours").
+- **Tests** (`server/test/indices.test.js`, nouveau, 3 sous-tests) :
+  authentification requise, les 3 indices sont renvoyes dans un ordre
+  stable avec les bons tickers/noms, la reponse est identique pour deux
+  utilisateurs differents (donnee non propre a un utilisateur).
+- **Verification reelle** : `npm install` (dependances jamais installees
+  dans ce checkout), puis suite de tests executee via `node --test
+  test/*.test.js` (29/29 verts, memes 3 fichiers existants inchanges plus
+  le nouveau) - `npm test` (`node --test test/`) echoue dans cet
+  environnement sandbox avec la meme erreur `MODULE_NOT_FOUND` deja notee
+  dans plusieurs sessions precedentes, sans rapport avec ce changement.
+  Serveur demarre en local (`DB_PATH` temporaire) sans erreur au
+  demarrage (nouvelle table + amorcage). Parcours API reel via `curl` :
+  `GET /api/indices` sans cookie -> 401, avec cookie -> tableau des 3
+  indices dans l'ordre attendu (cours/variation a 0, `derniereMaj` a
+  `null`, aucune donnee inventee). Appel direct de `updateIndices()` en
+  local : echec reseau attendu (403, meme blocage que documente
+  ci-dessus) gere sans crash, aucune ligne ecrite en base. Parcours
+  navigateur reel (Playwright + Chromium local, memes outils que les
+  sessions precedentes) : connexion, capture d'ecran theme clair et
+  sombre - les 3 tuiles s'affichent avec le nom de chaque indice, `-`
+  pour le cours (coherent avec l'absence de donnee Yahoo Finance dans cet
+  environnement) et `+0.00%` de variation, aucune erreur console
+  applicative nouvelle (seules les erreurs `401`/blocage reseau deja
+  documentees).
+- Version : `server/package.json`/`config.yaml`/`server/package-lock.json`
+  1.5.0 -> 1.6.0 (increment MINEUR, nouvelle fonctionnalite utilisateur
+  visible de premier plan), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 2/3 -> 3/3 - **seuil atteint, la prochaine
+  session est obligatoirement le cycle de revue de dette technique**
+  (`METHOD.md` §0.2), pas un nouveau point du backlog produit.

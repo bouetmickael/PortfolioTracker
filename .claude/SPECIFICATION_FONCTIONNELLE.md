@@ -27,8 +27,10 @@ gestion de rôles, pas d'inscription publique protégée par invitation — voir
 
 - **En-tête** : titre « Portfolio », bouton d'actualisation manuelle,
   bouton menu utilisateur (nom, email, déconnexion).
-- **Bloc statistiques** : nombre total de valeurs suivies, nombre en
-  hausse, nombre en baisse (calculé côté client à partir des variations).
+- **Bloc statistiques** : 3 tuiles de suivi des indices de marché SBF 120,
+  Nasdaq-100 et S&P 500 (nom, cours avec sa devise d'origine, variation du
+  jour) — voir `DESIGN.md` § Cartes statistiques et `BUSINESS_RULES.md`
+  § Indices de marché.
 - **Section « Valeurs suivies »** : une carte par valeur (ticker, type
   Action/Warrant, nom optionnel, cours, variation en %, heure de dernière
   mise à jour, volume si disponible). Actions disponibles par carte :

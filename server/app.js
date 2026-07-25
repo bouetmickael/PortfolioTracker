@@ -9,6 +9,7 @@ const alertesRoutes = require('./routes/alertes');
 const chartRoutes = require('./routes/chart');
 const sectionsRoutes = require('./routes/sections');
 const usersRoutes = require('./routes/users');
+const indicesRoutes = require('./routes/indices');
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/api/alertes', alertesRoutes);
 app.use('/api/chart', chartRoutes);
 app.use('/api/sections', sectionsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/indices', indicesRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

@@ -100,7 +100,10 @@ délibéré antérieur, non remis en cause).
 - Titres : `header h1` 20px/500 (`--header-text`), `section h2` 18px/500,
   `login-card h1` 28px. Numéro de version (`#appVersion`, à côté du titre
   `header h1`) : 11px, `--header-text-secondary`, poids normal.
-- Valeurs chiffrées mises en avant : `stat-value` 28px/500. `valeur-cours`
+- Valeurs chiffrées mises en avant : `stat-value` 28px/500, avec
+  `stat-variation` (13px/500) empilé juste en dessous sur les tuiles
+  d'indices de marché, même convention de coloration `--success`/
+  `--danger` que `valeur-variation` ci-dessous. `valeur-cours`
   (ligne de la liste des valeurs suivies) : 15px/500, aligné à droite avec
   `valeur-variation` (13px/500) empilé juste en dessous, coloré en
   `--success`/`--danger` selon le signe, sans fond de pastille (texte
@@ -116,9 +119,24 @@ délibéré antérieur, non remis en cause).
   (`.header-titre`). Actions à droite (`.header-actions`, icônes SVG) :
   bascule thème (`icon-moon`/`icon-sun`), actualiser (`icon-refresh`),
   menu utilisateur (`icon-user`).
-- **Cartes statistiques** : grille 3 colonnes égales, fond `--bg`, coins
-  8px, `--shadow`, **bordure supérieure colorée 3px** : `--header-bg`
-  (Total, neutre), `--success` (Hausse), `--danger` (Baisse).
+- **Cartes statistiques** (`.stats-container`/`.stat-card`, session
+  2026-07-25 « suivi d'indices de marché ») : grille 3 colonnes égales,
+  fond `--bg`, coins 8px, `--shadow`, **bordure supérieure colorée 3px**.
+  Affichent désormais 3 indices de marché suivis (`SBF 120`,
+  `Nasdaq-100`, `S&P 500`, voir `BUSINESS_RULES.md`/`ARCHITECTURE.md`
+  pour la source des cours) plutôt que le comptage Total/Hausse/Baisse
+  des valeurs suivies (ancien contenu, retiré cette session). Rendu par
+  un `<template x-for>` sur `$store.portfolio.indices` (nouvel état du
+  store Alpine, peuplé par `GET /api/indices`, rafraîchi par le même
+  polling que les valeurs/alertes). Chaque tuile : nom de l'indice
+  (`.stat-label`), cours avec sa devise d'origine EUR/USD
+  (`.stat-value`, ex. « 5 432.10 EUR », voir composant ci-dessous),
+  variation du jour en dessous (`.stat-variation`, 13px/500, coloré
+  `--success`/`--danger` selon le signe, même convention que
+  `.valeur-variation` sur la liste des valeurs). La bordure supérieure
+  suit également le signe de la variation de chaque indice
+  (`--success`/`--danger`/`--header-bg` si nul), plutôt que d'être fixée
+  par colonne comme l'ancien contenu Total/Hausse/Baisse.
 - **Sections repliables** (`Valeurs suivies`, `Alertes actives`, et
   chaque sous-section de la liste des valeurs) : titre précédé d'une
   icône chevron (`icon-chevron-down`) qui pivote -90° quand la section

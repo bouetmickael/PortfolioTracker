@@ -64,7 +64,25 @@ db.exec(`
     cree_le INTEGER NOT NULL,
     UNIQUE(section_id, user_id)
   );
+
+  CREATE TABLE IF NOT EXISTS indices_marche (
+    ticker TEXT PRIMARY KEY,
+    nom TEXT NOT NULL,
+    cours REAL NOT NULL DEFAULT 0,
+    variation REAL NOT NULL DEFAULT 0,
+    devise TEXT NOT NULL DEFAULT 'EUR',
+    derniere_maj INTEGER
+  );
 `);
+
+// Amorcage des indices de marche suivis (liste fixe, voir server/indices.js) :
+// une ligne par indice, cours a 0 tant que le job de mise a jour des cours
+// (server/jobs/prices.js) n'a pas encore tourne.
+const { INDICES } = require('./indices');
+const amorcerIndice = db.prepare('INSERT OR IGNORE INTO indices_marche (ticker, nom) VALUES (?, ?)');
+for (const indice of INDICES) {
+  amorcerIndice.run(indice.ticker, indice.nom);
+}
 
 // Migration : ajout de sections + section_id/ordre sur valeurs (introduites
 // apres la creation initiale de la table valeurs, ALTER TABLE necessaire

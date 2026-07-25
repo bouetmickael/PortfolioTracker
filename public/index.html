@@ -120,18 +120,13 @@
   </div>
 
   <section class="stats-container">
-    <div class="stat-card">
-      <div class="stat-label">Total</div>
-      <div class="stat-value" id="statTotal">-</div>
-    </div>
-    <div class="stat-card stat-success">
-      <div class="stat-label">Hausse</div>
-      <div class="stat-value" id="statHausse">-</div>
-    </div>
-    <div class="stat-card stat-danger">
-      <div class="stat-label">Baisse</div>
-      <div class="stat-value" id="statBaisse">-</div>
-    </div>
+    <template x-for="indice in $store.portfolio.indices" :key="indice.ticker">
+      <div class="stat-card" :class="(indice.variation || 0) > 0 ? 'stat-success' : ((indice.variation || 0) < 0 ? 'stat-danger' : '')">
+        <div class="stat-label" x-text="indice.nom"></div>
+        <div class="stat-value" x-text="formatCoursDevise(indice.cours, indice.devise)"></div>
+        <div class="stat-variation" :class="(indice.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(indice.variation)"></div>
+      </div>
+    </template>
   </section>
 
   <section class="section" x-data="{ ouvert: true }">

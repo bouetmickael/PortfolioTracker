@@ -31,9 +31,11 @@
   dans `public/app.js` via l'évènement `alpine:init`) pilote le rendu
   réactif (`x-for`/`x-show`/`x-text`) de la liste des valeurs suivies,
   désormais groupée par sections (`store.sections`, méthode
-  `valeursDeSection()`) ; le reste de l'UI (alertes, modales, stats)
-  reste en manipulation DOM directe (`document.getElementById`,
-  `innerHTML`) tant qu'il n'a pas été migré à son tour.
+  `valeursDeSection()`), ainsi que des 3 tuiles d'indices de marché
+  (`store.indices`, peuplé par `GET /api/indices`) ; le reste de l'UI
+  (alertes, modales) reste en manipulation DOM directe
+  (`document.getElementById`, `innerHTML`) tant qu'il n'a pas été migré à
+  son tour.
 - **Glisser-déposer** : SortableJS (v1.15.7, `public/vendor/
   sortable.min.js`, vendorisé localement pour la même raison qu'Alpine —
   build sur le Raspberry Pi, pas de CDN). Deux instances par page :
@@ -95,18 +97,21 @@
     ├── mailer.js                 # envoi d'email (SMTP optionnel, no-op sinon)
     ├── load-addon-options.js     # traduction /data/options.json -> variables d'environnement
     ├── middleware/auth.js        # requireAuth (garde de session sur les routes API)
+    ├── indices.js                # liste fixe des indices de marche suivis (ticker/nom)
     ├── routes/
     │   ├── auth.js                # /api/auth (register, login, logout, me)
     │   ├── valeurs.js              # /api/valeurs (CRUD des valeurs suivies)
     │   ├── alertes.js              # /api/alertes (CRUD des alertes de seuil)
     │   ├── sections.js              # /api/sections (CRUD sections + PUT /reorder)
+    │   ├── indices.js               # /api/indices (cours des indices de marche suivis)
     │   └── chart.js                 # /api/chart/:ticker (historique Yahoo Finance)
     ├── jobs/
-    │   ├── prices.js               # mise à jour des cours (cron 2 min)
+    │   ├── prices.js               # mise à jour des cours des valeurs + des indices (cron 2 min)
     │   └── alerts.js                # vérification + envoi des alertes (cron 2 min)
     └── test/                     # node:test (npm test), voir §1 Tests
         ├── support/helpers.js     # serveur de test isolé + DB SQLite temporaire
         ├── sections.test.js
+        ├── indices.test.js
         └── valeurs.test.js
 ```
 
@@ -119,13 +124,19 @@
 2. `server/app.js` construit l'application Express : session cookie,
    montage des routeurs sous `/api/*`, puis sert `public/` en statique
    (`express.static`) pour tout le reste.
-3. Chaque route sous `/api/valeurs`, `/api/alertes` et `/api/sections`
-   passe par `middleware/auth.js` (`requireAuth`) qui exige
+3. Chaque route sous `/api/valeurs`, `/api/alertes`, `/api/sections` et
+   `/api/indices` passe par `middleware/auth.js` (`requireAuth`) qui exige
    `req.session.userId` ; le filtrage par `user_id` est fait
-   explicitement dans chaque requête SQL (voir `BUSINESS_RULES.md`).
+   explicitement dans chaque requête SQL (voir `BUSINESS_RULES.md`) —
+   exception : `/api/indices` sert des données de marché globales,
+   identiques pour tous les utilisateurs (voir `BUSINESS_RULES.md`
+   § Indices de marché).
 4. `server/jobs/prices.js` interroge l'endpoint public non officiel
    `query1.finance.yahoo.com` pour chaque ticker distinct en base et met à
-   jour `cours`/`variation`/`volume` ; `server/routes/chart.js` interroge le
+   jour `cours`/`variation`/`volume` (`updatePrices`, valeurs suivies par
+   au moins un utilisateur) ainsi que les 3 indices de marché suivis
+   (`updateIndices`, liste fixe `server/indices.js`, données globales non
+   rattachées à un utilisateur) ; `server/routes/chart.js` interroge le
    même endpoint pour l'historique par période (1J/1S/1M/1A/Max).
 5. `server/jobs/alerts.js` relit les alertes actives jointes aux valeurs et
    déclenche un email (`mailer.js`) quand un seuil est franchi (logique

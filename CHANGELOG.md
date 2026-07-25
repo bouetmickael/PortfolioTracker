@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.6.0
+
+- Remplacement des 3 tuiles statistiques du haut (Total/Hausse/Baisse,
+  comptage des valeurs suivies) par le suivi de 3 indices de marche :
+  SBF 120, Nasdaq-100 et S&P 500. Chaque tuile affiche le nom de
+  l'indice, son cours (avec la devise d'origine, EUR ou USD) et sa
+  variation du jour, colore en vert/rouge. Meme mecanisme Yahoo Finance
+  que les valeurs suivies, mise a jour toutes les 2 minutes par le meme
+  cycle de job planifie. Nouvelle table `indices_marche` (donnees de
+  marche globales, non rattachees a un utilisateur) et nouvelle route
+  `GET /api/indices`.
+
 ## 1.5.0
 
 - Ajout du partage de section entre utilisateurs (Session D) : le

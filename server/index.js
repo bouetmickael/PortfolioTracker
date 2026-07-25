@@ -7,7 +7,7 @@ const http = require('http');
 const https = require('https');
 const cron = require('node-cron');
 const app = require('./app');
-const { updatePrices } = require('./jobs/prices');
+const { updatePrices, updateIndices } = require('./jobs/prices');
 const { checkAlerts } = require('./jobs/alerts');
 
 const PORT = process.env.PORT || 3000;
@@ -40,6 +40,10 @@ if (process.env.HTTPS_ENABLED === 'true') {
 
 cron.schedule('*/2 * * * *', () => {
   updatePrices().catch((error) => console.error('Erreur globale updatePrices:', error));
+}, { timezone: 'Europe/Paris' });
+
+cron.schedule('*/2 * * * *', () => {
+  updateIndices().catch((error) => console.error('Erreur globale updateIndices:', error));
 }, { timezone: 'Europe/Paris' });
 
 cron.schedule('*/2 * * * *', () => {

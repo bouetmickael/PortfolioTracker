@@ -84,9 +84,10 @@ réussis :
 docker compose logs -f
 ```
 
-Les logs doivent montrer l'exécution périodique des deux tâches
-planifiées (`Demarrage mise a jour des cours`, `Demarrage verification
-alertes`, toutes les 2 minutes) sans erreur bloquante. Il n'existe pas
+Les logs doivent montrer l'exécution périodique des trois tâches
+planifiées (`Demarrage mise a jour des cours`, `Demarrage mise a jour
+des indices de marche`, `Demarrage verification alertes`, toutes les 2
+minutes) sans erreur bloquante. Il n'existe pas
 d'endpoint `/api/health` dédié à ce jour : la vérification de bon
 fonctionnement passe par ces logs et/ou un accès manuel à
 `http://<hote>:<port>/`.

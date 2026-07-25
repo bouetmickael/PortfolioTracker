@@ -317,11 +317,17 @@ body {
   font-weight: 500;
 }
 
-.stat-success .stat-value {
+.stat-variation {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.stat-variation.success {
   color: var(--success);
 }
 
-.stat-danger .stat-value {
+.stat-variation.danger {
   color: var(--danger);
 }
 

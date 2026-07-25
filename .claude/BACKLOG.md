@@ -6,16 +6,17 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/3** — revue de dette technique n°2 effectuée le 2026-07-25 (voir
+**3/3** — revue de dette technique n°2 effectuée le 2026-07-25 (voir
 `CLAUDE.md` § Historique des revues de dette technique et `TODO.md`),
 portant sur le diff cumulé depuis la revue n°1 (Session B sections +
 drag-and-drop, refonte visuelle + thème clair/sombre, et les deux
 correctifs directs poignée de glisser-déposer / modales prompt-confirm).
 Session C (badges d'alerte) livrée le 2026-07-25, compteur incrémenté à
-1/3. Session D (partage RW de section, ci-dessous) livrée le 2026-07-25,
-compteur incrémenté à 2/3 — le compteur n'ayant pas encore atteint 3/3,
-la prochaine session reste un point du backlog produit (`METHOD.md`
-§0.1), pas le cycle de revue.
+1/3. Session D (partage RW de section) livrée le 2026-07-25, compteur
+incrémenté à 2/3. Session E (tuiles d'indices de marché, ci-dessous)
+livrée le 2026-07-25, compteur incrémenté à 3/3 — **le seuil est
+atteint : la prochaine session doit être le cycle de revue de dette
+technique (`METHOD.md` §0.2), pas une nouvelle fonctionnalité.**
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -88,21 +89,23 @@ session porte sur le prochain point du backlog produit ci-après
   partagées ne sont exposées que par les nouvelles routes dédiées, une
   section à la fois (évite toute ambiguïté de ticker entre comptes).
 
-## Backlog produit
+## Fonctionnalité livrée cette session
 
-- **Remplacer les 3 tuiles statistiques du haut par le suivi de 3
-  indices de marché** (demande explicite utilisateur, 2026-07-24) : les
-  cartes `stat-card` actuelles (`#statTotal`/`#statHausse`/`#statBaisse`
-  dans `public/index.html`, comptage des valeurs suivies en hausse/baisse,
-  voir `DESIGN.md` § Composants) sont remplacées par le suivi de 3 indices
-  boursiers : **SBF 120**, **Nasdaq-100**, **S&P 500**. À préciser avant
-  implémentation (arbitrage utilisateur) : source des cours (probablement
-  le même mécanisme Yahoo Finance que les valeurs suivies, voir
-  `server/jobs/prices.js`/`ARCHITECTURE.md` § Points de vigilance, tickers
-  Yahoo pressentis `^SBF120`/`^NDX`/`^GSPC` à vérifier), fréquence de
-  rafraîchissement, et ce qui doit s'afficher sur chaque tuile (cours,
-  variation du jour, les deux). Pas de contrainte de rétro-compatibilité :
-  aucun utilisateur externe à ce projet personnel/familial.
+- [x] **Session E — tuiles d'indices de marché** (demande explicite
+  utilisateur, 2026-07-24) : les cartes `stat-card` (`#statTotal`/
+  `#statHausse`/`#statBaisse`, comptage des valeurs suivies en
+  hausse/baisse) sont remplacées par le suivi de 3 indices boursiers :
+  **SBF 120** (`^SBF120`), **Nasdaq-100** (`^NDX`), **S&P 500**
+  (`^GSPC`). Arbitrage utilisateur (voir historique de session) : même
+  mécanisme Yahoo Finance que les valeurs suivies, même fréquence de
+  rafraîchissement (cron 2 min), tuile affichant nom + cours (avec
+  devise d'origine EUR/USD) + variation du jour. Nouvelle table
+  `indices_marche` (données globales, non rattachées à un utilisateur —
+  voir `BUSINESS_RULES.md` § Indices de marché), nouvelle route
+  `GET /api/indices`, `updateIndices()` dans `server/jobs/prices.js`.
+  Fait cette session (2026-07-25).
+
+## Backlog produit
 
 À compléter au-delà de ce point — aucune autre source du dépôt (issue
 tracker, notes de session, roadmap) ne liste de prochaines fonctionnalités
@@ -111,4 +114,6 @@ avec les « limites connues » listées dans `SPECIFICATION_FONCTIONNELLE.md`
 (PER sectoriel, screening, Greeks, volatilité implicite, parité) : ce sont
 des limites assumées par le README public, pas des éléments déjà
 priorisés pour une future session — à faire arbitrer par l'utilisateur
-avant de les inscrire ici.
+avant de les inscrire ici. Le compteur de revue ayant atteint 3/3 (voir
+ci-dessus), la prochaine session est de toute façon le cycle de revue de
+dette technique (`METHOD.md` §0.2), pas un nouveau point de ce backlog.
