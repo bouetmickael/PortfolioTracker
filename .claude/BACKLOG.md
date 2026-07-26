@@ -113,6 +113,15 @@ suggestion remplit ticker + nom et referme le menu, requete sans
 correspondance masque le menu, theme clair et sombre verifies (contraste
 correct dans les deux, capture d'ecran a l'appui).
 
+**Correctif (v1.8.9, apres la Session 27)** : retour utilisateur - le
+champ "Nom (optionnel)" ne devait etre rempli par une suggestion
+selectionnee que s'il etait vide (ne remplacait pas une saisie
+manuelle) ; l'utilisateur souhaite au contraire qu'il soit **toujours**
+redefini avec le nom de la valeur choisie. `selectionnerResultatRecherche()`
+(`public/app.js`) simplifiee en consequence (plus de condition sur la
+valeur existante). Verifie manuellement en navigateur (Playwright) :
+nom saisi manuellement puis ecrase par la selection d'une suggestion.
+
 ## Session hors plan — Session 27 - une meme valeur dans plusieurs sections (2026-07-26, v1.8.8)
 
 Demande explicite de l'utilisateur : pouvoir ajouter une valeur deja

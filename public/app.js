@@ -292,9 +292,7 @@ function masquerRechercheResultats() {
 
 function selectionnerResultatRecherche(resultat) {
   document.getElementById('inputTicker').value = resultat.ticker;
-  if (!document.getElementById('inputNom').value.trim()) {
-    document.getElementById('inputNom').value = resultat.nom;
-  }
+  document.getElementById('inputNom').value = resultat.nom;
   masquerRechercheResultats();
 }
 

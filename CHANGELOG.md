@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.9
+
+- Correctif : selectionner une suggestion de recherche a l'ajout d'une
+  valeur (voir 1.8.7) redefinit desormais toujours le champ "Nom
+  (optionnel)" avec le nom de la valeur choisie, y compris si un nom
+  avait deja ete saisi manuellement (demande explicite utilisateur - le
+  comportement precedent ne remplissait le champ que s'il etait vide).
+
 ## 1.8.8
 
 - Une meme valeur peut desormais etre suivie dans plusieurs sections

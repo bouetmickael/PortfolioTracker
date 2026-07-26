@@ -325,8 +325,11 @@ délibéré antérieur, non remis en cause).
   (`.recherche-item-nom`, 14px/500) puis ticker et bourse d'origine
   (`.recherche-item-detail`, 12px, `--text-secondary`, ex. « SU.PA ·
   Paris »). Cliquer/toucher un resultat remplit `#inputTicker` (ticker
-  exact) et `#inputNom` (nom complet, seulement s'il etait vide - ne
-  remplace pas une saisie manuelle) puis referme le menu ; la selection
+  exact) et **redefinit toujours** `#inputNom` avec le nom complet de la
+  valeur selectionnee (ecrase une eventuelle saisie manuelle prealable -
+  correctif 2026-07-26, demande explicite utilisateur ; le premier
+  comportement ne remplacait `#inputNom` que s'il etait vide) puis
+  referme le menu ; la selection
   ecoute `pointerdown` plutot que `click` sur chaque item pour agir avant
   le `blur` du champ Ticker (qui referme sinon le menu avec un delai de
   150ms). Aucune correspondance ou saisie de moins de 2 caracteres masque
