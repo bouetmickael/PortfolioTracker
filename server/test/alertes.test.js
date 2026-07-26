@@ -64,7 +64,7 @@ test('supprimer l alerte fait repasser hasAlerte a false', async () => {
   });
 
   const alertes = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json();
-  const [alerteId] = Object.keys(alertes);
+  const alerteId = alertes[0].id;
 
   await fetch(`${baseUrl}/api/alertes/${alerteId}`, { method: 'DELETE', headers: { Cookie: cookie } });
 

@@ -1,6 +1,7 @@
 const db = require('../db');
 const { INDICES } = require('../indices');
 const { fetchYahooFinanceJson } = require('../yahooFinance');
+const { traiterEnParallele } = require('./parallel');
 
 async function fetchYahooFinance(ticker) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
@@ -32,19 +33,16 @@ async function updatePrices() {
     'UPDATE valeurs SET cours = ?, variation = ?, volume = ?, derniere_maj = ? WHERE ticker = ?'
   );
 
-  let updated = 0;
-
-  for (const ticker of tickers) {
-    try {
+  const updated = await traiterEnParallele(
+    tickers,
+    async (ticker) => {
       const priceData = await fetchYahooFinance(ticker);
       const result = update.run(priceData.price, priceData.changePct, priceData.volume, Date.now(), ticker);
-      updated += result.changes;
-
       console.log(`${ticker}: ${priceData.price} (${priceData.changePct.toFixed(2)}%)`);
-    } catch (error) {
-      console.error(`Erreur ${ticker}:`, error.message);
-    }
-  }
+      return result.changes;
+    },
+    (ticker) => `Erreur ${ticker}`
+  );
 
   console.log(`Mise a jour terminee : ${updated} valeurs`);
 }
@@ -56,19 +54,16 @@ async function updateIndices() {
     'UPDATE indices_marche SET cours = ?, variation = ?, devise = ?, derniere_maj = ? WHERE ticker = ?'
   );
 
-  let updated = 0;
-
-  for (const indice of INDICES) {
-    try {
+  const updated = await traiterEnParallele(
+    INDICES,
+    async (indice) => {
       const priceData = await fetchYahooFinance(indice.ticker);
       const result = update.run(priceData.price, priceData.changePct, priceData.currency, Date.now(), indice.ticker);
-      updated += result.changes;
-
       console.log(`${indice.ticker}: ${priceData.price} (${priceData.changePct.toFixed(2)}%)`);
-    } catch (error) {
-      console.error(`Erreur ${indice.ticker}:`, error.message);
-    }
-  }
+      return result.changes;
+    },
+    (indice) => `Erreur ${indice.ticker}`
+  );
 
   console.log(`Mise a jour des indices terminee : ${updated} indices`);
 }

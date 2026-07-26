@@ -177,7 +177,7 @@ test('partage en ecriture : supprimer une occurrence partagee ne supprime pas l 
   });
 
   const alertes = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: proprio.cookie } })).json();
-  assert.equal(Object.keys(alertes).length, 1);
+  assert.equal(alertes.length, 1);
 });
 
 test('partage en ecriture : un ticker introuvable sur Yahoo Finance est rejete', async () => {

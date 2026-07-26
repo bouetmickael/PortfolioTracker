@@ -33,18 +33,27 @@ function mockFetchYahooFinance() {
       if (!TICKER_YAHOO_VALIDE.test(ticker)) {
         return Promise.resolve({ ok: false, status: 404 });
       }
+
+      // GET /api/chart/:ticker (server/routes/chart.js) demande un
+      // historique (period1/period2), pas seulement le cours courant :
+      // simuler timestamp/indicators.quote pour que la route puisse
+      // construire ses points, en plus de meta (utilise par
+      // fetchYahooFinance() pour le cours courant).
+      const estHistorique = url.includes('period1=');
+      const chartResult = {
+        meta: { regularMarketPrice: 100, regularMarketChangePercent: 1.5, regularMarketVolume: 1000, currency: 'USD' }
+      };
+      if (estHistorique) {
+        chartResult.timestamp = [1700000000, 1700003600];
+        chartResult.indicators = {
+          quote: [{ close: [99, 100], open: [98, 99], high: [101, 101], low: [97, 98], volume: [1000, 1100] }]
+        };
+      }
+
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: async () => ({
-          chart: {
-            result: [
-              {
-                meta: { regularMarketPrice: 100, regularMarketChangePercent: 1.5, regularMarketVolume: 1000, currency: 'USD' }
-              }
-            ]
-          }
-        })
+        json: async () => ({ chart: { result: [chartResult] } })
       });
     }
     return fetchOriginal(url, options);

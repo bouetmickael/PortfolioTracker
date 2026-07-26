@@ -265,14 +265,14 @@ test('supprimer la derniere occurrence d une valeur supprime ses alertes, mais p
   const alertesApresPremiereSuppression = await (
     await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })
   ).json();
-  assert.equal(Object.keys(alertesApresPremiereSuppression).length, 1);
+  assert.equal(alertesApresPremiereSuppression.length, 1);
 
   await fetch(`${baseUrl}/api/valeurs/${occurrenceAutre.id}`, { method: 'DELETE', headers: { Cookie: cookie } });
 
   const alertesApresSecondeSuppression = await (
     await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })
   ).json();
-  assert.equal(Object.keys(alertesApresSecondeSuppression).length, 0);
+  assert.equal(alertesApresSecondeSuppression.length, 0);
 });
 
 test('la recherche de valeur renvoie les tickers correspondant a un nom', async () => {

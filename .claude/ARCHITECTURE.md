@@ -151,7 +151,7 @@
   fonctionnel simple (fonctions + `module.exports`).
 - **Conversion snake_case (SQLite) → camelCase (API JSON)** faite
   explicitement dans chaque route via une petite fonction de mapping
-  (`toValeursMap`, `toAlertesMap`, `toPublicUser`) plutôt que par un ORM ou
+  (`toValeursArray`, `toAlertesArray`, `toPublicUser`) plutôt que par un ORM ou
   un mapper générique — respecter ce style si de nouvelles routes sont
   ajoutées.
 - **Langue** : commentaires et messages utilisateur (UI, erreurs API) en

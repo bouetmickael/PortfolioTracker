@@ -7,25 +7,26 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-function toAlertesMap(rows) {
-  const map = {};
-  for (const row of rows) {
-    map[String(row.id)] = {
-      ticker: row.ticker,
-      seuilHaut: row.seuil_haut,
-      seuilBas: row.seuil_bas,
-      active: Boolean(row.active),
-      dernierCoursAlerte: row.dernier_cours_alerte,
-      derniereAlerte: row.derniere_alerte,
-      creeLe: row.cree_le
-    };
-  }
-  return map;
+// Tableau plutot qu'une map indexee par id (heritage Firebase Realtime
+// Database, voir CLAUDE.md Historique des revues) : meme convention que
+// GET /api/valeurs (Session 27) - un consommateur n'a jamais besoin de
+// l'id comme cle d'acces direct, seulement de le lire sur chaque element.
+function toAlertesArray(rows) {
+  return rows.map((row) => ({
+    id: row.id,
+    ticker: row.ticker,
+    seuilHaut: row.seuil_haut,
+    seuilBas: row.seuil_bas,
+    active: Boolean(row.active),
+    dernierCoursAlerte: row.dernier_cours_alerte,
+    derniereAlerte: row.derniere_alerte,
+    creeLe: row.cree_le
+  }));
 }
 
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM alertes WHERE user_id = ?').all(req.session.userId);
-  res.json(toAlertesMap(rows));
+  res.json(toAlertesArray(rows));
 });
 
 router.post('/', (req, res) => {

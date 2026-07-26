@@ -35,8 +35,31 @@ function rolesSection(db, userId) {
   return acces;
 }
 
+// Equivalent cible d'un seul id a rolesSection(db, userId).get(sectionId) :
+// les routes /api/sections/:id/valeurs (GET/POST/DELETE) n'ont besoin que
+// de l'acces a CETTE section precise, pas de la carte complete de toutes
+// les sections visibles par l'utilisateur (voir CLAUDE.md Historique des
+// revues, Revue n°3).
+function roleSection(db, userId, sectionId) {
+  const propre = db.prepare('SELECT id, user_id FROM sections WHERE id = ? AND user_id = ?').get(sectionId, userId);
+  if (propre) {
+    return { role: 'proprietaire', proprietaireId: propre.user_id };
+  }
+
+  const partagee = db
+    .prepare(
+      `SELECT s.user_id as proprietaireId, ss.role as role
+       FROM section_shares ss
+       JOIN sections s ON s.id = ss.section_id
+       WHERE ss.section_id = ? AND ss.user_id = ?`
+    )
+    .get(sectionId, userId);
+
+  return partagee ? { role: partagee.role, proprietaireId: partagee.proprietaireId } : null;
+}
+
 function peutEcrire(acces) {
   return !!acces && (acces.role === 'proprietaire' || acces.role === 'ecriture');
 }
 
-module.exports = { ROLES_VALIDES, rolesSection, peutEcrire };
+module.exports = { ROLES_VALIDES, rolesSection, roleSection, peutEcrire };

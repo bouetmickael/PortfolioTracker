@@ -14,9 +14,38 @@ const INTERVAL_BY_PERIOD = {
   MAX: '1d'
 };
 
+// Cache memoire par ticker+periode : chaque ouverture du graphique d'une
+// meme valeur refaisait un appel Yahoo Finance identique (voir CLAUDE.md
+// Historique des revues, Revue n°1). TTL cale sur la moitie de l'intervalle
+// du job de mise a jour des cours (2 minutes, voir DOCKER.md) - assez court
+// pour ne jamais servir un cours plus perime que ce que l'utilisateur
+// verrait deja sur la liste des valeurs entre deux cycles du job.
+const CACHE_TTL_MS = 60 * 1000;
+const cache = new Map();
+
+function lireCache(cle) {
+  const entree = cache.get(cle);
+  if (!entree) return null;
+  if (Date.now() > entree.expiration) {
+    cache.delete(cle);
+    return null;
+  }
+  return entree.payload;
+}
+
+function ecrireCache(cle, payload) {
+  cache.set(cle, { expiration: Date.now() + CACHE_TTL_MS, payload });
+}
+
 router.get('/:ticker', async (req, res) => {
   const { ticker } = req.params;
   const period = req.query.period || '1M';
+
+  const cacheKey = `${ticker}:${period}`;
+  const dejaEnCache = lireCache(cacheKey);
+  if (dejaEnCache) {
+    return res.json(dejaEnCache);
+  }
 
   try {
     const endDate = new Date();
@@ -68,7 +97,9 @@ router.get('/:ticker', async (req, res) => {
       }))
       .filter((point) => point.close !== null && point.close !== undefined);
 
-    res.json({ success: true, ticker, period, data: chartData });
+    const payload = { success: true, ticker, period, data: chartData };
+    ecrireCache(cacheKey, payload);
+    res.json(payload);
   } catch (error) {
     console.error('Erreur chart:', error);
     res.status(500).json({ error: error.message });

@@ -5,6 +5,7 @@
 
 const { fetchYahooFinance } = require('./jobs/prices');
 const { fetchYahooFinanceJson } = require('./yahooFinance');
+const { nextOrdre } = require('./ordre');
 
 // Jointure par ticker (pas valeur_id) : une alerte s'applique au ticker pour
 // cet utilisateur, quelle que soit la section dans laquelle il est suivi
@@ -104,6 +105,34 @@ function supprimerAlertesOrphelines(db, userId, ticker) {
   }
 }
 
+// Insertion d'une ligne valeurs suivie de son cours initial : factorise
+// l'INSERT a 11 colonnes et le calcul de l'ordre, dupliques verbatim entre
+// POST /api/valeurs (server/routes/valeurs.js) et POST /api/sections/:id/
+// valeurs (server/routes/sections.js) depuis que ce dernier existe (voir
+// CLAUDE.md Historique des revues, Revue n°6). Chaque route garde son
+// propre controle d'acces/deduplication en amont : ce helper ne fait que
+// la persistance une fois ces verifications passees.
+function creerValeur(db, { proprietaireId, sectionId, ticker, type, nom, priceData }) {
+  const ordre = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [proprietaireId, sectionId]);
+
+  db.prepare(
+    `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    proprietaireId,
+    ticker,
+    type,
+    nom,
+    priceData.price,
+    priceData.changePct,
+    priceData.volume,
+    Date.now(),
+    Date.now(),
+    sectionId,
+    ordre
+  );
+}
+
 module.exports = {
   HAS_ALERTE_SUBQUERY,
   toValeurJson,
@@ -111,5 +140,6 @@ module.exports = {
   verifierTickerExiste,
   rechercherTickers,
   supprimerValeurEtDetacherAlertes,
-  supprimerAlertesOrphelines
+  supprimerAlertesOrphelines,
+  creerValeur
 };

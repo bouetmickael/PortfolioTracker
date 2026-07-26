@@ -1,5 +1,6 @@
 const db = require('../db');
 const { sendMail } = require('../mailer');
+const { traiterEnParallele } = require('./parallel');
 
 async function checkAlerts() {
   console.log('Demarrage verification alertes');
@@ -29,46 +30,44 @@ async function checkAlerts() {
     'UPDATE alertes SET dernier_cours_alerte = ?, derniere_alerte = ? WHERE id = ?'
   );
 
-  let alertesEnvoyees = 0;
+  const alertesEnvoyees = await traiterEnParallele(
+    rows,
+    async (alerte) => {
+      const cours = alerte.cours;
+      let alerteDeclenchee = false;
+      let typeAlerte = '';
+      let seuil = 0;
 
-  for (const alerte of rows) {
-    const cours = alerte.cours;
-    let alerteDeclenchee = false;
-    let typeAlerte = '';
-    let seuil = 0;
-
-    if (alerte.seuil_haut && cours >= alerte.seuil_haut) {
-      if (!alerte.dernier_cours_alerte || alerte.dernier_cours_alerte < alerte.seuil_haut) {
-        alerteDeclenchee = true;
-        typeAlerte = 'HAUTE';
-        seuil = alerte.seuil_haut;
+      if (alerte.seuil_haut && cours >= alerte.seuil_haut) {
+        if (!alerte.dernier_cours_alerte || alerte.dernier_cours_alerte < alerte.seuil_haut) {
+          alerteDeclenchee = true;
+          typeAlerte = 'HAUTE';
+          seuil = alerte.seuil_haut;
+        }
       }
-    }
 
-    if (alerte.seuil_bas && cours <= alerte.seuil_bas) {
-      if (!alerte.dernier_cours_alerte || alerte.dernier_cours_alerte > alerte.seuil_bas) {
-        alerteDeclenchee = true;
-        typeAlerte = 'BASSE';
-        seuil = alerte.seuil_bas;
+      if (alerte.seuil_bas && cours <= alerte.seuil_bas) {
+        if (!alerte.dernier_cours_alerte || alerte.dernier_cours_alerte > alerte.seuil_bas) {
+          alerteDeclenchee = true;
+          typeAlerte = 'BASSE';
+          seuil = alerte.seuil_bas;
+        }
       }
-    }
 
-    if (alerteDeclenchee) {
-      try {
-        await sendMail(
-          alerte.user_email,
-          `Alerte ${typeAlerte} : ${alerte.ticker}`,
-          `Cours actuel : ${cours.toFixed(2)} EUR (seuil : ${seuil} EUR)`
-        );
+      if (!alerteDeclenchee) return 0;
 
-        updateAlerte.run(cours, Date.now(), alerte.id);
-        alertesEnvoyees++;
-        console.log(`Alerte envoyee : ${alerte.ticker} ${typeAlerte} pour ${alerte.user_email}`);
-      } catch (error) {
-        console.error(`Erreur envoi alerte pour ${alerte.user_email}:`, error.message);
-      }
-    }
-  }
+      await sendMail(
+        alerte.user_email,
+        `Alerte ${typeAlerte} : ${alerte.ticker}`,
+        `Cours actuel : ${cours.toFixed(2)} EUR (seuil : ${seuil} EUR)`
+      );
+
+      updateAlerte.run(cours, Date.now(), alerte.id);
+      console.log(`Alerte envoyee : ${alerte.ticker} ${typeAlerte} pour ${alerte.user_email}`);
+      return 1;
+    },
+    (alerte) => `Erreur envoi alerte pour ${alerte.user_email}`
+  );
 
   console.log(`Verification terminee : ${alertesEnvoyees} alertes envoyees`);
 }

@@ -3,14 +3,16 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
-const { ROLES_VALIDES, rolesSection, peutEcrire } = require('../partage');
+const { ROLES_VALIDES, rolesSection, roleSection, peutEcrire } = require('../partage');
 const {
   HAS_ALERTE_SUBQUERY,
   toValeursArray,
   verifierTickerExiste,
   supprimerValeurEtDetacherAlertes,
-  supprimerAlertesOrphelines
+  supprimerAlertesOrphelines,
+  creerValeur
 } = require('../valeurs');
+const { asyncHandler } = require('../middleware/asyncHandler');
 
 const router = express.Router();
 
@@ -194,8 +196,7 @@ router.delete('/:id/partages/:userId', (req, res) => {
 // section n'appartient qu'a un seul proprietaire (voir BUSINESS_RULES.md).
 
 router.get('/:id/valeurs', (req, res) => {
-  const acces = rolesSection(db, req.session.userId);
-  const info = acces.get(Number(req.params.id));
+  const info = roleSection(db, req.session.userId, Number(req.params.id));
   if (!info) {
     return res.status(404).json({ error: 'Section introuvable' });
   }
@@ -211,63 +212,47 @@ router.get('/:id/valeurs', (req, res) => {
   res.json(toValeursArray(rows));
 });
 
-router.post('/:id/valeurs', async (req, res) => {
-  const acces = rolesSection(db, req.session.userId);
-  const info = acces.get(Number(req.params.id));
-  if (!peutEcrire(info)) {
-    return res.status(403).json({ error: 'Section invalide' });
-  }
+router.post(
+  '/:id/valeurs',
+  asyncHandler(async (req, res) => {
+    const info = roleSection(db, req.session.userId, Number(req.params.id));
+    if (!peutEcrire(info)) {
+      return res.status(403).json({ error: 'Section invalide' });
+    }
 
-  const ticker = normalizeTicker(req.body.ticker);
-  const type = req.body.type === 'Warrant' ? 'Warrant' : 'Action';
-  const nom = (req.body.nom || '').trim();
+    const ticker = normalizeTicker(req.body.ticker);
+    const type = req.body.type === 'Warrant' ? 'Warrant' : 'Action';
+    const nom = (req.body.nom || '').trim();
 
-  if (!ticker) {
-    return res.status(400).json({ error: 'Ticker requis' });
-  }
+    if (!ticker) {
+      return res.status(400).json({ error: 'Ticker requis' });
+    }
 
-  const sectionId = Number(req.params.id);
+    const sectionId = Number(req.params.id);
 
-  // Une meme valeur peut desormais etre suivie dans plusieurs sections : le
-  // doublon n'est interdit qu'a l'interieur de cette section (voir
-  // BUSINESS_RULES.md § Valeurs suivies).
-  const existing = db
-    .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ? AND section_id = ?')
-    .get(info.proprietaireId, ticker, sectionId);
-  if (existing) {
-    return res.status(409).json({ error: 'Cette valeur est deja suivie dans cette section' });
-  }
+    // Une meme valeur peut desormais etre suivie dans plusieurs sections : le
+    // doublon n'est interdit qu'a l'interieur de cette section (voir
+    // BUSINESS_RULES.md § Valeurs suivies).
+    const existing = db
+      .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ? AND section_id = ?')
+      .get(info.proprietaireId, ticker, sectionId);
+    if (existing) {
+      return res.status(409).json({ error: 'Cette valeur est deja suivie dans cette section' });
+    }
 
-  const priceData = await verifierTickerExiste(ticker);
-  if (!priceData) {
-    return res.status(400).json({ error: 'Valeur introuvable sur Yahoo Finance' });
-  }
+    const priceData = await verifierTickerExiste(ticker);
+    if (!priceData) {
+      return res.status(400).json({ error: 'Valeur introuvable sur Yahoo Finance' });
+    }
 
-  const ordre = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [info.proprietaireId, sectionId]);
+    creerValeur(db, { proprietaireId: info.proprietaireId, sectionId, ticker, type, nom, priceData });
 
-  db.prepare(
-    `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    info.proprietaireId,
-    ticker,
-    type,
-    nom,
-    priceData.price,
-    priceData.changePct,
-    priceData.volume,
-    Date.now(),
-    Date.now(),
-    sectionId,
-    ordre
-  );
-
-  res.status(201).json({ success: true });
-});
+    res.status(201).json({ success: true });
+  })
+);
 
 router.delete('/:id/valeurs/:ticker', (req, res) => {
-  const acces = rolesSection(db, req.session.userId);
-  const info = acces.get(Number(req.params.id));
+  const info = roleSection(db, req.session.userId, Number(req.params.id));
   if (!peutEcrire(info)) {
     return res.status(403).json({ error: 'Section invalide' });
   }
@@ -295,13 +280,17 @@ router.put('/:id', (req, res) => {
     return res.status(400).json({ error: 'Nom de section requis' });
   }
 
-  const info = db
-    .prepare('UPDATE sections SET nom = ? WHERE id = ? AND user_id = ?')
-    .run(nom, req.params.id, req.session.userId);
-
-  if (info.changes === 0) {
+  // sectionPossedee() puis mutation separee plutot que le WHERE id = ? AND
+  // user_id = ? historique de l'UPDATE : sans risque de TOCTOU (better-
+  // sqlite3 est synchrone, aucune requete concurrente ne peut s'intercaler
+  // entre les deux appels dans un meme process Node), voir CLAUDE.md
+  // Historique des revues, Revue n°3.
+  const section = sectionPossedee(req.session.userId, req.params.id);
+  if (!section) {
     return res.status(404).json({ error: 'Section introuvable' });
   }
+
+  db.prepare('UPDATE sections SET nom = ? WHERE id = ?').run(nom, section.id);
 
   res.json({ success: true });
 });
@@ -309,7 +298,7 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const sectionId = Number(req.params.id);
 
-  const section = db.prepare('SELECT id FROM sections WHERE id = ? AND user_id = ?').get(sectionId, req.session.userId);
+  const section = sectionPossedee(req.session.userId, sectionId);
   if (!section) {
     return res.status(404).json({ error: 'Section introuvable' });
   }
