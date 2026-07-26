@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.6
+
+- Correctif : suppression impossible d'une valeur dont le ticker contient
+  un caractere "/" (ex. "LVMH/SGE WT 26", ajoutee avant la validation
+  Yahoo Finance de la v1.8.5). Le ticker n'etait pas encode dans l'URL
+  cote client (`public/app.js`), ce qui cassait le routage Express
+  (suppression de valeur, suppression de valeur dans une section
+  partagee, ouverture du graphique). Le ticker est desormais passe par
+  `encodeURIComponent()` dans ces trois appels.
+
 ## 1.8.5
 
 - Validation du ticker a l'ajout d'une valeur (demande explicite

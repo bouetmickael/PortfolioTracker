@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { demarrerServeurDeTest, creerUtilisateur } = require('./support/helpers');
 
 const serveur = demarrerServeurDeTest('valeurs');
+const db = require('../db');
 let baseUrl;
 
 before(async () => {
@@ -101,4 +102,29 @@ test('une valeur trouvee sur Yahoo Finance est ajoutee avec son cours reel', asy
   assert.equal(valeurs.AAPL.variation, 1.5);
   assert.equal(valeurs.AAPL.type, 'Warrant');
   assert.ok(valeurs.AAPL.derniereMaj > 0);
+});
+
+// Reproduit un ticker "legacy" ajoute avant la validation Yahoo Finance
+// (ex. "LVMH/SGE WT 26", voir DESIGN.md/BACKLOG.md) : insere directement en
+// base (impossible a recreer via l'API desormais, voir tests ci-dessus) pour
+// verifier que la suppression fonctionne malgre le "/" dans le ticker, qui
+// casserait le routage Express si l'URL n'etait pas encodee cote client.
+test('un ticker contenant un "/" (ajoute avant la validation) reste supprimable', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'valeurs-slash@test.local');
+
+  const user = db.prepare('SELECT id FROM users WHERE email = ?').get('valeurs-slash@test.local');
+  const section = db.prepare('SELECT id FROM sections WHERE user_id = ?').get(user.id);
+  db.prepare(
+    `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
+     VALUES (?, 'LVMH/SGE WT 26', 'Warrant', '', 0, 0, 0, NULL, ?, ?, 0)`
+  ).run(user.id, Date.now(), section.id);
+
+  const res = await fetch(`${baseUrl}/api/valeurs/${encodeURIComponent('LVMH/SGE WT 26')}`, {
+    method: 'DELETE',
+    headers: { Cookie: cookie }
+  });
+  assert.equal(res.status, 200);
+
+  const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
+  assert.equal(Object.keys(valeurs).length, 0);
 });

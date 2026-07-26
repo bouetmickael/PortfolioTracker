@@ -42,11 +42,26 @@ inseree avec son cours reel des sa creation (au lieu d'un cours a 0 en
 attente du prochain cycle de la tache planifiee). Tests ajoutes
 (`server/test/valeurs.test.js`, `server/test/partage.test.js`) avec un
 mock de l'appel Yahoo Finance dans `server/test/support/helpers.js`
-(`npm test`, 32/32) — la sandbox de developpement bloque les appels
+(`npm test`, 32/32, puis 33/33 apres le correctif ci-dessous) — la
+sandbox de developpement bloque les appels
 sortants reels vers `query1.finance.yahoo.com` (host non liste dans
 l'allowlist reseau), donc le chemin de succes n'a pu etre verifie qu'avec
 ce mock, pas contre l'API Yahoo Finance reelle ; a confirmer sur un
 deploiement reel (Raspberry Pi) avec un ticker valide.
+
+**Correctif (même jour, v1.8.6)** : retour utilisateur — suppression
+impossible de la valeur "LVMH/SGE WT 26" (ajoutee avant la validation
+ci-dessus), toast "Erreur: Erreur suppression valeur". Cause : le ticker
+n'etait pas encode (`encodeURIComponent`) dans les URL construites cote
+client (`public/app.js`), donc un ticker contenant un caractere "/"
+cassait le routage Express (segments d'URL supplementaires, route
+`/:ticker` non matchee). Corrige sur les trois appels concernes
+(suppression d'une valeur, suppression d'une valeur dans une section
+partagee, ouverture du graphique). Test de non-regression ajoute
+(`server/test/valeurs.test.js`, insertion directe en base d'un ticker
+"legacy" contenant un "/", verification que la suppression via l'URL
+encodee fonctionne) ; verifie egalement manuellement en reproduisant le
+bug (URL non encodee echoue, URL encodee reussit) sur un serveur local.
 
 ## Session hors plan — Session 23 - logo de l'application (2026-07-26, v1.8.3)
 

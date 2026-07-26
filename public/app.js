@@ -329,7 +329,7 @@ async function supprimerValeur(ticker) {
   showLoader(true);
 
   try {
-    const res = await apiFetch(`/api/valeurs/${ticker}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/valeurs/${encodeURIComponent(ticker)}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Erreur suppression valeur');
 
     await chargerValeurs();
@@ -351,7 +351,7 @@ async function supprimerValeurSection(section, ticker) {
   showLoader(true);
 
   try {
-    const res = await apiFetch(`/api/sections/${section.id}/valeurs/${ticker}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/sections/${section.id}/valeurs/${encodeURIComponent(ticker)}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Erreur suppression valeur');
 
     await chargerValeurs();
@@ -987,7 +987,7 @@ async function chargerGraphique(ticker, period) {
   document.getElementById('alertesGraphiqueOverlay').innerHTML = '';
 
   try {
-    const res = await apiFetch(`/api/chart/${ticker}?period=${period}`);
+    const res = await apiFetch(`/api/chart/${encodeURIComponent(ticker)}?period=${period}`);
     if (!res.ok) {
       const errorData = await res.json();
       throw new Error(errorData.error || 'Erreur chargement des donnees');
