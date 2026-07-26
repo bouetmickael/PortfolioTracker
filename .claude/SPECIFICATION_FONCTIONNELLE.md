@@ -74,6 +74,23 @@ gestion de rôles, pas d'inscription publique protégée par invitation — voir
 - Cours et historique proviennent de Yahoo Finance (endpoint public non
   officiel, délai d'environ 15 minutes sur les marchés US, sans garantie de
   service — voir `ARCHITECTURE.md` §5).
+- **Warrants identifiés par ISIN ou designation BoursoBank interne (ex.
+  `DE000SJ1SRC8`, `LVMH/SGE WT 26`) non supportés** (session 2026-07-26,
+  arbitrage explicite utilisateur apres recherche de faisabilite) : Yahoo
+  Finance ne propose aucune recherche par ISIN et n'indexe pas ces
+  produits structures (voir `BUSINESS_RULES.md` § Valeurs suivies, la
+  verification du ticker a l'ajout les rejette donc systematiquement).
+  Seule alternative identifiee, Boursorama (source du CTO BoursoBank),
+  n'expose aucune API publique documentee — seulement des projets tiers
+  de retro-ingenierie (scraping HTML/endpoints non officiels), ce qui
+  demanderait une deuxieme source de donnees non contractuelle en plus de
+  Yahoo Finance (resolution ISIN -> symbole interne Boursorama, schema de
+  reponse different, maintenance propre) : juge trop couteux pour un
+  correctif ponctuel, ecarte au profit du statu quo (warrants avec un
+  ticker Yahoo Finance valide fonctionnent normalement ; les autres sont
+  rejetes a l'ajout plutot que d'afficher un cours absent). A reconsiderer
+  uniquement si l'utilisateur priorise explicitement une deuxieme source
+  de donnees dans une session dediee.
 - Non disponible en l'état, et non prévu à court terme : PER sectoriel
   moyen, screening automatique par critère, Greeks/delta des warrants,
   volatilité implicite, parité. Ce sont des limites assumées documentées
