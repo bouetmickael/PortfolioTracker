@@ -17,11 +17,15 @@ v1.8.8, voir ci-dessous) sont chacune une nouvelle fonctionnalité,
 demandée explicitement par l'utilisateur dans la continuité de la
 conversation — livrées telles quelles plutôt que bloquées sur le cycle
 de revue, mais **la revue de dette technique n°6 reste due et prend
-encore plus de retard** : à traiter en priorité dès que l'utilisateur
-n'a pas de demande fonctionnelle plus urgente. La Session 27 en
-particulier a touché des mécanismes transverses (contrat d'API, cascade
-de suppression, jointures d'alertes) qui mériteraient un regard de revue
-dédié plutôt que d'accumuler encore une session avant de s'y pencher.
+encore plus de retard**. La Session 27 en particulier a touché des
+mécanismes transverses (contrat d'API, cascade de suppression, jointures
+d'alertes) qui mériteraient un regard de revue dédié plutôt que
+d'accumuler encore une session avant de s'y pencher.
+
+**Arbitrage explicite utilisateur (même session, 2026-07-26)** : le
+retard n'est pas un problème, la revue n°6 sera lancée à la **prochaine**
+session plutôt qu'immédiatement — voir le prompt de session suivante
+proposé plus bas (§0.3 de `METHOD.md`).
 
 Revue n°5 effectuée le
 2026-07-26 (voir
