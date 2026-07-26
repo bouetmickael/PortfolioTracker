@@ -11,7 +11,7 @@ let indicesPollInterval = null;
 let chartInstance = null;
 let graphiqueState = { ticker: null, alertable: false };
 let placementAlerteActif = false;
-let alertesParTicker = {};
+let alertesActives = [];
 
 document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
@@ -220,12 +220,7 @@ function displayAlertes(alertes) {
   container.innerHTML = '';
 
   const alertesArray = Object.entries(alertes).filter(([, a]) => a.active);
-
-  alertesParTicker = {};
-  alertesArray.forEach(([, a]) => {
-    if (!alertesParTicker[a.ticker]) alertesParTicker[a.ticker] = [];
-    alertesParTicker[a.ticker].push({ seuilHaut: a.seuilHaut, seuilBas: a.seuilBas });
-  });
+  alertesActives = alertesArray.map(([, a]) => ({ ticker: a.ticker, seuilHaut: a.seuilHaut, seuilBas: a.seuilBas }));
 
   if (alertesArray.length === 0) {
     container.innerHTML = `
@@ -937,46 +932,35 @@ function afficherAlertesGraphique(ticker) {
 
   if (!graphiqueState.alertable || !chartInstance) return;
 
-  const seuils = [];
-  (alertesParTicker[ticker] || []).forEach((a) => {
-    if (a.seuilHaut) seuils.push(a.seuilHaut);
-    if (a.seuilBas) seuils.push(a.seuilBas);
-  });
+  const seuils = alertesActives
+    .filter((a) => a.ticker === ticker)
+    .flatMap((a) => [a.seuilHaut, a.seuilBas].filter(Boolean));
   if (seuils.length === 0) return;
 
-  const { min, max } = chartInstance.scales.y;
+  const yScale = chartInstance.scales.y;
+  const { min, max } = yScale;
   let indexHaut = 0;
   let indexBas = 0;
 
+  const ajouterOverlayEl = (className, style, texte) => {
+    const el = document.createElement('div');
+    el.className = className;
+    Object.assign(el.style, style);
+    if (texte !== undefined) el.textContent = texte;
+    overlay.appendChild(el);
+  };
+
   seuils.forEach((seuil) => {
     if (seuil >= min && seuil <= max) {
-      const y = chartInstance.scales.y.getPixelForValue(seuil);
-
-      const ligne = document.createElement('div');
-      ligne.className = 'alerte-existante-ligne';
-      ligne.style.top = y + 'px';
-      overlay.appendChild(ligne);
-
-      const badge = document.createElement('div');
-      badge.className = 'alerte-existante-badge';
-      badge.style.top = y + 'px';
-      badge.textContent = formatCours(seuil);
-      overlay.appendChild(badge);
+      const y = yScale.getPixelForValue(seuil);
+      ajouterOverlayEl('alerte-existante-ligne', { top: y + 'px' });
+      ajouterOverlayEl('alerte-existante-badge', { top: y + 'px' }, formatCours(seuil));
     } else {
       const horsHaut = seuil > max;
-      const chip = document.createElement('div');
-      chip.className = 'alerte-hors-limite';
-      chip.textContent = `${horsHaut ? '▲' : '▼'} ${formatCours(seuil)}`;
-
-      if (horsHaut) {
-        chip.style.top = 4 + indexHaut * 22 + 'px';
-        indexHaut += 1;
-      } else {
-        chip.style.bottom = 4 + indexBas * 22 + 'px';
-        indexBas += 1;
-      }
-
-      overlay.appendChild(chip);
+      const style = horsHaut ? { top: 4 + indexHaut * 22 + 'px' } : { bottom: 4 + indexBas * 22 + 'px' };
+      ajouterOverlayEl('alerte-hors-limite', style, `${horsHaut ? '▲' : '▼'} ${formatCours(seuil)}`);
+      if (horsHaut) indexHaut += 1;
+      else indexBas += 1;
     }
   });
 }

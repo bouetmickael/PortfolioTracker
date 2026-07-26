@@ -407,3 +407,130 @@ variables d'environnement, vérification).
     `initSortableValeurs()`/`initSortableValeursPartagees()` et
     `persisterOrdre()`/`persisterOrdreSectionPartagee()`) — voir Revues
     n°1/n°2/n°3 ci-dessus, aucun n'a été adressé cette session.
+
+### 2026-07-26 — Revue n°5
+
+- **Portée** : diff cumulé depuis la revue n°4 jusqu'à `HEAD`
+  (`git diff 87fdb5a..HEAD -- server/ public/` hors `public/vendor/` et
+  `.claude/*.md`), couvrant Session 19 (alertes existantes affichées sur
+  le graphique, v1.8.0), Session 20 (densité de la liste des valeurs
+  suivies, v1.8.1) et Session 21 (zoom désactivé + tuiles d'indices
+  recompactées, v1.8.2). Correction de portée par rapport au prompt de
+  session initial (qui indiquait un commit de clôture à vérifier) : le
+  commit de clôture de la revue n°4 est `87fdb5a` (« Session 18 -
+  technical debt review n4... ») et non `31b310f` (commit d'ouverture de
+  ce même cycle, déjà utilisé à tort comme borne à la revue n°4 — même
+  type de correction de portée que celle déjà appliquée en Revue n°3 et
+  Revue n°4). Diff limité à `public/app.js`/`public/styles.css` (+
+  `public/index.html`/`public/login.html` pour le zoom, + bump de version
+  dans `server/package.json` — rien côté logique serveur sur ce cycle).
+  Outillage utilisé : `/simplify` (4 agents de revue en parallèle :
+  réutilisation, simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement inchangé,
+  vérifiés par tests unitaires (`npm test`, 29/29) et un démarrage réel du
+  serveur (`GET /`/`GET /login.html`/`GET /app.js`/`GET /styles.css` →
+  200) ; pas de test manuel navigateur du rendu des alertes sur le
+  graphique cette session — correctifs vérifiés pour préserver strictement
+  les mêmes classes CSS, mêmes propriétés de style et même contenu texte
+  qu'avant, sans changement de mécanisme visuel) :
+  - `alertesParTicker` (`public/app.js`), index `ticker -> [seuils]`
+    construit par boucle `forEach` avec insertion conditionnelle, remplacé
+    par `alertesActives`, un tableau plat construit en une expression
+    (`alertesArray.map(...)`) ; `afficherAlertesGraphique()` filtre ce
+    tableau par ticker à la demande (`alertesActives.filter(a => a.ticker
+    === ticker)`) plutôt que de lire un index pré-groupé. Même résultat
+    pour le seul ticker consommé, sans structure d'index à maintenir.
+  - `displayAlertes()` (`public/app.js`) : suppression de la boucle
+    `forEach` dédiée à la construction de l'index (désormais une
+    expression `map()` unique en tête de fonction, voir point précédent)
+    — un passage sur `alertesArray` en moins avant la boucle de rendu des
+    cartes.
+  - `afficherAlertesGraphique()` (`public/app.js`) : `chartInstance.
+    scales.y` mis en cache dans une variable locale (`yScale`) avant la
+    boucle sur les seuils, au lieu d'être ré-accédé à chaque itération
+    (`yScale.getPixelForValue(seuil)`) ; construction de `seuils` par une
+    expression `flatMap` (`[seuilHaut, seuilBas].filter(Boolean)`) au lieu
+    d'une boucle `forEach` avec deux `push` conditionnels ; les trois
+    blocs de création d'élément DOM dupliqués (`createElement`/
+    `className`/style/texte/`appendChild` pour la ligne, la pastille et
+    le repère hors-limite) factorisés dans un helper local
+    `ajouterOverlayEl(className, style, texte)`, appelé trois fois avec
+    des paramètres différents.
+  - `.alerte-existante-badge`/`.alerte-hors-limite` (`public/styles.css`)
+    fusionnées en une base commune (`position`, `right`, `background`,
+    `border`, `color`, `font-weight`, `padding`, `border-radius`,
+    `pointer-events`, `white-space`, `z-index`, strictement identiques
+    entre les deux sélecteurs), chacune ne conservant que sa spécificité
+    (`transform`/`font-size: 11px` pour la pastille ancrée sur la ligne de
+    seuil, `font-size: 10px` pour le repère hors-limite) — CSS calculé
+    strictement identique avant/après (propriétés fusionnées sans
+    changement de valeur), donc sans risque visuel contrairement aux
+    fusions CSS déjà écartées en Revues n°2/n°4 (où les gabarits
+    calculés différaient réellement entre les sélecteurs concernés).
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - `.alerte-drag-line`/`.alerte-existante-ligne` et `.alerte-drag-badge`
+    (`public/styles.css`) partagent le même patron visuel (« ligne
+    pointillée pleine largeur » / « pastille de prix ancrée sur le
+    graphique ») que `.alerte-existante-badge`/`.alerte-hors-limite`
+    ci-dessus, mais avec plusieurs propriétés réellement différentes
+    (épaisseur de trait, couleur, z-index, ancrage gauche/droite,
+    présence ou non d'un `transform`) plutôt que 2-3 comme le couple déjà
+    fusionné cette session — une fusion réduirait moins de duplication
+    tout en portant le même risque déjà écarté en Revue n°4 pour
+    `.alerte-drag-trigger`/`.btn-icon-small` (gabarits calculés
+    potentiellement divergents) : à vérifier manuellement au navigateur
+    plutôt qu'à fusionner à l'aveugle dans ce cycle.
+  - `afficherAlertesGraphique()` (`public/app.js`) réimplémente la
+    logique « valeur → position pixel Y + libellé formaté »
+    (`getPixelForValue` + `formatCours`) déjà présente dans
+    `positionnerLigneAlerte()` (mode placement d'une nouvelle alerte),
+    mais avec une stratégie de rendu différente (nœuds DOM créés/détruits
+    à chaque appel, vs éléments fixes togglés par `hidden`) et une
+    gestion des seuils hors bornes qui n'existe pas côté placement.
+    Généraliser en un seul renderer paramétré (couleur, style de ligne,
+    contenu du badge, gestion optionnelle du hors-limite) partagé par les
+    deux fonctionnalités changerait un mécanisme utilisé par une
+    interaction utilisateur directe (glisser-déposer sur le graphique) —
+    à traiter avec un test manuel dédié dans une session à part, comme
+    déjà noté en Revue n°4 pour ce même couple de fonctions.
+  - `alertesActives` (`public/app.js`, ex-`alertesParTicker`) reste
+    construit en effet de bord dans `displayAlertes()`, fonction de rendu
+    DOM de la liste des cartes d'alerte, pour le seul bénéfice d'une
+    fonctionnalité distincte (l'affichage des seuils sur le graphique) —
+    ce correctif simplifie la structure interne sans changer ce
+    couplage. Les alertes ne sont toujours pas portées par
+    `Alpine.store('portfolio')` (dette déjà reportée en Revues n°1/n°2,
+    « alertes en manipulation DOM directe ») ; un getter dérivé sur le
+    store (sur le modèle de `valeursDeSection()`) rendrait cette donnée
+    disponible proprement à tout consommateur présent ou futur, mais
+    suppose la migration plus large déjà écartée à trois reprises.
+  - `.valeur-actions .btn-icon-small { padding: 4px; }`
+    (`public/styles.css`, Session 20) : override contextuel local plutôt
+    qu'une variante de taille réutilisable du composant partagé
+    `.btn-icon-small` (ex. `.btn-icon-xs`) — décision de nommage/API CSS,
+    pas un correctif ponctuel à risque faible.
+  - La densification de l'UI (Sessions 20 et 21, `.valeur-*`/`.stat-*`)
+    ajuste `font-size`/`line-height`/`padding` sélecteur par sélecteur
+    plutôt que via une échelle de tokens communs (ex. variables CSS
+    `--font-size-xs`) — deuxième cycle consécutif où ce type de retouche
+    se fait à la main ; une échelle partagée généraliserait mieux ce
+    réglage récurrent, mais changerait la source de vérité de plusieurs
+    dizaines de valeurs à la fois — hors périmètre d'un correctif à
+    risque faible.
+  - `line-height: 1.25` (`public/styles.css`, Session 20) répété
+    individuellement sur cinq sélecteurs descendants de `.valeur-row`
+    (`.valeur-nom`, `.valeur-sousligne`, `.valeur-footer`, `.valeur-cours`,
+    `.valeur-variation`). Remonter cette déclaration une seule fois sur
+    `.valeur-row` (héritée par tous les descendants texte) supprimerait
+    la répétition, mais `.valeur-row` a aussi pour descendants
+    `.valeur-avatar`, `.valeur-drag-handle`, `.badge-type`,
+    `.badge-alerte` et `.valeur-actions`, qui n'ont **pas** été inclus
+    dans la liste des sélecteurs retouchés par la Session 20 (ils
+    restent donc sciemment à l'interligne global 1.5 du `body`) —
+    remonter la déclaration changerait leur `line-height` calculé aussi,
+    ce qui n'est plus un correctif à comportement strictement inchangé.
+    Écarté pour cette raison plutôt que par prudence générique.
+  - Correctifs reportés des revues n°1 à n°4 toujours non traités (liste
+    inchangée, voir Revues n°1/n°2/n°3/n°4 ci-dessus) — aucun n'a été
+    adressé cette session.

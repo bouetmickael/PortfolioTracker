@@ -6,17 +6,18 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/3** — revue de dette technique n°4 effectuée le 2026-07-25 (voir
+**0/3** — revue de dette technique n°5 effectuée le 2026-07-26 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
-diff cumulé depuis la revue n°3 (Session 15 tuiles d'indices, Session 16
-périmètre smartphone-only + CSS, Session 17 alerte depuis le graphique).
-Compteur réinitialisé à 0/3, puis incrémenté à 1/3 par la Session 19
-(alertes existantes affichées sur le graphique, v1.8.0), à 2/3 par la
-Session 20 (densité de la liste des valeurs suivies, v1.8.1) et à 3/3 par
-la Session 21 (zoom désactivé + tuiles d'indices recompactées, v1.8.2,
-voir ci-dessous). **Seuil atteint : la prochaine session est
-obligatoirement le cycle de revue de dette technique** (`METHOD.md`
-§0.2), pas un nouveau point du backlog produit.
+diff cumulé depuis la revue n°4 (Session 19 alertes existantes sur le
+graphique, Session 20 densité de la liste des valeurs, Session 21 zoom
+désactivé + tuiles d'indices recompactées). Correctifs à risque faible
+appliqués (index d'alertes par ticker simplifié en tableau plat, cache de
+l'échelle Chart.js, factorisation de la création des éléments d'overlay
+du graphique, fusion CSS des pastilles `.alerte-existante-badge`/
+`.alerte-hors-limite`) ; correctifs plus profonds documentés et reportés
+(voir Revue n°5). Compteur réinitialisé à 0/3 — la prochaine session
+porte sur le prochain point du backlog produit ci-dessous, à arbitrer
+avec l'utilisateur.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 
@@ -56,7 +57,7 @@ réutilisables (`#modalPrompt`/`#modalConfirm`, résolues comme des
 l'architecture complète) : glisser-déposer, sections, badges d'alerte,
 partage RW de section entre utilisateurs. **Plan complet, les quatre
 sessions sont livrées** (voir découpage ci-dessous). Aucune fonctionnalité
-en cours actuellement : la revue de dette technique n°3 vient de clore le
+en cours actuellement : la revue de dette technique n°5 vient de clore le
 cycle (voir `CLAUDE.md` § Historique des revues, compteur remis à 0/3
 ci-dessus) — la prochaine session porte sur le prochain point du backlog
 produit ci-après, à arbitrer avec l'utilisateur.
@@ -164,6 +165,9 @@ produit ci-après, à arbitrer avec l'utilisateur.
   `DESIGN.md` § PWA) et deuxième réduction des tuiles `.stat-card`
   (toujours disproportionnées une fois la liste des valeurs compactée en
   v1.8.1, voir `DESIGN.md` § Cartes statistiques). Fait le 2026-07-25.
+- [x] **Revue de dette technique n°5** : voir `CLAUDE.md` § Historique
+  des revues de dette technique. Compteur remis à 0/3 (voir ci-dessus).
+  Fait le 2026-07-26.
 
 ## Backlog produit
 
@@ -175,6 +179,7 @@ ci-dessus. Ne pas confondre avec les « limites connues » listées dans
 volatilité implicite, parité) : ce sont des limites assumées par le
 README public, pas des éléments déjà priorisés pour une future session —
 à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
-de revue a atteint 3/3 (voir ci-dessus) : la prochaine session est de
-toute façon le cycle de revue de dette technique (`METHOD.md` §0.2), pas
-un nouveau point de ce backlog.
+de revue est à 0/3 (voir ci-dessus) : la prochaine session porte sur un
+point de ce backlog produit, à arbitrer avec l'utilisateur, ou sur l'un
+des correctifs de dette technique reportés (voir `CLAUDE.md` § Historique
+des revues) si l'utilisateur préfère les traiter en priorité.
