@@ -6,7 +6,9 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/3** — revue de dette technique n°5 effectuée le 2026-07-26 (voir
+**1/3** — Session 23 (logo de l'application, v1.8.3, voir ci-dessous)
+effectuée après la revue de dette technique n°5. Revue n°5 effectuée le
+2026-07-26 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°4 (Session 19 alertes existantes sur le
 graphique, Session 20 densité de la liste des valeurs, Session 21 zoom
@@ -18,6 +20,15 @@ du graphique, fusion CSS des pastilles `.alerte-existante-badge`/
 (voir Revue n°5). Compteur réinitialisé à 0/3 — la prochaine session
 porte sur le prochain point du backlog produit ci-dessous, à arbitrer
 avec l'utilisateur.
+
+## Session hors plan — Session 23 - logo de l'application (2026-07-26, v1.8.3)
+
+Demande explicite de l'utilisateur (logo fourni en pièce jointe) : le
+rendre visible en haut à gauche de la page principale et l'utiliser comme
+icône d'application lors d'un « Ajouter à l'écran d'accueil » depuis
+iPhone. Voir `DESIGN.md` § Header / § PWA pour le détail (traitement de
+l'image source, fichiers générés, gabarit du logo d'en-tête). Pas de
+changement côté serveur ; `npm test` toujours 29/29.
 
 ## Session hors plan — refonte visuelle + theme clair/sombre (2026-07-25)
 

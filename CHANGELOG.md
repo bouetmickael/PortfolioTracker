@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.3
+
+- Ajout du logo de l'application (demande explicite utilisateur) : visible
+  en haut a gauche de l'en-tete de la page principale, et utilise comme
+  icone d'application (favicon, icones du manifeste PWA 192/512,
+  `apple-touch-icon`) lors d'un "Ajouter a l'ecran d'accueil" depuis
+  iPhone. Voir `DESIGN.md` § Header / § PWA.
+
 ## 1.8.2
 
 - Correctif zoom intempestif (demande explicite utilisateur) : la page se

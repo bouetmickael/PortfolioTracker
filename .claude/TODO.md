@@ -1234,3 +1234,63 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - Compteur `BACKLOG.md` : 2/3 -> 3/3 - **seuil atteint, la prochaine
   session est obligatoirement le cycle de revue de dette technique**
   (`METHOD.md` §0.2), pas un nouveau point du backlog produit.
+
+## 2026-07-26 — Revue de dette technique n°5 (voir CLAUDE.md pour le detail complet)
+
+- Voir `.claude/CLAUDE.md` § Historique des revues de dette technique
+  (section "2026-07-26 — Revue n°5") pour la portee, les correctifs
+  appliques et reportes. Compteur `BACKLOG.md` : 3/3 -> 0/3.
+
+## 2026-07-26 — Session 23 - logo de l'application (v1.8.3)
+
+- **Demande explicite utilisateur** : ajouter le logo fourni (piece
+  jointe) de sorte qu'il soit visible en haut a gauche de la page
+  principale, et qu'il soit utilise comme icone lors d'un "Ajouter a
+  l'ecran d'accueil" depuis iPhone.
+- **Traitement de l'image source** (script Python/Pillow, hors depot) :
+  le fichier fourni etait un export d'icone d'app classique (carre
+  1254x1254, coins arrondis, marge noire autour du rectangle a coins
+  arrondis, aucune transparence - mode RGB). Recadre sur la boite
+  englobante du contenu utile (suppression de la marge noire), puis les
+  quatre coins residuels (rendus noirs par le decoupage des coins
+  arrondis) combles avec la couleur de fond du logo (bleu marine,
+  echantillonnee sur l'image elle-meme, tres proche de `--header-bg`)
+  plutot que laisses transparents ou noirs - resultat : une image carree
+  pleine, sans liseré, adaptee a un usage manifeste `purpose: any
+  maskable` comme au rendu compact dans le header.
+- **Fichiers generes** (`public/icons/`) : `icon-192.png`/`icon-512.png`
+  remplaces (ecrasent les anciennes icones provisoires "PT" generees
+  automatiquement) ; nouveau fichier `apple-touch-icon.png` (180x180,
+  taille exacte recommandee par Apple pour eviter un redimensionnement
+  flou automatique) plutot que de continuer a reutiliser `icon-192.png`
+  pour l'`apple-touch-icon` comme avant cette session.
+- **Implementation** :
+  - `public/index.html` : `<link rel="apple-touch-icon">` pointe
+    desormais vers `icons/apple-touch-icon.png` (au lieu de
+    `icons/icon-192.png`) ; ajout d'un `<img class="header-logo">`
+    (source `icons/icon-192.png`) dans `.header-titre`, avant le `<h1>`.
+  - `public/login.html` : ajout du `<link rel="apple-touch-icon">`
+    manquant (seul le favicon existait), pour que l'icone soit correcte
+    meme si l'utilisateur ajoute l'app a l'ecran d'accueil depuis la page
+    de connexion plutot que depuis la page principale.
+  - `public/styles.css` : nouvelle classe `.header-logo` (28x28, coins
+    arrondis 6px) ; `.header-titre` passe de `align-items: baseline` a
+    `align-items: center` (necessaire pour aligner proprement l'image
+    avec le titre et le badge de version, la baseline n'ayant de sens
+    que pour du texte).
+  - `.claude/DESIGN.md` : § Header (mention du logo) et § PWA (origine
+    des fichiers, remplace l'ancienne note "icones provisoires")
+    mis a jour.
+- **Verification reelle** : `npm test` (`node --test test/*.test.js`,
+  29/29 verts, aucun fichier serveur modifie - changement limite au
+  front-end statique et aux icones). Serveur demarre localement
+  (`GET /`/`GET /login.html`/`GET /icons/icon-192.png`/
+  `GET /icons/apple-touch-icon.png` -> 200). Capture d'ecran Playwright
+  (Chromium local, viewport 390 px, compte de test reel) du header en
+  theme clair et en theme sombre : logo carre net, sans liseré ni
+  artefact noir, bien aligné avec le titre "Portfolio" et le badge de
+  version.
+- Version : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.8.2 -> 1.8.3 (increment PATCH - ajout visuel, pas de
+  nouvelle fonctionnalite metier), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 0/3 -> 1/3.

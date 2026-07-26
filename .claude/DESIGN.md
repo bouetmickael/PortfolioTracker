@@ -118,10 +118,14 @@ délibéré antérieur, non remis en cause).
 
 - **Header** : sticky en haut, fond `--header-bg` (bleu marine, fixe dans
   les deux thèmes), texte/icônes `--header-text`/`--header-text-
-  secondary`, `--shadow`, titre + numéro de version côte à côte
-  (`.header-titre`). Actions à droite (`.header-actions`, icônes SVG) :
-  bascule thème (`icon-moon`/`icon-sun`), actualiser (`icon-refresh`),
-  menu utilisateur (`icon-user`).
+  secondary`, `--shadow`, logo + titre + numéro de version côte à côte
+  (`.header-titre`). Le logo (`.header-logo`, session 2026-07-26, demande
+  explicite utilisateur) est une image raster (`public/icons/icon-192.png`,
+  pas une icône du sprite SVG — voir § PWA pour l'origine du fichier),
+  28x28, coins arrondis 6px, tout à gauche du titre. Actions à droite
+  (`.header-actions`, icônes SVG) : bascule thème (`icon-moon`/
+  `icon-sun`), actualiser (`icon-refresh`), menu utilisateur (`icon-
+  user`).
 - **Cartes statistiques** (`.stats-container`/`.stat-card`, session
   2026-07-25 « suivi d'indices de marché ») : grille 3 colonnes égales,
   fond `--bg`, coins 6px, `--shadow`, **bordure supérieure colorée 2px**.
@@ -380,11 +384,22 @@ d'écran.
 - `manifest.json`/meta `theme-color` : `#1b2438` (bleu marine de l'en-
   tête, plus `#1a73e8`), mode `standalone`, orientation `portrait-
   primary`, icônes 192/512 `purpose: any maskable`.
-- **Icônes actuelles provisoires** : `public/icons/icon-192.png` et
-  `icon-512.png` sont générées automatiquement (fond bleu, texte « PT »),
-  pas des icônes définitives. Sans impact fonctionnel, purement
-  cosmétique — à remplacer un jour par un vrai jeu d'icônes si souhaité
-  (pas un item de bug).
+- **Logo/icônes de l'application** (session 2026-07-26, remplace les
+  icônes provisoires « PT » sur fond bleu générées automatiquement) :
+  `public/icons/icon-192.png`/`icon-512.png` (icônes du manifeste,
+  favicon des deux pages) et `public/icons/apple-touch-icon.png` (180x180,
+  taille exacte recommandée par Apple pour éviter un redimensionnement
+  flou — référencé par `<link rel="apple-touch-icon">` dans
+  `public/index.html`/`public/login.html`, utilisé par iOS lors d'un
+  « Ajouter à l'écran d'accueil » depuis Safari) dérivent tous du même
+  logo fourni par l'utilisateur (fond bleu marine assorti à `--header-bg`,
+  pictogramme or/blanc). Recadré sur le carré utile (l'export source avait
+  une marge noire autour d'un rectangle à coins arrondis) puis les coins
+  résiduels comblés avec la couleur de fond du logo, pour obtenir une
+  image carrée pleine (sans transparence ni liseré noir) adaptée à un
+  usage `purpose: any maskable`. Le même fichier `icon-192.png` est
+  réutilisé comme logo d'en-tête (`.header-logo`, voir § Header
+  ci-dessus) plutôt que de dupliquer un asset dédié.
 - **Zoom désactivé** (v1.8.2, demande explicite utilisateur : la page se
   retrouvait parfois zoomée sans action volontaire de sa part, cachant
   une partie de l'écran). Deux causes distinctes corrigées ensemble :
