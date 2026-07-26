@@ -11,7 +11,6 @@ let indicesPollInterval = null;
 let chartInstance = null;
 let graphiqueState = { ticker: null, alertable: false };
 let placementAlerteActif = false;
-let alertesActives = [];
 
 document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
@@ -19,12 +18,44 @@ document.addEventListener('alpine:init', () => {
     sections: [],
     sectionsPartagees: [],
     indices: [],
+    alertes: [],
     chargee: false,
 
+    // Regroupement par section calcule une seule fois par changement de
+    // valeurs (au lieu de refiltrer/retrier a chaque appel - valeursDeSection
+    // est invoquee une fois par section a chaque rendu Alpine), invalide
+    // explicitement aux deux seuls endroits qui modifient valeurs (voir
+    // invaliderValeursParSection). Impact reel negligeable a l'echelle de ce
+    // projet personnel, mais evite un refiltrage O(sections x valeurs) pour
+    // un cout nul en dehors des mutations. Voir CLAUDE.md Historique des
+    // revues, Revue n°2.
+    _valeursParSection: null,
+
     valeursDeSection(sectionId) {
-      return this.valeurs
-        .filter((v) => v.sectionId === sectionId)
-        .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+      if (!this._valeursParSection) {
+        const grouped = new Map();
+        for (const v of this.valeurs) {
+          if (!grouped.has(v.sectionId)) grouped.set(v.sectionId, []);
+          grouped.get(v.sectionId).push(v);
+        }
+        for (const liste of grouped.values()) {
+          liste.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        }
+        this._valeursParSection = grouped;
+      }
+      return this._valeursParSection.get(sectionId) || [];
+    },
+
+    invaliderValeursParSection() {
+      this._valeursParSection = null;
+    },
+
+    // Getter derive plutot qu'un effet de bord de displayAlertes() (voir
+    // CLAUDE.md Historique des revues, Revue n°5) : alertesActivesPour()
+    // lit toujours le dernier `alertes` charge, sans structure separee a
+    // maintenir en synchronisation.
+    alertesActivesPour(ticker) {
+      return this.alertes.filter((a) => a.active && a.ticker === ticker);
     }
   });
 });
@@ -185,6 +216,7 @@ async function chargerAlertes() {
     if (!res.ok) throw new Error('Erreur chargement des alertes');
 
     const alertes = await res.json();
+    Alpine.store('portfolio').alertes = alertes;
     displayAlertes(alertes);
   } catch (error) {
     console.error('Erreur chargement alertes:', error);
@@ -198,6 +230,7 @@ async function chargerAlertes() {
 function displayValeurs(valeurs, sections) {
   const store = Alpine.store('portfolio');
   store.valeurs = valeurs;
+  store.invaliderValeursParSection();
   store.sections = sections.filter((s) => s.role === 'proprietaire');
   store.chargee = true;
 }
@@ -219,8 +252,7 @@ function displayAlertes(alertes) {
   const container = document.getElementById('alertesListe');
   container.innerHTML = '';
 
-  const alertesArray = Object.entries(alertes).filter(([, a]) => a.active);
-  alertesActives = alertesArray.map(([, a]) => ({ ticker: a.ticker, seuilHaut: a.seuilHaut, seuilBas: a.seuilBas }));
+  const alertesArray = alertes.filter((a) => a.active);
 
   if (alertesArray.length === 0) {
     container.innerHTML = `
@@ -231,8 +263,8 @@ function displayAlertes(alertes) {
     return;
   }
 
-  alertesArray.forEach(([id, alerte]) => {
-    const card = createAlerteCard(id, alerte);
+  alertesArray.forEach((alerte) => {
+    const card = createAlerteCard(alerte.id, alerte);
     container.appendChild(card);
   });
 }
@@ -250,7 +282,7 @@ function createAlerteCard(id, alerte) {
       <div class="alerte-ticker">${alerte.ticker}</div>
       <div class="alerte-seuils">${seuils.join(' - ')}</div>
     </div>
-    <button class="btn-icon-small" onclick="supprimerAlerte('${id}')" title="Supprimer" aria-label="Supprimer">
+    <button class="btn-icon-small btn-icon-xs" onclick="supprimerAlerte('${id}')" title="Supprimer" aria-label="Supprimer">
       <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
     </button>
   `;
@@ -268,6 +300,26 @@ function createAlerteCard(id, alerte) {
 // ouvrirAjoutValeur). Le role de la section (`proprietaire` vs `ecriture`)
 // determine la route appelee par ajouterValeur().
 let sectionCibleAjout = null;
+
+// Squelette showLoader/try/catch/finally/toast partage par les actions CRUD
+// ci-dessous (ajout/suppression de valeur, section, partage, alerte) : une
+// meme forme repetee depuis l'origine du projet (voir CLAUDE.md Historique
+// des revues, Revue n°2). `fn` porte la logique propre a chaque action (son
+// propre appel reseau, son propre toast de succes, ses propres effets de
+// bord) ; seul l'affichage du loader et le toast d'erreur generique sont
+// factorises ici.
+async function executerAction(fn, libelleErreur) {
+  showLoader(true);
+
+  try {
+    await fn();
+  } catch (error) {
+    console.error(`${libelleErreur}:`, error);
+    showToast('Erreur: ' + error.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
 
 function ouvrirAjoutValeur(section = null) {
   sectionCibleAjout = section;
@@ -358,9 +410,7 @@ async function ajouterValeur() {
     return;
   }
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const section = sectionCibleAjout;
     // Une section possedee (role "proprietaire") passe toujours par
     // /api/valeurs (avec sectionId pour cibler une section precise) ; seule
@@ -395,21 +445,14 @@ async function ajouterValeur() {
 
     document.getElementById('inputTicker').value = '';
     document.getElementById('inputNom').value = '';
-  } catch (error) {
-    console.error('Erreur ajout valeur:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur ajout valeur');
 }
 
 async function supprimerValeur(id, ticker) {
   const ok = await showConfirm(`Supprimer ${ticker} de vos valeurs suivies ?`, 'Supprimer la valeur');
   if (!ok) return;
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const res = await apiFetch(`/api/valeurs/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Erreur suppression valeur');
 
@@ -417,33 +460,21 @@ async function supprimerValeur(id, ticker) {
     await chargerAlertes();
 
     showToast(`${ticker} supprime`, 'success');
-  } catch (error) {
-    console.error('Erreur suppression valeur:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur suppression valeur');
 }
 
 async function supprimerValeurSection(section, ticker) {
   const ok = await showConfirm(`Supprimer ${ticker} de la section "${section.nom}" ?`, 'Supprimer la valeur');
   if (!ok) return;
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const res = await apiFetch(`/api/sections/${section.id}/valeurs/${encodeURIComponent(ticker)}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Erreur suppression valeur');
 
     await chargerValeurs();
 
     showToast(`${ticker} supprime`, 'success');
-  } catch (error) {
-    console.error('Erreur suppression valeur:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur suppression valeur');
 }
 
 // ========================================
@@ -454,9 +485,7 @@ async function ajouterSection() {
   const nom = await showPrompt('Nom de la nouvelle section :');
   if (!nom || !nom.trim()) return;
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const res = await apiFetch('/api/sections', {
       method: 'POST',
       body: JSON.stringify({ nom: nom.trim() })
@@ -469,21 +498,14 @@ async function ajouterSection() {
 
     await chargerValeurs();
     showToast('Section creee', 'success');
-  } catch (error) {
-    console.error('Erreur creation section:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur creation section');
 }
 
 async function renommerSection(section) {
   const nom = await showPrompt('Nouveau nom de la section :', section.nom);
   if (!nom || !nom.trim() || nom.trim() === section.nom) return;
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const res = await apiFetch(`/api/sections/${section.id}`, {
       method: 'PUT',
       body: JSON.stringify({ nom: nom.trim() })
@@ -496,12 +518,7 @@ async function renommerSection(section) {
 
     await chargerValeurs();
     showToast('Section renommee', 'success');
-  } catch (error) {
-    console.error('Erreur renommage section:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur renommage section');
 }
 
 async function supprimerSection(section) {
@@ -511,9 +528,7 @@ async function supprimerSection(section) {
   );
   if (!ok) return;
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const res = await apiFetch(`/api/sections/${section.id}`, { method: 'DELETE' });
 
     if (!res.ok) {
@@ -523,12 +538,7 @@ async function supprimerSection(section) {
 
     await chargerValeurs();
     showToast('Section supprimee', 'success');
-  } catch (error) {
-    console.error('Erreur suppression section:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur suppression section');
 }
 
 // ========================================
@@ -626,9 +636,7 @@ async function ajouterPartage() {
     return;
   }
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const res = await apiFetch(`/api/sections/${sectionCiblePartage.id}/partages`, {
       method: 'POST',
       body: JSON.stringify({ email, role })
@@ -642,32 +650,20 @@ async function ajouterPartage() {
     document.getElementById('inputPartageEmail').value = '';
     await chargerPartagesSection(sectionCiblePartage.id);
     showToast('Section partagee', 'success');
-  } catch (error) {
-    console.error('Erreur partage de la section:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur partage de la section');
 }
 
 async function supprimerPartage(sectionId, userId) {
   const ok = await showConfirm('Retirer l\'acces de cet utilisateur a la section ?', 'Retirer l\'acces');
   if (!ok) return;
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const res = await apiFetch(`/api/sections/${sectionId}/partages/${userId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Erreur suppression du partage');
 
     await chargerPartagesSection(sectionId);
     showToast('Acces retire', 'success');
-  } catch (error) {
-    console.error('Erreur suppression du partage:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur suppression du partage');
 }
 
 function marquerSortableInit(el) {
@@ -680,7 +676,7 @@ function initSortableSections(el) {
   if (!marquerSortableInit(el)) return;
 
   Sortable.create(el, {
-    handle: '.valeurs-section-nom',
+    handle: '.valeurs-section-drag-handle',
     draggable: '.valeurs-section',
     animation: 150,
     ghostClass: 'sortable-ghost',
@@ -703,17 +699,31 @@ function initSortableSections(el) {
   });
 }
 
-function initSortableValeurs(el) {
+// Squelette SortableJS commun aux deux listes de valeurs (proprietaire et
+// partagee) : seul le groupe de glisser-depose (autorise ou non le passage
+// d'une section a l'autre) et le traitement de fin de glisser different
+// reellement entre les deux (voir CLAUDE.md Historique des revues, Revue
+// n°3) - une section partagee ne peut jamais recevoir une valeur venue
+// d'ailleurs, d'ou un groupe isole par section plutot que le groupe commun
+// 'valeurs' des sections possedees.
+function initSortableListeValeurs(el, { group, onReordered }) {
   if (!marquerSortableInit(el)) return;
 
   Sortable.create(el, {
-    group: 'valeurs',
+    group,
     draggable: '.valeur-row',
     handle: '.valeur-drag-handle',
     animation: 150,
     ghostClass: 'sortable-ghost',
     dragClass: 'sortable-drag',
-    onEnd: (evt) => {
+    onEnd: onReordered
+  });
+}
+
+function initSortableValeurs(el) {
+  initSortableListeValeurs(el, {
+    group: 'valeurs',
+    onReordered: (evt) => {
       const store = Alpine.store('portfolio');
       const valeursParId = new Map(store.valeurs.map((v) => [v.id, v]));
       const listesTouchees = evt.from === evt.to ? [evt.to] : [evt.from, evt.to];
@@ -733,28 +743,39 @@ function initSortableValeurs(el) {
         });
       }
 
+      store.invaliderValeursParSection();
       persisterOrdre();
     }
   });
 }
 
 function initSortableValeursPartagees(el, section) {
-  if (!marquerSortableInit(el)) return;
-
-  Sortable.create(el, {
+  initSortableListeValeurs(el, {
     group: `valeurs-partagee-${section.id}`,
-    draggable: '.valeur-row',
-    handle: '.valeur-drag-handle',
-    animation: 150,
-    ghostClass: 'sortable-ghost',
-    dragClass: 'sortable-drag',
-    onEnd: () => {
+    onReordered: () => {
       const idsOrdonnes = Array.from(el.querySelectorAll(':scope > .valeur-row')).map((node) =>
         Number(node.dataset.valeurId)
       );
       persisterOrdreSectionPartagee(section, idsOrdonnes);
     }
   });
+}
+
+// Queue commune aux deux flux de persistance de l'ordre (memes conditions
+// d'echec, meme toast) : seule differe la construction du payload `sections`
+// en amont (voir persisterOrdre/persisterOrdreSectionPartagee).
+async function envoyerReorder(sections, contexte = '') {
+  try {
+    const res = await apiFetch('/api/sections/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ sections })
+    });
+
+    if (!res.ok) throw new Error('Erreur enregistrement ordre');
+  } catch (error) {
+    console.error(`Erreur enregistrement ordre${contexte}:`, error);
+    showToast('Erreur lors de l\'enregistrement de l\'ordre', 'error');
+  }
 }
 
 async function persisterOrdre() {
@@ -770,17 +791,7 @@ async function persisterOrdre() {
         .map((v) => v.id)
     }));
 
-  try {
-    const res = await apiFetch('/api/sections/reorder', {
-      method: 'PUT',
-      body: JSON.stringify({ sections })
-    });
-
-    if (!res.ok) throw new Error('Erreur enregistrement ordre');
-  } catch (error) {
-    console.error('Erreur enregistrement ordre:', error);
-    showToast('Erreur lors de l\'enregistrement de l\'ordre', 'error');
-  }
+  await envoyerReorder(sections);
 }
 
 async function persisterOrdreSectionPartagee(section, valeurIds) {
@@ -793,23 +804,13 @@ async function persisterOrdreSectionPartagee(section, valeurIds) {
     });
   }
 
-  try {
-    const res = await apiFetch('/api/sections/reorder', {
-      method: 'PUT',
-      body: JSON.stringify({ sections: [{ id: section.id, valeurIds }] })
-    });
-
-    if (!res.ok) throw new Error('Erreur enregistrement ordre');
-  } catch (error) {
-    console.error('Erreur enregistrement ordre section partagee:', error);
-    showToast('Erreur lors de l\'enregistrement de l\'ordre', 'error');
-  }
+  await envoyerReorder([{ id: section.id, valeurIds }], ' section partagee');
 }
 
 async function creerAlerteAPI(ticker, seuilHaut, seuilBas) {
-  showLoader(true);
+  let succes = false;
 
-  try {
+  await executerAction(async () => {
     const res = await apiFetch('/api/alertes', {
       method: 'POST',
       body: JSON.stringify({ ticker, seuilHaut: seuilHaut || null, seuilBas: seuilBas || null })
@@ -822,14 +823,10 @@ async function creerAlerteAPI(ticker, seuilHaut, seuilBas) {
 
     await chargerAlertes();
     showToast(`Alerte creee pour ${ticker}`, 'success');
-    return true;
-  } catch (error) {
-    console.error('Erreur creation alerte:', error);
-    showToast('Erreur: ' + error.message, 'error');
-    return false;
-  } finally {
-    showLoader(false);
-  }
+    succes = true;
+  }, 'Erreur creation alerte');
+
+  return succes;
 }
 
 async function creerAlerte() {
@@ -860,21 +857,14 @@ async function supprimerAlerte(id) {
   const ok = await showConfirm('Supprimer cette alerte ?', 'Supprimer l\'alerte');
   if (!ok) return;
 
-  showLoader(true);
-
-  try {
+  await executerAction(async () => {
     const res = await apiFetch(`/api/alertes/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Erreur suppression alerte');
 
     await chargerAlertes();
 
     showToast('Alerte supprimee', 'success');
-  } catch (error) {
-    console.error('Erreur suppression alerte:', error);
-    showToast('Erreur: ' + error.message, 'error');
-  } finally {
-    showLoader(false);
-  }
+  }, 'Erreur suppression alerte');
 }
 
 // ========================================
@@ -884,6 +874,7 @@ async function supprimerAlerte(id) {
 async function openGraphique(ticker, nom = null, alertable = false) {
   graphiqueState = { ticker, alertable };
   fermerPlacementAlerte();
+  document.getElementById('graphiqueWrapper').classList.toggle('alertable', alertable);
 
   openModal('modalGraphique');
   document.getElementById('graphiqueTitre').textContent = `Graphique - ${nom || ticker}`;
@@ -959,12 +950,12 @@ function ouvrirPlacementAlerte() {
   graphiqueState.valeurPlacement = depart;
   placementAlerteActif = true;
 
+  // Visibilite des 5 elements du mode placement (declencheur/annuler/
+  // confirmer/ligne/badge) pilotee uniquement par cette classe CSS (voir
+  // public/styles.css) plutot que par cinq attributs hidden individuels
+  // tenus manuellement en synchronisation - voir CLAUDE.md Historique des
+  // revues, Revue n°4.
   document.getElementById('graphiqueWrapper').classList.add('placement-actif');
-  document.getElementById('alerteDeclencheur').hidden = true;
-  document.getElementById('alerteAnnuler').hidden = false;
-  document.getElementById('alerteConfirmer').hidden = false;
-  document.getElementById('alerteLigne').hidden = false;
-  document.getElementById('alerteBadge').hidden = false;
   positionnerLigneAlerte(depart);
 
   const containerEl = document.getElementById('graphiqueContainer');
@@ -979,11 +970,6 @@ function fermerPlacementAlerte() {
   draggingAlerte = false;
 
   document.getElementById('graphiqueWrapper').classList.remove('placement-actif');
-  document.getElementById('alerteDeclencheur').hidden = !graphiqueState.alertable;
-  document.getElementById('alerteAnnuler').hidden = true;
-  document.getElementById('alerteConfirmer').hidden = true;
-  document.getElementById('alerteLigne').hidden = true;
-  document.getElementById('alerteBadge').hidden = true;
 
   const containerEl = document.getElementById('graphiqueContainer');
   containerEl.removeEventListener('pointerdown', alerteOnPointerDown);
@@ -1013,8 +999,8 @@ function afficherAlertesGraphique(ticker) {
 
   if (!graphiqueState.alertable || !chartInstance) return;
 
-  const seuils = alertesActives
-    .filter((a) => a.ticker === ticker)
+  const seuils = Alpine.store('portfolio')
+    .alertesActivesPour(ticker)
     .flatMap((a) => [a.seuilHaut, a.seuilBas].filter(Boolean));
   if (seuils.length === 0) return;
 
@@ -1152,9 +1138,13 @@ async function chargerGraphique(ticker, period) {
 
     afficherAlertesGraphique(ticker);
 
-    if (placementAlerteActif) {
-      positionnerLigneAlerte(graphiqueState.valeurPlacement);
-    }
+    // Evenement generique plutot qu'une branche if (placementAlerteActif)
+    // codee en dur ici : chargerGraphique() est le constructeur generique du
+    // graphique, partage par les valeurs et les indices, et n'a pas besoin de
+    // connaitre la fonctionnalite aval "alerte depuis le graphique" (voir
+    // CLAUDE.md Historique des revues, Revue n°4). Le seul abonne aujourd'hui
+    // est repositionnerPlacementApresChargement() (voir setupEventListeners).
+    document.getElementById('graphiqueContainer').dispatchEvent(new CustomEvent('chart:loaded'));
   } catch (error) {
     console.error('Erreur chargement graphique:', error);
     container.innerHTML = `
@@ -1206,6 +1196,26 @@ function setupEventListeners() {
       resolvePromptOk();
     }
   });
+
+  // #graphiqueContainer persiste entre deux chargerGraphique() (seul son
+  // innerHTML est remplace), un abonnement unique ici suffit pour tous les
+  // chargements a venir (ouverture, changement de periode).
+  document.getElementById('graphiqueContainer').addEventListener('chart:loaded', repositionnerPlacementApresChargement);
+}
+
+// Re-clampe valeurPlacement aux nouveaux min/max de l'echelle avant de
+// repositionner la ligne/pastille : changer de periode en cours de
+// placement changeait l'echelle sans jamais re-clamper valeurPlacement
+// (contrairement a mettreAJourPlacementDepuisEvent(), qui clampe a chaque
+// geste), pouvant laisser la ligne hors du graphique visible pour la
+// nouvelle periode. Bug repere en Revue n°4, corrige ici avec le passage a
+// l'evenement chart:loaded.
+function repositionnerPlacementApresChargement() {
+  if (!placementAlerteActif || !chartInstance) return;
+
+  const { min, max } = chartInstance.scales.y;
+  graphiqueState.valeurPlacement = Math.max(min, Math.min(max, graphiqueState.valeurPlacement));
+  positionnerLigneAlerte(graphiqueState.valeurPlacement);
 }
 
 // ========================================
@@ -1237,12 +1247,25 @@ function openAlerteModal(ticker) {
 // non stylables et incoherents avec le theme clair/sombre de l'appli)
 // ========================================
 
-let promptResolve = null;
-let confirmResolve = null;
+// Mecanisme generique unique (voir CLAUDE.md Historique des revues, Revue
+// n°2) : promptResolve/confirmResolve etaient deux resolveurs de Promise a
+// emplacement unique suivant le meme patron (ouvrir la modale, stocker le
+// resolveur, resoudre-et-fermer, gerer Echap). `cancelValue` porte la seule
+// vraie difference entre les deux modales (Echap annule un prompt en
+// renvoyant null, un confirm en renvoyant false).
+let modalActive = null;
+
+function resoudreModaleActive(valeur) {
+  closeAllModals();
+  if (modalActive) {
+    modalActive.resolve(valeur);
+    modalActive = null;
+  }
+}
 
 function showPrompt(titre, valeurDefaut = '') {
   return new Promise((resolve) => {
-    promptResolve = resolve;
+    modalActive = { resolve, cancelValue: null };
     document.getElementById('promptTitre').textContent = titre;
     const input = document.getElementById('promptInput');
     input.value = valeurDefaut;
@@ -1255,20 +1278,16 @@ function showPrompt(titre, valeurDefaut = '') {
 }
 
 function resolvePrompt(valeur) {
-  closeAllModals();
-  if (promptResolve) {
-    promptResolve(valeur);
-    promptResolve = null;
-  }
+  resoudreModaleActive(valeur);
 }
 
 function resolvePromptOk() {
-  resolvePrompt(document.getElementById('promptInput').value);
+  resoudreModaleActive(document.getElementById('promptInput').value);
 }
 
 function showConfirm(message, titre = 'Confirmer') {
   return new Promise((resolve) => {
-    confirmResolve = resolve;
+    modalActive = { resolve, cancelValue: false };
     document.getElementById('confirmTitre').textContent = titre;
     document.getElementById('confirmMessage').textContent = message;
     openModal('modalConfirm');
@@ -1276,20 +1295,14 @@ function showConfirm(message, titre = 'Confirmer') {
 }
 
 function resolveConfirm(valeur) {
-  closeAllModals();
-  if (confirmResolve) {
-    confirmResolve(valeur);
-    confirmResolve = null;
-  }
+  resoudreModaleActive(valeur);
 }
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
 
-  if (promptResolve) {
-    resolvePrompt(null);
-  } else if (confirmResolve) {
-    resolveConfirm(false);
+  if (modalActive) {
+    resoudreModaleActive(modalActive.cancelValue);
   } else {
     closeAllModals();
   }

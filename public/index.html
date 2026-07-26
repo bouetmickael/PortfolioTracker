@@ -153,6 +153,9 @@
           <template x-for="section in $store.portfolio.sections" :key="section.id">
             <div class="valeurs-section" :data-section-id="section.id" x-data="{ ouvert: true }">
               <div class="valeurs-section-header">
+                <div class="valeurs-section-drag-handle" @click.stop title="Glisser pour deplacer" aria-hidden="true">
+                  <svg class="icon icon-sm"><use href="#icon-grip"></use></svg>
+                </div>
                 <div class="valeurs-section-titre" @click="ouvert = !ouvert">
                   <svg class="icon icon-sm icon-chevron" :class="{ collapsed: !ouvert }"><use href="#icon-chevron-down"></use></svg>
                   <h3 class="valeurs-section-nom" x-text="section.nom"></h3>
@@ -198,10 +201,10 @@
                       <div class="valeur-variation" :class="(valeur.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(valeur.variation)"></div>
                     </div>
                     <div class="valeur-actions">
-                      <button class="btn-icon-small" @click.stop="openAlerteModal(valeur.ticker)" title="Creer alerte" aria-label="Creer alerte">
+                      <button class="btn-icon-small btn-icon-xs" @click.stop="openAlerteModal(valeur.ticker)" title="Creer alerte" aria-label="Creer alerte">
                         <svg class="icon icon-sm"><use href="#icon-bell"></use></svg>
                       </button>
-                      <button class="btn-icon-small" @click.stop="supprimerValeur(valeur.id, valeur.ticker)" title="Supprimer" aria-label="Supprimer">
+                      <button class="btn-icon-small btn-icon-xs" @click.stop="supprimerValeur(valeur.id, valeur.ticker)" title="Supprimer" aria-label="Supprimer">
                         <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
                       </button>
                     </div>
@@ -272,7 +275,7 @@
                   <div class="valeur-variation" :class="(valeur.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(valeur.variation)"></div>
                 </div>
                 <div class="valeur-actions" x-show="section.role === 'ecriture'">
-                  <button class="btn-icon-small" @click.stop="supprimerValeurSection(section, valeur.ticker)" title="Supprimer" aria-label="Supprimer">
+                  <button class="btn-icon-small btn-icon-xs" @click.stop="supprimerValeurSection(section, valeur.ticker)" title="Supprimer" aria-label="Supprimer">
                     <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
                   </button>
                 </div>
@@ -416,15 +419,15 @@
             <canvas id="chartCanvas"></canvas>
           </div>
           <div id="alertesGraphiqueOverlay"></div>
-          <div id="alerteLigne" class="alerte-drag-line" hidden></div>
-          <div id="alerteBadge" class="alerte-drag-badge" hidden></div>
-          <button id="alerteDeclencheur" class="alerte-drag-trigger" onclick="ouvrirPlacementAlerte()" title="Ajouter une alerte" aria-label="Ajouter une alerte" hidden>
+          <div id="alerteLigne" class="alerte-drag-line"></div>
+          <div id="alerteBadge" class="alerte-drag-badge"></div>
+          <button id="alerteDeclencheur" class="alerte-drag-trigger" onclick="ouvrirPlacementAlerte()" title="Ajouter une alerte" aria-label="Ajouter une alerte">
             <svg class="icon icon-sm"><use href="#icon-bell"></use></svg>
           </button>
-          <button id="alerteAnnuler" class="alerte-drag-cancel" onclick="fermerPlacementAlerte()" title="Annuler" aria-label="Annuler" hidden>
+          <button id="alerteAnnuler" class="alerte-drag-cancel" onclick="fermerPlacementAlerte()" title="Annuler" aria-label="Annuler">
             <svg class="icon icon-sm"><use href="#icon-x"></use></svg>
           </button>
-          <button id="alerteConfirmer" class="alerte-drag-confirm" onclick="confirmerPlacementAlerte()" title="Creer l'alerte a ce seuil" aria-label="Creer l'alerte a ce seuil" hidden>
+          <button id="alerteConfirmer" class="alerte-drag-confirm" onclick="confirmerPlacementAlerte()" title="Creer l'alerte a ce seuil" aria-label="Creer l'alerte a ce seuil">
             <svg class="icon icon-sm"><use href="#icon-check"></use></svg>
           </button>
         </div>

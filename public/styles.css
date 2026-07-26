@@ -217,6 +217,15 @@ body {
   padding: 6px;
 }
 
+/* Variante compacte reutilisable (actions de ligne dans .valeur-actions et
+   .alerte-card) : remplace deux overrides contextuels identiques
+   (.valeur-actions .btn-icon-small / .alerte-card .btn-icon-small, meme
+   valeur padding: 4px) par une seule classe appliquee directement aux
+   boutons concernes. Voir CLAUDE.md Historique des revues, Revue n°5. */
+.btn-icon-xs {
+  padding: 4px;
+}
+
 .btn-icon-gold {
   background: var(--primary);
   color: white;
@@ -407,10 +416,31 @@ body {
 .valeurs-section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 8px 8px 16px;
+  gap: 6px;
+  padding: 8px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
+}
+
+/* Poignee de glisser-depose dediee, sur le meme modele que
+   .valeur-drag-handle : avant cette session, le glisser-depose d'une
+   section se declenchait depuis le titre cliquable (qui sert aussi a
+   replier/deplier), sans touch-action: none - meme risque de conflit avec
+   le scroll tactile mobile que celui deja corrige pour les valeurs. Voir
+   CLAUDE.md Historique des revues, Revue n°2/n°4. */
+.valeurs-section-drag-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--text-secondary);
+  cursor: grab;
+  touch-action: none;
+}
+
+.valeurs-section-drag-handle:active {
+  cursor: grabbing;
 }
 
 .valeurs-section-titre {
@@ -419,6 +449,7 @@ body {
   gap: 6px;
   cursor: pointer;
   min-width: 0;
+  flex: 1;
 }
 
 .valeurs-section-nom {
@@ -427,14 +458,9 @@ body {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  cursor: grab;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.valeurs-section-nom:active {
-  cursor: grabbing;
 }
 
 .valeurs-section-actions {
@@ -627,10 +653,6 @@ body {
   gap: 0;
 }
 
-.valeur-actions .btn-icon-small {
-  padding: 4px;
-}
-
 /* CARTES ALERTES */
 
 .alertes-liste {
@@ -664,10 +686,6 @@ body {
   font-size: 10px;
   line-height: 1.25;
   color: var(--text-secondary);
-}
-
-.alerte-card .btn-icon-small {
-  padding: 4px;
 }
 
 /* PARTAGE DE SECTION */
@@ -927,18 +945,55 @@ body {
   touch-action: none;
 }
 
+/* Visibilite des 5 elements du mode placement pilotee uniquement par les
+   classes .alertable/.placement-actif du wrapper (voir CLAUDE.md Historique
+   des revues, Revue n°4) : le declencheur n'apparait que sur un graphique
+   alertable et hors mode placement ; les 4 autres (annuler/confirmer/ligne/
+   badge) n'apparaissent qu'en mode placement. Remplace les cinq attributs
+   hidden auparavant togglés individuellement en JS. */
+.alerte-drag-trigger,
+.alerte-drag-cancel,
+.alerte-drag-confirm,
+.alerte-drag-line,
+.alerte-drag-badge {
+  display: none;
+}
+
+#graphiqueWrapper.alertable:not(.placement-actif) .alerte-drag-trigger {
+  display: flex;
+}
+
+#graphiqueWrapper.placement-actif .alerte-drag-cancel,
+#graphiqueWrapper.placement-actif .alerte-drag-confirm {
+  display: flex;
+}
+
+#graphiqueWrapper.placement-actif .alerte-drag-line,
+#graphiqueWrapper.placement-actif .alerte-drag-badge {
+  display: block;
+}
+
 #graphiqueContainer {
   height: 300px;
   position: relative;
 }
 
-.alerte-drag-line {
+/* Base commune : proprietes strictement identiques entre les deux lignes
+   pointillees du graphique (mode placement vs seuil deja actif), meme
+   technique de fusion que .alerte-existante-badge/.alerte-hors-limite
+   (Revue n°5) - seuls le trait (epaisseur/couleur) et le z-index different
+   reellement, chacun garde donc sa propre regle en plus de celle-ci. */
+.alerte-drag-line,
+.alerte-existante-ligne {
   position: absolute;
   left: 0;
   right: 0;
   height: 0;
-  border-top: 2px dashed var(--primary);
   pointer-events: none;
+}
+
+.alerte-drag-line {
+  border-top: 2px dashed var(--primary);
   z-index: 5;
 }
 
@@ -958,12 +1013,7 @@ body {
 }
 
 .alerte-existante-ligne {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 0;
   border-top: 1px dashed var(--danger);
-  pointer-events: none;
   z-index: 3;
 }
 
