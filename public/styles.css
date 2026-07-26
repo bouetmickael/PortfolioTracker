@@ -1049,16 +1049,15 @@ body {
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  display: flex;
+  /* display piloté par les regles #graphiqueWrapper.alertable/.placement-
+     actif ci-dessus (voir CLAUDE.md Historique des revues, Revue n°4) - pas
+     de display ici, sinon cette regle (display: flex inconditionnel, meme
+     specificite) l'emporterait par ordre de source. */
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow);
   z-index: 7;
   transition: background 0.2s;
-}
-
-.alerte-drag-trigger[hidden], .alerte-drag-cancel[hidden], .alerte-drag-confirm[hidden] {
-  display: none;
 }
 
 .alerte-drag-trigger, .alerte-drag-cancel {

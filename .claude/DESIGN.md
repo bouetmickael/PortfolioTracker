@@ -46,10 +46,10 @@ linecap`/`stroke-linejoin: round`), taille `20x20` (`.icon`), `16x16`
 (`.icon-xs`, utilisé uniquement dans le badge d'alerte `.badge-alerte`
 de la liste des valeurs, voir composant « Liste des valeurs suivies »
 ci-dessous). Exception :
-`icon-grip` (poignée de glisser-déposer d'une valeur, voir composant
-« Liste des valeurs suivies » ci-dessous) est en `fill="currentColor"`
-(6 points pleins) plutôt qu'en trait, plus lisible à petite taille pour
-ce usage précis.
+`icon-grip` (poignée de glisser-déposer, réutilisée à l'identique pour une
+valeur et pour une section — voir composant « Liste des valeurs suivies »
+ci-dessous) est en `fill="currentColor"` (6 points pleins) plutôt qu'en
+trait, plus lisible à petite taille pour ce usage précis.
 
 Aucun émoji dans le code, les commentaires ou l'UI (règle inchangée,
 voir `ARCHITECTURE.md` §4).
@@ -167,8 +167,14 @@ délibéré antérieur, non remis en cause).
   (`.valeurs-section`, voir Session B de `BACKLOG.md` pour la
   fonctionnalité), chacune un conteneur séparé avec coins 8px/`--shadow`.
   En-tête de section (`.valeurs-section-header`, fond `--bg-secondary`) :
-  titre repliable (chevron + nom, poignée de glisser-déposer pour
-  réordonner les sections entre elles) et quatre boutons icône à droite,
+  poignée de glisser-déposer dédiée (`.valeurs-section-drag-handle`, icône
+  `icon-grip`, `touch-action: none` — même composant que la poignée d'une
+  valeur, ajoutée en session de dette technique pour ne plus faire porter
+  le glisser-déposer par le titre cliquable lui-même, qui sert aussi à
+  replier/déplier une section : même conflit avec le scroll tactile mobile
+  que celui déjà corrigé pour les valeurs en v1.3.1, laissé ouvert pour les
+  sections jusqu'ici), puis titre repliable (chevron + nom, cliquable pour
+  replier/déplier uniquement) et quatre boutons icône à droite,
   dans cet ordre : `icon-plus` (ajouter une valeur directement dans
   cette section, session 2026-07-26 — voir § Valeurs suivies dupliquées
   entre sections ci-dessous), `icon-share` (partager la section, voir
@@ -309,7 +315,13 @@ délibéré antérieur, non remis en cause).
   valeur dans l'en-tête de section) : carré à coins arrondis (8px),
   fond `--primary`, icône blanche — distinct du bouton icône neutre
   circulaire (`.btn-icon`/`.btn-icon-small`) utilisé pour les actions
-  secondaires (renommer, supprimer, alerte).
+  secondaires (renommer, supprimer, alerte). Variante compacte
+  `.btn-icon-xs` (padding `4px`, à ne pas confondre avec `.icon-xs` — la
+  taille 10x10 de l'icône SVG elle-même, voir § Direction générale)
+  appliquée directement aux boutons `icon-bell`/`icon-trash` de
+  `.valeur-actions` et au bouton `icon-trash` de `.alerte-card` : remplace
+  deux overrides CSS contextuels identiques par une seule classe
+  réutilisable, sans changement de gabarit visuel.
 - **Recherche de valeur a l'ajout** (session 2026-07-26, demande
   explicite utilisateur : pouvoir saisir un nom approximatif, ex.
   "Schneider", plutot que de devoir connaitre le ticker exact,

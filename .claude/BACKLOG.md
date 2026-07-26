@@ -6,11 +6,18 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/3** — Session 29 (2026-07-26, v1.8.10) a traité un correctif de dette
-technique reporté (« duplication de la logique Yahoo Finance », voir
-ci-dessous), sans changement de comportement observable — comptée comme
-une session au sens du compteur (§0.1 de `METHOD.md`), pas comme un
-nouveau cycle de revue (§0.2).
+**2/3** — Session 30 (2026-07-26, v1.9.0) a traité, sur demande explicite
+de l'utilisateur, l'ensemble des correctifs de dette technique reportés
+cumulés depuis les Revues n°1 à n°6 (voir `CLAUDE.md` § Historique des
+revues, entrée « Session 30 » pour le détail correctif par correctif) —
+comptée comme une session au sens du compteur (§0.1 de `METHOD.md`), pas
+comme un nouveau cycle de revue (§0.2), puisqu'aucun nouveau `/simplify`
+n'a été lancé sur un diff cumulé : il s'agissait de résoudre le backlog
+déjà identifié, pas d'en détecter un nouveau.
+
+Session 29 (2026-07-26, v1.8.10) avait déjà traité un premier correctif
+de dette technique reporté (« duplication de la logique Yahoo
+Finance »), sans changement de comportement observable.
 
 Revue de dette technique n°6 effectuée le 2026-07-26 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
@@ -42,6 +49,35 @@ l'échelle Chart.js, factorisation de la création des éléments d'overlay
 du graphique, fusion CSS des pastilles `.alerte-existante-badge`/
 `.alerte-hors-limite`) ; correctifs plus profonds documentés et reportés
 (voir Revue n°5).
+
+## Session 30 - résolution complète de la dette reportée (2026-07-26, v1.9.0)
+
+Demande explicite de l'utilisateur : traiter en une seule session tous
+les points reportés cumulés depuis les Revues n°1 à n°6 (voir
+`CLAUDE.md` § Historique des revues, entrée « Session 30 » pour le
+détail correctif par correctif — vingt et un correctifs appliqués, deux
+évalués et explicitement écartés après vérification plutôt que reportés
+une nouvelle fois, trois points restant hors périmètre car changement de
+contrat d'API/migration de schéma). Contrairement aux revues
+précédentes, Playwright/Chromium était disponible cette session
+(indisponible auparavant), ce qui a permis de traiter plusieurs points
+explicitement reportés faute de moyen de vérification visuelle
+(glisser-déposer réel, mode placement d'une alerte, modales) — un vrai
+bug a d'ailleurs été débusqué en cours de route par cette vérification
+(le bouton Annuler du mode placement restait visible en permanence
+avant correction, voir `CLAUDE.md`).
+
+Vérifié par `node --test test/*.test.js` (45/45, dont un nouveau
+`chart.test.js` pour le cache) et un parcours Playwright complet contre
+un serveur local (Chart.js servi depuis un paquet npm local le temps du
+test, le CDN `jsdelivr` étant bloqué par la politique réseau du bac à
+sable) : rendu de la liste de valeurs/sections/alertes (API alertes en
+tableau), modale prompt (renommage de section), modale confirm
+(annulation `Échap` puis confirmation positive de suppression),
+graphique + mode placement d'une alerte avec bascule de période en cours
+de placement, glisser-déposer réel d'une section (simulation souris
+complète) avec vérification de l'ordre persisté côté API, bascule de
+thème — aucune erreur console sur l'ensemble du parcours.
 
 ## Session 29 - factorisation du squelette reseau Yahoo Finance (2026-07-26, v1.8.10)
 

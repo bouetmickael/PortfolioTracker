@@ -670,3 +670,204 @@ variables d'environnement, vérification).
     corrigés ci-dessus (qui prolongeaient la remarque déjà présente dans
     `BACKLOG.md` Session 27 : « aux trois endroits qui suppriment une
     ligne valeurs directement »).
+
+### 2026-07-26 — Session 30, résolution complète de la dette reportée (hors cycle de revue programmé)
+
+- **Contexte** : demande explicite de l'utilisateur de traiter, en une
+  seule session, l'ensemble des points reportés cumulés depuis les
+  Revues n°1 à n°6 ci-dessus — pas un nouveau cycle de revue déclenché
+  par le compteur `BACKLOG.md` (qui restait à 0/3 après la Session 29),
+  mais une session dédiée à la résolution du backlog de dette déjà
+  identifié. Contrairement aux cycles précédents (limités aux correctifs
+  « à risque faible »), cette session dispose de Playwright/Chromium
+  (indisponible aux sessions précédentes) pour vérifier visuellement les
+  changements touchant des interactions utilisateur directes
+  (glisser-déposer, mode placement d'alerte, modales) — plusieurs points
+  reportés précisément faute de ce moyen de vérification ont donc pu
+  être traités cette fois. Session 29 (factorisation Yahoo Finance,
+  v1.8.10) a déjà été traitée séparément juste avant celle-ci et n'est
+  pas reprise ici.
+- **Correctifs appliqués** (vérifiés par `node --test test/*.test.js`,
+  45/45, et par un parcours Playwright réel contre un serveur local —
+  Chart.js servi depuis un paquet npm local le temps du test, le CDN
+  `jsdelivr` étant bloqué par la politique réseau du bac à sable ;
+  register, rendu de la liste de valeurs/sections/alertes, modale prompt
+  de renommage, modale confirm avec annulation `Échap` puis confirmation
+  positive de suppression, ouverture du graphique, mode placement d'une
+  alerte avec bascule de période en cours de placement, glisser-déposer
+  réel d'une section avec vérification de l'ordre persisté côté API,
+  bascule de thème — aucune erreur console sur l'ensemble du parcours) :
+  - `GET /api/alertes` renvoie désormais un tableau (`id` par élément)
+    au lieu d'une map indexée par id — même convention que
+    `GET /api/valeurs` (Session 27). Reporté en Revue n°1 (« format de
+    réponse API en map »). Consommateurs mis à jour :
+    `public/app.js` (`displayAlertes`, `chargerAlertes`) et les tests
+    (`alertes.test.js`, `valeurs.test.js`, `partage.test.js`).
+  - Middleware d'erreurs centralisé (Revue n°1) :
+    `server/middleware/errorHandler.js` (dernier middleware monté dans
+    `server/app.js`, réponse JSON `{ error }` plutôt que la page HTML
+    par défaut d'Express) et `server/middleware/asyncHandler.js` (les
+    handlers async d'Express 4 ne transmettent pas nativement une
+    rejection de promesse à `next()` ; sans ce wrapper, une erreur levée
+    dans un handler async laissait la requête sans réponse plutôt que de
+    remonter au middleware). Appliqué aux handlers async de
+    `routes/valeurs.js` et `routes/sections.js`.
+  - Cache mémoire (Revue n°1) sur `GET /api/chart/:ticker`
+    (`server/routes/chart.js`), 60 secondes par ticker+période (la
+    moitié de l'intervalle du job de mise à jour des cours) — chaque
+    réouverture du même graphique ne refait plus un appel Yahoo Finance
+    identique. Test dédié (`chart.test.js`) vérifiant qu'un second appel
+    identique ne déclenche pas de second appel réseau.
+  - Appels réseau/SMTP parallélisés (Revue n°1, écarté par prudence à 3
+    reprises) : `traiterEnParallele()` (`server/jobs/parallel.js`,
+    `Promise.allSettled`) remplace les boucles `for...await`
+    séquentielles de `updatePrices()`/`updateIndices()`
+    (`jobs/prices.js`) et de `checkAlerts()` (`jobs/alerts.js`) — une
+    erreur individuelle (ticker invalide, échec SMTP) n'interrompt plus
+    les autres items, comme avant, mais sans attendre chaque item l'un
+    après l'autre. Résout du même coup la duplication de forme entre
+    `updatePrices()`/`updateIndices()` signalée en Revue n°3. Vérifié
+    manuellement (mise à jour de 2 tickers + 3 indices, puis
+    déclenchement direct de `checkAlerts()` avec une alerte active :
+    comportement identique à avant, un seul email pour l'alerte
+    déclenchée).
+  - `creerValeur()` partagé (`server/valeurs.js`, Revue n°6) entre
+    `POST /api/valeurs` et `POST /api/sections/:id/valeurs`, remplace
+    l'`INSERT` à 11 colonnes dupliqué verbatim entre les deux routes. Les
+    deux routes restent distinctes (voir « Correctifs reportés »
+    ci-dessous pour la fusion plus large écartée).
+  - `roleSection()` ciblé sur un seul id (`server/partage.js`, Revue
+    n°3), utilisé par `GET/POST/DELETE /api/sections/:id/valeurs` à la
+    place de `rolesSection(db, userId).get(id)` qui chargeait la carte
+    complète des sections visibles pour ne lire qu'une seule entrée.
+    `rolesSection()` (carte complète) reste utilisé là où plusieurs
+    sections sont réellement référencées (`GET /api/sections`,
+    `PUT /api/sections/reorder`).
+  - Trois vérifications de propriété de section (Revue n°3) : `PUT /:id`
+    et `DELETE /:id` (`server/routes/sections.js`) réutilisent désormais
+    `sectionPossedee()` au lieu de dupliquer une troisième fois la même
+    requête `SELECT ... WHERE id = ? AND user_id = ?`. Vérifié sans
+    risque de TOCTOU : `better-sqlite3` est synchrone, aucune requête
+    concurrente ne peut s'intercaler entre la vérification et la
+    mutation dans un même process Node (le point d'atomicité que la
+    Revue n°3 avait jugé risqué à changer n'existait donc pas réellement
+    pour `PUT`, qui faisait déjà de toute façon un `SELECT` implicite via
+    `info.changes === 0` après coup).
+  - `showPrompt()`/`showConfirm()` unifiées (Revue n°2,
+    `public/app.js`) : un seul résolveur (`modalActive` +
+    `resoudreModaleActive()`), `cancelValue` par modale (`null` pour un
+    prompt, `false` pour un confirm) portant la seule vraie différence de
+    comportement à l'annulation (`Échap`, fond semi-transparent, icône
+    `icon-x`). Vérifié au navigateur : renommage de section via la
+    modale prompt, annulation d'une suppression via `Échap` (la valeur
+    n'est pas supprimée), confirmation positive (la valeur est
+    supprimée).
+  - `executerAction()` unifié (Revue n°2, `public/app.js`) : remplace le
+    squelette `showLoader`/`try`/`catch`/`finally`/toast répété dans
+    `ajouterValeur`/`supprimerValeur`/`supprimerValeurSection`/
+    `ajouterSection`/`renommerSection`/`supprimerSection`/
+    `ajouterPartage`/`supprimerPartage`/`creerAlerteAPI`/
+    `supprimerAlerte` (10 fonctions).
+  - `Alpine.store('portfolio').valeursDeSection()` mémoïsé (Revue n°2) :
+    regroupement par section calculé une fois par changement de
+    `valeurs` (invalidation explicite aux deux seuls endroits qui
+    mutent `valeurs` — `displayValeurs()` et le `onEnd` de
+    `initSortableValeurs()` — plutôt qu'une comparaison de référence
+    implicite, pour rester auditable) au lieu d'un refiltrage/retri à
+    chaque appel (un appel par section à chaque rendu Alpine).
+  - `initSortableListeValeurs()` et `envoyerReorder()` (Revue n°3,
+    `public/app.js`) factorisent respectivement le squelette SortableJS
+    identique (`draggable`/`handle`/`animation`/`ghostClass`/`dragClass`)
+    et la queue fetch+gestion d'erreur identique de
+    `initSortableValeurs`/`initSortableValeursPartagees` et
+    `persisterOrdre`/`persisterOrdreSectionPartagee` — la logique métier
+    propre à chacun (glisser-déposer inter-sections autorisé ou non,
+    forme du payload) reste distincte. Vérifié par glisser-déposer réel
+    d'une section au navigateur (Playwright, simulation souris complète)
+    avec vérification de l'ordre persisté via `GET /api/sections`.
+  - `alertesActivesPour(ticker)` (Revue n°5) : getter dérivé du store
+    (`store.alertes`, peuplé par `chargerAlertes()`) remplace la variable
+    globale `alertesActives` reconstruite en effet de bord dans
+    `displayAlertes()`.
+  - Mode placement d'une alerte (Revue n°4) : la visibilité des 5
+    éléments (déclencheur/annuler/confirmer/ligne/badge) est désormais
+    pilotée uniquement par les classes CSS `#graphiqueWrapper.alertable`/
+    `.placement-actif` (`public/styles.css`) au lieu de 5 attributs
+    `hidden` togglés individuellement en JS ; un bug réel a été débusqué
+    et corrigé en cours de route (la base CSS `.alerte-drag-trigger,
+    .alerte-drag-cancel, .alerte-drag-confirm` fixait encore
+    `display: flex` inconditionnellement, en conflit de même spécificité
+    avec les nouvelles règles — sans le retrait de cette déclaration, le
+    bouton Annuler restait visible en permanence, y compris hors mode
+    placement ; débusqué par le premier passage Playwright, corrigé avant
+    la vérification finale).
+  - `chargerGraphique()` (Revue n°4) émet un évènement `chart:loaded`
+    plutôt qu'une branche `if (placementAlerteActif)` codée en dur —
+    seul abonné aujourd'hui : `repositionnerPlacementApresChargement()`,
+    qui corrige au passage le bug documenté en Revue n°4
+    (`valeurPlacement` n'était jamais re-clampé aux nouveaux `min`/`max`
+    de l'échelle après un changement de période en cours de placement,
+    contrairement à `mettreAJourPlacementDepuisEvent()` qui clampe à
+    chaque geste). Vérifié au navigateur : la ligne de placement reste
+    visible et dans les bornes après bascule de période (1M → 1A) en
+    cours de placement.
+  - Poignée de glisser-déposer dédiée pour les sections (Revue n°2/n°4,
+    `.valeurs-section-drag-handle`, icône `icon-grip`,
+    `touch-action: none`) — le glisser-déposer d'une section se
+    déclenchait jusqu'ici depuis le titre cliquable (qui sert aussi à
+    replier/déplier), même risque de conflit avec le scroll tactile
+    mobile que celui déjà corrigé pour les valeurs en v1.3.1. Voir
+    `DESIGN.md` § Liste des valeurs suivies.
+  - Fusion CSS `.alerte-drag-line`/`.alerte-existante-ligne` (Revue n°5) :
+    propriétés strictement identiques (`position`, `left`, `right`,
+    `height`, `pointer-events`) extraites dans une base commune, chacune
+    ne gardant que son trait/z-index propre — même technique que la
+    fusion déjà appliquée en Revue n°5 pour
+    `.alerte-existante-badge`/`.alerte-hors-limite`.
+  - `.btn-icon-xs` (Revue n°5) : nouvelle classe réutilisable
+    (`padding: 4px`) remplace deux overrides contextuels identiques
+    (`.valeur-actions .btn-icon-small`/`.alerte-card .btn-icon-small`),
+    appliquée directement aux boutons concernés.
+- **Correctifs évalués et explicitement écartés** (vérifiés plutôt que
+  reportés une nouvelle fois — la prudence des revues précédentes s'est
+  avérée justifiée pour l'un, non pour l'autre, mais dans les deux cas la
+  question est maintenant tranchée) :
+  - Fusion `.alerte-drag-trigger`/`.alerte-drag-cancel`/
+    `.alerte-drag-confirm` avec `.btn-icon-small`/`.btn-icon-gold` (Revue
+    n°4) : mesure des tailles calculées confirmant la mise en garde
+    déjà documentée — `.btn-icon-small` fait 28×28 (taille dérivée du
+    `padding`), les boutons du graphique sont fixés à 36×36 ; fusionner
+    aurait réellement rétréci ces boutons flottants. Non fusionné, sans
+    risque de régression puisque non appliqué.
+  - Fusion du calcul « valeur → pixel Y + libellé formaté » entre
+    `positionnerLigneAlerte()` et `afficherAlertesGraphique()` (Revue
+    n°4/n°5) : la duplication réelle se limite à 2 lignes
+    (`getPixelForValue`/`formatCours`) une fois que les deux fonctions
+    conservent chacune sa propre stratégie de rendu DOM (éléments fixes
+    togglés vs création/destruction dynamique, gestion du hors-limite
+    absente côté placement) — extraire un helper ajouterait de
+    l'indirection pour un gain quasi nul. Laissé tel quel par choix,
+    plutôt que par prudence générique.
+- **Correctifs toujours reportés** (portée jugée trop large pour cette
+  session, à traiter dans une session dédiée future) :
+  - Fusion de `POST /api/valeurs` et `POST /api/sections/:id/valeurs` en
+    un seul endpoint déterminant lui-même l'autorisation d'écriture
+    (Revue n°6) : la duplication littérale de l'`INSERT` a été résorbée
+    ci-dessus (`creerValeur()`), mais la fusion des deux ROUTES
+    elle-même — et le retrait de la décision de routage côté client
+    (`public/app.js`, `ajouterValeur()`) — reste un changement de
+    contrat d'API plus large, non traité cette session.
+  - `alertes.valeur_id` colonne FK vestigiale (Revue n°6) : nécessite une
+    migration de schéma SQLite par recréation de table (`ALTER TABLE`
+    ne permet pas de modifier une contrainte FK), non triviale, non
+    traitée.
+  - Densification de l'UI via une échelle de tokens communs partagés
+    (Revue n°5) et `line-height: 1.25` remonté sur `.valeur-row` (Revue
+    n°5, déjà explicitement écarté par une analyse propre — changerait
+    des descendants non concernés par la densification) — décisions de
+    design system plus larges, non demandées explicitement.
+  - Les deux points déjà tranchés « aucune action nécessaire » par les
+    revues elles-mêmes (branche défensive inatteignable de
+    `rolesSection()`, technique de migration SQLite par recréation de
+    table de la Session 27) ne sont pas de la dette et restent tels
+    quels — voir Revue n°3/n°6 pour le détail de cette conclusion.

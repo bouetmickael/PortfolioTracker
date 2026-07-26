@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.9.0
+
+- Résolution complète de la dette technique reportée depuis les revues
+  n°1 à n°6 (voir `CLAUDE.md` § Historique des revues, Session 30) :
+  `GET /api/alertes` renvoie désormais un tableau au lieu d'une map
+  (même convention que `GET /api/valeurs`), middleware d'erreurs
+  centralisé, cache sur `GET /api/chart/:ticker`, jobs planifiés
+  parallélisés, nouvelle poignée de glisser-déposer dédiée pour les
+  sections (icône grip, comme pour les valeurs), mode placement d'une
+  alerte piloté par CSS plutôt que par des attributs `hidden` individuels
+  (corrige au passage un bug où le bouton Annuler restait visible hors
+  mode placement), correction d'un bug de re-clamp du seuil lors d'un
+  changement de période en cours de placement. Nombreuses factorisations
+  internes sans changement de comportement observable (modales
+  prompt/confirm, actions CRUD, glisser-déposer des valeurs,
+  regroupement des valeurs par section). Voir `CLAUDE.md` pour le détail
+  complet, correctif par correctif.
+
 ## 1.8.10
 
 - Correctif de dette technique (aucun changement de comportement) :

@@ -32,16 +32,22 @@
   réactif (`x-for`/`x-show`/`x-text`) de la liste des valeurs suivies,
   désormais groupée par sections (`store.sections`, méthode
   `valeursDeSection()`), ainsi que des 3 tuiles d'indices de marché
-  (`store.indices`, peuplé par `GET /api/indices`) ; le reste de l'UI
-  (alertes, modales) reste en manipulation DOM directe
-  (`document.getElementById`, `innerHTML`) tant qu'il n'a pas été migré à
-  son tour.
+  (`store.indices`, peuplé par `GET /api/indices`). La liste des alertes
+  reste rendue en manipulation DOM directe (`displayAlertes`/
+  `createAlerteCard`, `document.getElementById`, `innerHTML`) plutôt que
+  par un `x-for` Alpine, mais les alertes elles-mêmes vivent désormais sur
+  le store (`store.alertes`, peuplé par `chargerAlertes()`) avec un getter
+  dérivé (`alertesActivesPour(ticker)`, utilisé par le composant « Alertes
+  existantes sur le graphique » de `DESIGN.md`) plutôt qu'une variable
+  globale reconstruite en effet de bord — migration partielle, la carte
+  d'alerte elle-même n'est pas encore un `x-for`.
 - **Glisser-déposer** : SortableJS (v1.15.7, `public/vendor/
   sortable.min.js`, vendorisé localement pour la même raison qu'Alpine —
   build sur le Raspberry Pi, pas de CDN). Deux instances par page :
-  réordonnancement des sections (poignée `.valeurs-section-nom`) et,
-  une par section, déplacement des valeurs entre/dans les sections
-  (`group: 'valeurs'` partagé). Après un `onEnd`, le DOM déjà déplacé par
+  réordonnancement des sections (poignée dédiée
+  `.valeurs-section-drag-handle`) et, une par section, déplacement des
+  valeurs entre/dans les sections (`group: 'valeurs'` partagé). Après un
+  `onEnd`, le DOM déjà déplacé par
   SortableJS est relu pour resynchroniser `Alpine.store('portfolio')`
   (évite tout conflit entre la réconciliation Alpine et les mutations DOM
   de SortableJS), puis l'ordre est persisté via `PUT /api/sections/
@@ -92,26 +98,40 @@
 │       └── sortable.min.js        # SortableJS v1.15.7, glisser-déposer sections/valeurs
 └── server/                       # backend Node.js + Express
     ├── index.js                  # bootstrap : dotenv, options add-on, écoute HTTP(+HTTPS), cron
-    ├── app.js                    # application Express (session, montage des routes, static)
+    ├── app.js                    # application Express (session, montage des routes, static, errorHandler)
     ├── db.js                     # ouverture SQLite + schéma (CREATE TABLE IF NOT EXISTS + migrations)
     ├── mailer.js                 # envoi d'email (SMTP optionnel, no-op sinon)
     ├── load-addon-options.js     # traduction /data/options.json -> variables d'environnement
-    ├── middleware/auth.js        # requireAuth (garde de session sur les routes API)
+    ├── yahooFinance.js           # squelette reseau bas niveau Yahoo Finance (fetch/ok/json)
+    ├── valeurs.js                # logique valeurs partagee entre routes (mapping, creation/suppression, recherche)
+    ├── partage.js                # controle d'acces aux sections partagees (rolesSection/roleSection/peutEcrire)
+    ├── ordre.js                  # calcul du prochain `ordre` disponible (sections/valeurs)
+    ├── ticker.js                 # normalizeTicker() (trim + majuscules)
     ├── indices.js                # liste fixe des indices de marche suivis (ticker/nom)
+    ├── middleware/
+    │   ├── auth.js                # requireAuth (garde de session sur les routes API)
+    │   ├── asyncHandler.js        # wrapper route async -> next(err) (Express 4 ne le fait pas nativement)
+    │   └── errorHandler.js        # middleware d'erreur centralise (filet de securite, reponse JSON)
     ├── routes/
     │   ├── auth.js                # /api/auth (register, login, logout, me)
-    │   ├── valeurs.js              # /api/valeurs (CRUD des valeurs suivies)
+    │   ├── valeurs.js              # /api/valeurs (CRUD + recherche des valeurs suivies)
     │   ├── alertes.js              # /api/alertes (CRUD des alertes de seuil)
-    │   ├── sections.js              # /api/sections (CRUD sections + PUT /reorder)
+    │   ├── sections.js              # /api/sections (CRUD sections, partages, valeurs de section, PUT /reorder)
+    │   ├── users.js                  # /api/users (liste des comptes connus, pour le partage de section)
     │   ├── indices.js               # /api/indices (cours des indices de marche suivis)
-    │   └── chart.js                 # /api/chart/:ticker (historique Yahoo Finance)
+    │   └── chart.js                 # /api/chart/:ticker (historique Yahoo Finance, cache memoire 60s)
     ├── jobs/
     │   ├── prices.js               # mise à jour des cours des valeurs + des indices (cron 2 min)
-    │   └── alerts.js                # vérification + envoi des alertes (cron 2 min)
+    │   ├── alerts.js                # vérification + envoi des alertes (cron 2 min)
+    │   └── parallel.js               # traiterEnParallele() : Promise.allSettled partage par les 3 jobs ci-dessus
     └── test/                     # node:test (npm test), voir §1 Tests
-        ├── support/helpers.js     # serveur de test isolé + DB SQLite temporaire
+        ├── support/helpers.js     # serveur de test isolé + DB SQLite temporaire + mocks Yahoo Finance
         ├── sections.test.js
         ├── indices.test.js
+        ├── alertes.test.js
+        ├── partage.test.js
+        ├── chart.test.js
+        ├── db-migration.test.js
         └── valeurs.test.js
 ```
 
@@ -132,18 +152,32 @@
    identiques pour tous les utilisateurs (voir `BUSINESS_RULES.md`
    § Indices de marché).
 4. `server/jobs/prices.js` interroge l'endpoint public non officiel
-   `query1.finance.yahoo.com` pour chaque ticker distinct en base et met à
-   jour `cours`/`variation`/`volume` (`updatePrices`, valeurs suivies par
-   au moins un utilisateur) ainsi que les 3 indices de marché suivis
+   `query1.finance.yahoo.com` (via `server/yahooFinance.js`,
+   `fetchYahooFinanceJson()`, squelette fetch/ok/json partagé par tous les
+   appels Yahoo Finance du projet) pour chaque ticker distinct en base et
+   met à jour `cours`/`variation`/`volume` (`updatePrices`, valeurs suivies
+   par au moins un utilisateur) ainsi que les 3 indices de marché suivis
    (`updateIndices`, liste fixe `server/indices.js`, données globales non
-   rattachées à un utilisateur) ; `server/routes/chart.js` interroge le
-   même endpoint pour l'historique par période (1J/1S/1M/1A/Max).
+   rattachées à un utilisateur) — les deux jobs et `server/jobs/alerts.js`
+   traitent leurs items (tickers/alertes) en parallèle via
+   `traiterEnParallele()` (`server/jobs/parallel.js`, `Promise.allSettled`,
+   une erreur individuelle n'interrompt pas les autres) ;
+   `server/routes/chart.js` interroge le même endpoint pour l'historique
+   par période (1J/1S/1M/1A/Max), avec un cache mémoire de 60 secondes par
+   ticker+période pour éviter un appel identique à chaque réouverture du
+   graphique.
 5. `server/jobs/alerts.js` relit les alertes actives jointes aux valeurs et
    déclenche un email (`mailer.js`) quand un seuil est franchi (logique
    anti-répétition, voir `BUSINESS_RULES.md`).
 6. Le frontend (`public/app.js`) ne consomme que l'API `/api/*` en polling
    HTTP toutes les 30 secondes ; aucune donnée n'est poussée par le
    serveur.
+7. `server/app.js` monte `middleware/errorHandler.js` en dernier
+   middleware : toute erreur non gérée explicitement par une route (ex.
+   contrainte SQL levée de façon synchrone dans un handler async, capturée
+   via `middleware/asyncHandler.js` qui transmet la rejection à `next()`)
+   retombe sur une réponse JSON `{ error: ... }` plutôt que la page
+   d'erreur HTML par défaut d'Express.
 
 ## 4. Conventions de code observées
 
