@@ -1328,3 +1328,23 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   `config.yaml` 1.8.3 -> 1.8.4 (increment PATCH - correctif visuel, pas
   de nouvelle fonctionnalite), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 1/3 -> 2/3.
+
+## 2026-07-26 — Sessions 25 a 27 (v1.8.5 a v1.8.8) + correctifs same-day v1.8.6/v1.8.9
+
+- Non detaillees individuellement ici (lacune de journalisation
+  preexistante a la Revue n6, non comblee retroactivement pour ne pas
+  reconstruire a posteriori des details non verifies) : voir
+  `BACKLOG.md` §§ Sessions hors plan pour le detail complet de chaque
+  session (validation du ticker Yahoo Finance, encodage URL du ticker,
+  recherche de valeur a l'ajout, une meme valeur dans plusieurs
+  sections).
+- Compteur `BACKLOG.md` : 2/3 -> 3/3 (Session 25) puis maintenu a 3/3
+  malgre le depassement (Sessions 26/27 livrees sur demande explicite de
+  l'utilisateur avant la revue, voir arbitrage documente dans
+  `BACKLOG.md`).
+
+## 2026-07-26 — Revue de dette technique n°6 (voir CLAUDE.md pour le detail complet)
+
+- Voir `.claude/CLAUDE.md` § Historique des revues de dette technique
+  (section "2026-07-26 — Revue n°6") pour la portee, les correctifs
+  appliques et reportes. Compteur `BACKLOG.md` : 3/3 -> 0/3.

@@ -534,3 +534,139 @@ variables d'environnement, vérification).
   - Correctifs reportés des revues n°1 à n°4 toujours non traités (liste
     inchangée, voir Revues n°1/n°2/n°3/n°4 ci-dessus) — aucun n'a été
     adressé cette session.
+
+### 2026-07-26 — Revue n°6
+
+- **Portée** : diff cumulé depuis la revue n°5 jusqu'à `HEAD`
+  (`git diff 5c7ad7b..HEAD -- server/ public/ ':!public/vendor'`), soit
+  le commit de clôture de la revue n°5 (« Session 22 - technical debt
+  review n5... »). Correction de portée par rapport au prompt de session
+  initial (qui indiquait « Sessions 25 à 27 ») : ce même intervalle de
+  commits couvre en réalité aussi la Session 23 (logo de l'application,
+  v1.8.3) et la Session 24 (densité des cartes d'alerte, v1.8.4),
+  omises du prompt initial — même type de correction de portée que lors
+  des revues n°3/n°4/n°5 précédentes. Portée réelle couverte : Session 23
+  (v1.8.3), Session 24 (v1.8.4), Session 25 (validation ticker Yahoo
+  Finance, v1.8.5) + correctif same-day (encodage URL du ticker, v1.8.6),
+  Session 26 (recherche de valeur à l'ajout, v1.8.7) + correctif
+  (v1.8.9), Session 27 (une même valeur dans plusieurs sections, v1.8.8).
+  Outillage utilisé : `/simplify` (4 agents de revue en parallèle :
+  réutilisation, simplification, efficacité, altitude), avec consigne
+  explicite de porter une attention particulière aux mécanismes
+  transversaux touchés par la Session 27 (contrat d'API en tableau,
+  cascade de suppression liée au ticker, jointures d'alertes).
+- **Correctifs appliqués** (risque faible, comportement inchangé,
+  vérifiés par tests unitaires (`node --test test/*.test.js`, 44/44 —
+  `npm test` échoue dans ce bac à sable avec `Cannot find module
+  '.../server/test'` en résolvant `test/` comme motif de glob plutôt que
+  comme répertoire, y compris sur `HEAD` non modifié : anomalie
+  d'environnement préexistante, sans rapport avec cette session, non
+  corrigée ici) et un parcours API réel sur un serveur local dédié
+  (register, création d'une deuxième section, insertion directe en base
+  de deux occurrences d'un même ticker avec une alerte active,
+  suppression d'une occurrence puis de la dernière avec vérification de
+  la cascade d'alerte, suppression d'une section avec fusion/déplacement
+  vers la section de repli, exécution directe de `checkAlerts()` avec
+  deux occurrences du même ticker en dépassement de seuil pour vérifier
+  qu'un seul email est déclenché) :
+  - Extraction de `supprimerValeurEtDetacherAlertes()` et
+    `supprimerAlertesOrphelines()` (`server/valeurs.js`), remplace trois
+    copies quasi identiques de la séquence « détacher `alertes.valeur_id`
+    (FK), supprimer la ligne `valeurs`, supprimer les alertes du ticker
+    si plus aucune occurrence ne subsiste » introduite en Session 27
+    (`server/routes/valeurs.js` `DELETE /:id`, `server/routes/
+    sections.js` `DELETE /:id/valeurs/:ticker` et la branche
+    `tickerDejaDansFallback` de `DELETE /:id` — signalé indépendamment
+    par les 3 agents réutilisation/simplification/altitude, les deux
+    derniers sites portant même le commentaire « voir
+    server/routes/valeurs.js pour le meme motif » constatant déjà la
+    duplication au moment de l'écrire).
+  - `server/routes/sections.js`, boucle de fusion de `DELETE /:id`
+    (suppression d'une section) : la vérification « ce ticker est-il déjà
+    dans la section de repli ? » était une requête SQL par valeur
+    déplacée (N+1) ; remplacée par un unique `SELECT` des tickers de la
+    section de repli chargés dans un `Set` avant la boucle (une section
+    ne pouvant pas contenir deux fois le même ticker — contrainte
+    `UNIQUE(user_id, ticker, section_id)` —, `valeursADeplacer` ne peut
+    pas en ajouter un second en cours de boucle, donc le `Set` calculé
+    une fois en amont reste valide pour toute la boucle).
+  - `checkAlerts()` (`server/jobs/alerts.js`) : la jointure sur
+    `valeurs` + `GROUP BY alertes.id` (introduite en Session 27 pour
+    qu'une alerte dont le ticker est suivi dans plusieurs sections ne
+    soit traitée/emailée qu'une fois) reposait sur un invariant non
+    garanti par la requête elle-même (que toutes les occurrences d'un
+    ticker partagent le même `cours` — vrai uniquement parce que
+    `updatePrices()` met à jour `cours` par ticker, pas par ligne).
+    Remplacée par une sous-requête corrélée (`cours` récupéré directement
+    par `(SELECT ... LIMIT 1)`) accompagnée d'un `EXISTS(...)` explicite
+    dans le `WHERE` pour préserver exactement le filtrage de l'ancienne
+    jointure `INNER JOIN` (un alerte sans aucune ligne `valeurs`
+    correspondante reste exclue plutôt que de récupérer un `cours`
+    `NULL`, qui aurait pu déclencher une fausse alerte basse via la
+    coercition JavaScript `null <= seuil`). Vérifié manuellement :
+    exactement un email déclenché pour deux occurrences du même ticker
+    en dépassement de seuil.
+  - `sectionCibleAjoutPartagee` renommée `sectionCibleAjout`
+    (`public/app.js`) : le nom mentionnait encore « Partagee » alors que
+    cette variable cible aussi bien une section possédée qu'une section
+    partagée en écriture depuis la Session 27 (le rôle de la section
+    déterminant la route appelée par `ajouterValeur()`, déjà documenté
+    par le commentaire adjacent) — renommage pur, 3 occurrences.
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - `rechercherTickers()` (`server/valeurs.js`, Session 26) réimplémente
+    le squelette `fetch(url)` → vérifier `response.ok` → `throw` →
+    `response.json()` déjà présent dans `fetchYahooFinance()`
+    (`server/jobs/prices.js`) et dans `server/routes/chart.js` —
+    **aggrave** la dette déjà reportée aux revues n°1/n°3/n°4 (« logique
+    Yahoo Finance dupliquée entre `prices.js`/`chart.js`/
+    `updateIndices()` ») en ajoutant un troisième site quasi identique
+    plutôt que de la résorber. Signalé par 2 agents (réutilisation,
+    simplification) comme aggravation d'un item déjà connu, pas comme
+    nouveau problème isolé — même prudence que lors des 3 cycles
+    précédents où cet item a été identifié sans être corrigé.
+  - `INSERT INTO valeurs (...)` à 11 colonnes dupliqué verbatim entre
+    `server/routes/valeurs.js` (`POST /`) et `server/routes/sections.js`
+    (`POST /:id/valeurs`), ainsi que toute la séquence qui l'entoure
+    (vérification de doublon dans la section, `verifierTickerExiste`,
+    `nextOrdre`) : préexistant à ce cycle mais dont l'empreinte a plus
+    que doublé en Session 25 (ajout des colonnes `cours`/`variation`/
+    `volume` issues de `priceData`, identiques dans les deux copies).
+    Une factorisation (`creerValeur(db, {...})` partagée, symétrique à
+    l'extraction de suppression appliquée cette session) est possible
+    mais touche les deux routes d'ajout simultanément — à valider avec
+    un test manuel dédié plutôt qu'en correctif à l'aveugle.
+  - Le client (`public/app.js`, `ajouterValeur()`) décide lui-même de la
+    route à appeler (`/api/valeurs` vs `/api/sections/:id/valeurs`)
+    selon `section.role`, dupliquant côté client une décision
+    d'autorisation qui pourrait être résolue côté serveur (un seul
+    endpoint acceptant `{ ticker, type, nom, sectionId }` et déterminant
+    lui-même si l'utilisateur a le droit d'écrire dans la section visée).
+    Changement d'architecture (fusion de deux routes, contrat d'API),
+    pas un correctif ponctuel à risque faible.
+  - `alertes.valeur_id` (`server/db.js`) reste une colonne FK vestigiale
+    depuis la Session 27 : plus aucune lecture ne s'appuie dessus (les
+    alertes sont désormais rejointes par `(user_id, ticker)`, voir
+    `HAS_ALERTE_SUBQUERY`/`checkAlerts()`), elle n'existe plus que pour
+    être détachée manuellement avant chaque suppression d'une ligne
+    `valeurs` (voir le correctif de factorisation ci-dessus). Un
+    `ON DELETE SET NULL` sur la contrainte FK (ou la suppression pure de
+    la colonne) ferait porter ce détachement par SQLite lui-même plutôt
+    que par du code applicatif à chaque site de suppression — mais
+    SQLite ne permet pas de modifier une contrainte FK via `ALTER TABLE`,
+    ce qui impose la même technique de recréation de table que la
+    migration `UNIQUE(user_id, ticker, section_id)` de la Session 27.
+    Root cause identifiée par l'agent altitude, mais migration de schéma
+    non triviale à traiter dans une session dédiée.
+  - La migration SQLite par recréation de table (`server/db.js`, Session
+    27, contrainte `UNIQUE(user_id, ticker, section_id)`) suit une
+    technique différente des migrations `columnExists()`/`ALTER TABLE
+    ADD COLUMN` existantes, mais à juste titre : SQLite ne permet pas de
+    modifier une contrainte `UNIQUE` autrement — vérifié par l'agent
+    altitude, pas un raccourci, aucune action nécessaire.
+  - Correctifs reportés des revues n°1 à n°5 toujours non traités (liste
+    inchangée, voir Revues n°1 à n°5 ci-dessus) — aucun n'a été adressé
+    cette session, hormis les trois sites de suppression de valeur
+    corrigés ci-dessus (qui prolongeaient la remarque déjà présente dans
+    `BACKLOG.md` Session 27 : « aux trois endroits qui suppriment une
+    ligne valeurs directement »).

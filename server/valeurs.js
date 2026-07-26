@@ -83,4 +83,37 @@ async function rechercherTickers(query) {
   }
 }
 
-module.exports = { HAS_ALERTE_SUBQUERY, toValeurJson, toValeursArray, verifierTickerExiste, rechercherTickers };
+// Detache une ligne valeurs de alertes.valeur_id (FK) puis la supprime.
+// Necessaire avant tout DELETE FROM valeurs, sinon la suppression echoue
+// (FOREIGN KEY constraint) - alertes.valeur_id n'est plus lu nulle part
+// (les alertes sont rejointes par ticker, voir HAS_ALERTE_SUBQUERY), ce
+// detachement ne change donc rien d'observable. Factorise les trois sites
+// qui suppriment une ligne valeurs directement (server/routes/valeurs.js,
+// server/routes/sections.js x2).
+function supprimerValeurEtDetacherAlertes(db, valeurId) {
+  db.prepare('UPDATE alertes SET valeur_id = NULL WHERE valeur_id = ?').run(valeurId);
+  db.prepare('DELETE FROM valeurs WHERE id = ?').run(valeurId);
+}
+
+// Supprime les alertes actives d'un ticker si plus aucune section de
+// l'utilisateur ne le suit (une alerte est liee au ticker, pas a une ligne
+// valeurs precise - voir BUSINESS_RULES.md § Valeurs suivies).
+function supprimerAlertesOrphelines(db, userId, ticker) {
+  const autreOccurrence = db
+    .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?')
+    .get(userId, ticker);
+
+  if (!autreOccurrence) {
+    db.prepare('DELETE FROM alertes WHERE user_id = ? AND ticker = ?').run(userId, ticker);
+  }
+}
+
+module.exports = {
+  HAS_ALERTE_SUBQUERY,
+  toValeurJson,
+  toValeursArray,
+  verifierTickerExiste,
+  rechercherTickers,
+  supprimerValeurEtDetacherAlertes,
+  supprimerAlertesOrphelines
+};

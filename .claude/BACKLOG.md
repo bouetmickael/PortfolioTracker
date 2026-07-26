@@ -6,26 +6,24 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/3 (dépassé, +2)** — Le compteur a atteint 3/3 dès la Session 25
-(validation du ticker à l'ajout d'une valeur, v1.8.5), ce qui aurait dû
-déclencher le cycle de revue de dette technique (`METHOD.md` §0.2) avant
-toute nouvelle fonctionnalité. Le correctif de suppression (même jour,
-v1.8.6) prolongeait la Session 25 elle-même (pas une nouvelle session
-fonctionnelle), mais **Session 26** (recherche de valeur à l'ajout,
-v1.8.7) et **Session 27** (une même valeur dans plusieurs sections,
-v1.8.8, voir ci-dessous) sont chacune une nouvelle fonctionnalité,
-demandée explicitement par l'utilisateur dans la continuité de la
-conversation — livrées telles quelles plutôt que bloquées sur le cycle
-de revue, mais **la revue de dette technique n°6 reste due et prend
-encore plus de retard**. La Session 27 en particulier a touché des
-mécanismes transverses (contrat d'API, cascade de suppression, jointures
-d'alertes) qui mériteraient un regard de revue dédié plutôt que
-d'accumuler encore une session avant de s'y pencher.
-
-**Arbitrage explicite utilisateur (même session, 2026-07-26)** : le
-retard n'est pas un problème, la revue n°6 sera lancée à la **prochaine**
-session plutôt qu'immédiatement — voir le prompt de session suivante
-proposé plus bas (§0.3 de `METHOD.md`).
+**0/3** — Revue de dette technique n°6 effectuée le 2026-07-26 (voir
+`CLAUDE.md` § Historique des revues de dette technique), portant sur le
+diff cumulé depuis la revue n°5 (Session 23 logo de l'application,
+Session 24 densité des cartes d'alerte, Session 25 validation du ticker
+Yahoo Finance, Session 26 recherche de valeur à l'ajout, Session 27 une
+même valeur dans plusieurs sections, + les correctifs same-day v1.8.6 et
+v1.8.9). Attention particulière portée aux mécanismes transverses de la
+Session 27 (contrat d'API en tableau, cascade de suppression liée au
+ticker, jointures d'alertes) comme demandé. Correctifs à risque faible
+appliqués (factorisation des trois sites de suppression d'une valeur en
+deux helpers partagés `supprimerValeurEtDetacherAlertes()`/
+`supprimerAlertesOrphelines()`, correction du N+1 dans la fusion de
+sections, remplacement du `GROUP BY` de `checkAlerts()` par une
+sous-requête corrélée pour ne plus dépendre d'un invariant non garanti,
+renommage `sectionCibleAjoutPartagee` → `sectionCibleAjout`) ; correctifs
+plus profonds documentés et reportés (voir Revue n°6) — notamment la
+duplication Yahoo Finance à nouveau aggravée (`rechercherTickers()`) et
+`alertes.valeur_id` devenue une colonne FK vestigiale.
 
 Revue n°5 effectuée le
 2026-07-26 (voir
@@ -358,6 +356,20 @@ produit ci-après, à arbitrer avec l'utilisateur.
   (toujours disproportionnées une fois la liste des valeurs compactée en
   v1.8.1, voir `DESIGN.md` § Cartes statistiques). Fait le 2026-07-25.
 - [x] **Revue de dette technique n°5** : voir `CLAUDE.md` § Historique
+  des revues de dette technique. Compteur remis à 0/3 (voir ci-dessus).
+  Fait le 2026-07-26.
+- [x] **Logo de l'application (v1.8.3) + correctif densité cartes
+  d'alerte (v1.8.4)** : voir Session hors plan ci-dessus. Fait le
+  2026-07-26.
+- [x] **Validation du ticker à l'ajout d'une valeur (v1.8.5) + correctif
+  encodage URL (v1.8.6)** : voir Session hors plan ci-dessus. Fait le
+  2026-07-26.
+- [x] **Recherche de valeur à l'ajout (v1.8.7) + correctif suggestion
+  toujours écrasante (v1.8.9)** : voir Session hors plan ci-dessus. Fait
+  le 2026-07-26.
+- [x] **Une même valeur dans plusieurs sections (v1.8.8)** : voir
+  Session hors plan ci-dessus. Fait le 2026-07-26.
+- [x] **Revue de dette technique n°6** : voir `CLAUDE.md` § Historique
   des revues de dette technique. Compteur remis à 0/3 (voir ci-dessus).
   Fait le 2026-07-26.
 

@@ -4,7 +4,13 @@ const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
 const { ROLES_VALIDES, rolesSection, peutEcrire } = require('../partage');
-const { HAS_ALERTE_SUBQUERY, toValeursArray, verifierTickerExiste } = require('../valeurs');
+const {
+  HAS_ALERTE_SUBQUERY,
+  toValeursArray,
+  verifierTickerExiste,
+  supprimerValeurEtDetacherAlertes,
+  supprimerAlertesOrphelines
+} = require('../valeurs');
 
 const router = express.Router();
 
@@ -273,22 +279,8 @@ router.delete('/:id/valeurs/:ticker', (req, res) => {
 
   if (valeur) {
     const supprimerValeur = db.transaction(() => {
-      // alertes.valeur_id reference cette ligne (FK) : le detacher avant de
-      // supprimer la ligne, sinon la suppression echoue (FOREIGN KEY
-      // constraint) - voir server/routes/valeurs.js pour le meme motif.
-      db.prepare('UPDATE alertes SET valeur_id = NULL WHERE valeur_id = ?').run(valeur.id);
-      db.prepare('DELETE FROM valeurs WHERE id = ?').run(valeur.id);
-
-      // Les alertes sont liees au ticker (pas a une ligne precise, voir
-      // HAS_ALERTE_SUBQUERY dans server/valeurs.js) : ne les supprimer que si
-      // plus aucune section du proprietaire ne suit encore ce ticker.
-      const autreOccurrence = db
-        .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?')
-        .get(info.proprietaireId, ticker);
-
-      if (!autreOccurrence) {
-        db.prepare('DELETE FROM alertes WHERE user_id = ? AND ticker = ?').run(info.proprietaireId, ticker);
-      }
+      supprimerValeurEtDetacherAlertes(db, valeur.id);
+      supprimerAlertesOrphelines(db, info.proprietaireId, ticker);
     });
     supprimerValeur();
   }
@@ -338,24 +330,27 @@ router.delete('/:id', (req, res) => {
       .prepare('SELECT id, ticker FROM valeurs WHERE user_id = ? AND section_id = ? ORDER BY ordre ASC')
       .all(req.session.userId, sectionId);
 
-    const tickerDejaDansFallback = db.prepare(
-      'SELECT id FROM valeurs WHERE user_id = ? AND ticker = ? AND section_id = ?'
+    // Tickers deja suivis dans la section de repli, recuperes une seule fois
+    // (une section ne peut pas contenir deux fois le meme ticker - contrainte
+    // UNIQUE(user_id, ticker, section_id) -, donc valeursADeplacer ne peut pas
+    // en ajouter un second au fil de la boucle).
+    const tickersFallback = new Set(
+      db
+        .prepare('SELECT ticker FROM valeurs WHERE user_id = ? AND section_id = ?')
+        .all(req.session.userId, fallback.id)
+        .map((row) => row.ticker)
     );
     const deplacerValeur = db.prepare('UPDATE valeurs SET section_id = ?, ordre = ? WHERE id = ?');
     // Une valeur deja presente dans la section de repli (meme ticker suivi
     // dans les deux sections, voir BUSINESS_RULES.md § Valeurs suivies) ne
     // peut pas y etre deplacee (contrainte UNIQUE(user_id, ticker,
     // section_id)) : elle devient redondante et est supprimee plutot que
-    // deplacee, la section de repli suivant deja ce ticker.
+    // deplacee, la section de repli suivant deja ce ticker. L'alerte
+    // elle-meme (liee au ticker) n'est pas supprimee : la section de repli
+    // suit deja ce ticker.
     for (const valeur of valeursADeplacer) {
-      if (tickerDejaDansFallback.get(req.session.userId, valeur.ticker, fallback.id)) {
-        // alertes.valeur_id reference cette ligne (FK) : le detacher avant
-        // de la supprimer, sinon la suppression echoue (FOREIGN KEY
-        // constraint) - voir server/routes/valeurs.js pour le meme motif.
-        // L'alerte elle-meme (liee au ticker) n'est pas supprimee : la
-        // section de repli suit deja ce ticker.
-        db.prepare('UPDATE alertes SET valeur_id = NULL WHERE valeur_id = ?').run(valeur.id);
-        db.prepare('DELETE FROM valeurs WHERE id = ?').run(valeur.id);
+      if (tickersFallback.has(valeur.ticker)) {
+        supprimerValeurEtDetacherAlertes(db, valeur.id);
         continue;
       }
       deplacerValeur.run(fallback.id, ordreSuivant, valeur.id);

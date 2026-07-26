@@ -267,10 +267,10 @@ function createAlerteCard(id, alerte) {
 // dans la section proprietaire par defaut de l'utilisateur, voir
 // ouvrirAjoutValeur). Le role de la section (`proprietaire` vs `ecriture`)
 // determine la route appelee par ajouterValeur().
-let sectionCibleAjoutPartagee = null;
+let sectionCibleAjout = null;
 
 function ouvrirAjoutValeur(section = null) {
-  sectionCibleAjoutPartagee = section;
+  sectionCibleAjout = section;
   document.getElementById('modalAddValeurTitre').textContent = section
     ? `Ajouter une valeur - ${section.nom}`
     : 'Ajouter une valeur';
@@ -361,7 +361,7 @@ async function ajouterValeur() {
   showLoader(true);
 
   try {
-    const section = sectionCibleAjoutPartagee;
+    const section = sectionCibleAjout;
     // Une section possedee (role "proprietaire") passe toujours par
     // /api/valeurs (avec sectionId pour cibler une section precise) ; seule
     // une section partagee en ecriture (appartenant a un autre utilisateur)
