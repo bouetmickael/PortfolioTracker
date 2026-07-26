@@ -241,6 +241,19 @@ délibéré antérieur, non remis en cause).
     de gabarit visuel.
 - **Carte alerte** : coins/ombre façon carte classique (grille séparée de
   la liste des valeurs), action de suppression à droite (`icon-trash`).
+  **Densité alignée sur la liste des valeurs suivies** (v1.8.4, retour
+  utilisateur explicite : les cartes restaient nettement plus imposantes
+  que les lignes `.valeur-row` une fois celles-ci compactées en v1.8.1) :
+  padding `12px 16px` → `4px 10px`, espacement entre cartes
+  (`.alertes-liste`) 8px → 4px, `.alerte-ticker` sans taille explicite
+  (héritait des 15-16px du corps) → 13px/500 (aligné sur `.valeur-nom`),
+  `.alerte-seuils` 13px → 10px (aligné sur `.valeur-sousligne`),
+  `line-height: 1.25` explicite sur les deux (même convention que
+  `.valeur-*`), bouton `icon-trash` padding 6px → 4px (`.alerte-card
+  .btn-icon-small`, même réduction que `.valeur-actions .btn-icon-small`).
+  Résultat vérifié : carte d'alerte 37.75px de haut contre 47.75px pour
+  une ligne de valeur (mesure DOM réelle) — strictement plus compacte,
+  pas seulement égale.
 - **Partage de section** (Session D de `BACKLOG.md`, voir
   `BUSINESS_RULES.md` § Partage de section pour les règles d'accès) :
   - Bouton `icon-share` dans l'en-tête de chaque section possédée ouvre

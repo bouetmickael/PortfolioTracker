@@ -1294,3 +1294,37 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   `config.yaml` 1.8.2 -> 1.8.3 (increment PATCH - ajout visuel, pas de
   nouvelle fonctionnalite metier), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 0/3 -> 1/3.
+
+## 2026-07-26 — Session 24 - correctif densite des cartes d'alerte (v1.8.4)
+
+- **Retour utilisateur** (capture d'ecran reelle sur iPhone, suite
+  immediate de la Session 23) : le logo est valide, mais les cartes de
+  la section "Alertes actives" restent trop imposantes - demande
+  explicite qu'elles soient au maximum equivalentes aux lignes de la
+  liste des valeurs suivies (`.valeur-row`, deja compactee en v1.8.1),
+  idealement plus petites.
+- **Implementation** (`public/styles.css`, `.alerte-card` et alentours) :
+  - `.alertes-liste` : espacement entre cartes 8px -> 4px.
+  - `.alerte-card` : padding `12px 16px` -> `4px 10px`.
+  - `.alerte-ticker` : pas de taille explicite (heritait des 15-16px du
+    corps de page) -> 13px/500 explicite, aligne sur `.valeur-nom` ;
+    `line-height: 1.25` ajoute (meme convention que les selecteurs
+    `.valeur-*` compactes en v1.8.1) ; marge basse 4px -> 1px.
+  - `.alerte-seuils` : 13px -> 10px, aligne sur `.valeur-sousligne` ;
+    `line-height: 1.25` ajoute.
+  - Nouvelle regle `.alerte-card .btn-icon-small { padding: 4px; }`
+    (bouton `icon-trash`), meme reduction que celle deja appliquee a
+    `.valeur-actions .btn-icon-small` en v1.8.1.
+- **Verification reelle** : `npm test` (`node --test test/*.test.js`,
+  29/29 verts, aucun fichier serveur modifie). Serveur demarre
+  localement, compte de test avec 2 valeurs et 3 alertes creees via
+  l'API pour reproduire l'ecran de la capture utilisateur ; capture
+  d'ecran Playwright (Chromium local, viewport 390 px) confirmant le
+  nouveau rendu compact. Hauteur mesuree par lecture directe du DOM
+  (`getBoundingClientRect()`) : `.alerte-card` 37.75px contre
+  `.valeur-row` 47.75px - strictement plus compacte que demande, pas
+  seulement egale.
+- Version : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.8.3 -> 1.8.4 (increment PATCH - correctif visuel, pas
+  de nouvelle fonctionnalite), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 1/3 -> 2/3.

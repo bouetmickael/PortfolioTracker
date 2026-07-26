@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.4
+
+- Cartes d'alerte (section "Alertes actives") reduites (retour utilisateur
+  explicite : trop imposantes une fois comparees a la liste des valeurs
+  suivies compactee en 1.8.1). Padding, espacement et tailles de police
+  alignes sur `.valeur-row`, desormais legerement plus compactes que celle-
+  ci. Voir `DESIGN.md` § Carte alerte.
+
 ## 1.8.3
 
 - Ajout du logo de l'application (demande explicite utilisateur) : visible
