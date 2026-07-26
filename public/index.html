@@ -311,18 +311,22 @@
         <button class="btn-close" onclick="closeAllModals()" aria-label="Fermer"><svg class="icon icon-sm"><use href="#icon-x"></use></svg></button>
       </div>
       <div class="modal-body">
-        <label class="label">Ticker</label>
-        <input
-          type="text"
-          id="inputTicker"
-          placeholder="Ex: AAPL, MC.PA, BNP.PA"
-          class="input"
-          autocomplete="off"
-        >
+        <label class="label">Ticker ou nom de la valeur</label>
+        <div class="recherche-ticker-wrapper">
+          <input
+            type="text"
+            id="inputTicker"
+            placeholder="Ex: AAPL, MC.PA, BNP.PA ou Schneider"
+            class="input"
+            autocomplete="off"
+          >
+          <div id="rechercheResultats" class="recherche-resultats" hidden></div>
+        </div>
         <small class="help-text">
-          US: AAPL, MSFT | Euronext Paris: MC.PA, BNP.PA. Le ticker doit
-          exister sur Yahoo Finance (verifie a l'ajout), y compris pour un
-          warrant.
+          US: AAPL, MSFT | Euronext Paris: MC.PA, BNP.PA. Vous pouvez aussi
+          saisir un nom (ex. "Schneider") pour rechercher le ticker. Le
+          ticker doit exister sur Yahoo Finance (verifie a l'ajout), y
+          compris pour un warrant.
         </small>
 
         <label class="label">Type</label>

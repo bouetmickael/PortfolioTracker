@@ -272,7 +272,80 @@ function ouvrirAjoutValeur(section = null) {
   document.getElementById('modalAddValeurTitre').textContent = section
     ? `Ajouter une valeur - ${section.nom}`
     : 'Ajouter une valeur';
+  masquerRechercheResultats();
   openModal('modalAddValeur');
+}
+
+// ========================================
+// RECHERCHE DE VALEUR (ajouter par nom, ex. "Schneider" -> SU.PA)
+// ========================================
+
+let rechercheTimeout = null;
+
+function masquerRechercheResultats() {
+  const conteneur = document.getElementById('rechercheResultats');
+  conteneur.hidden = true;
+  conteneur.innerHTML = '';
+}
+
+function selectionnerResultatRecherche(resultat) {
+  document.getElementById('inputTicker').value = resultat.ticker;
+  if (!document.getElementById('inputNom').value.trim()) {
+    document.getElementById('inputNom').value = resultat.nom;
+  }
+  masquerRechercheResultats();
+}
+
+function afficherRechercheResultats(resultats) {
+  const conteneur = document.getElementById('rechercheResultats');
+
+  if (resultats.length === 0) {
+    masquerRechercheResultats();
+    return;
+  }
+
+  conteneur.innerHTML = '';
+  for (const resultat of resultats) {
+    const item = document.createElement('div');
+    item.className = 'recherche-item';
+    item.innerHTML = `
+      <div class="recherche-item-nom">${resultat.nom}</div>
+      <div class="recherche-item-detail">${resultat.ticker}${resultat.bourse ? ' · ' + resultat.bourse : ''}</div>
+    `;
+    // pointerdown (avant le blur de l'input) plutot que click : le blur de
+    // #inputTicker masquerait la liste avant qu'un click n'ait le temps de
+    // se declencher dessus.
+    item.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      selectionnerResultatRecherche(resultat);
+    });
+    conteneur.appendChild(item);
+  }
+  conteneur.hidden = false;
+}
+
+async function rechercherValeur(query) {
+  try {
+    const res = await apiFetch(`/api/valeurs/recherche?q=${encodeURIComponent(query)}`);
+    if (!res.ok) return;
+
+    const resultats = await res.json();
+    afficherRechercheResultats(resultats);
+  } catch (error) {
+    console.error('Erreur recherche valeur:', error);
+  }
+}
+
+function onInputTickerChange() {
+  const query = document.getElementById('inputTicker').value.trim();
+
+  clearTimeout(rechercheTimeout);
+  if (query.length < 2) {
+    masquerRechercheResultats();
+    return;
+  }
+
+  rechercheTimeout = setTimeout(() => rechercherValeur(query), 300);
 }
 
 async function ajouterValeur() {
@@ -1113,6 +1186,12 @@ function setupEventListeners() {
 
   document.getElementById('fab').addEventListener('click', () => ouvrirAjoutValeur());
 
+  const inputTicker = document.getElementById('inputTicker');
+  inputTicker.addEventListener('input', onInputTickerChange);
+  inputTicker.addEventListener('blur', () => {
+    setTimeout(() => masquerRechercheResultats(), 150);
+  });
+
   document.getElementById('promptInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -1133,6 +1212,7 @@ function openModal(modalId) {
 
 function closeAllModals() {
   fermerPlacementAlerte();
+  masquerRechercheResultats();
   document.querySelectorAll('.modal').forEach((modal) => {
     modal.classList.remove('active');
   });

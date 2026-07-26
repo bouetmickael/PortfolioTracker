@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.8.7
+
+- Recherche de valeur a l'ajout (demande explicite utilisateur : pouvoir
+  saisir un nom approximatif, ex. "Schneider", plutot que de connaitre le
+  ticker exact). Le champ Ticker de la modale d'ajout propose desormais
+  des suggestions (ticker, nom, bourse) au fur et a mesure de la saisie,
+  via une nouvelle route `GET /api/valeurs/recherche` (meme endpoint non
+  officiel Yahoo Finance que le reste du projet). Cliquer une suggestion
+  remplit le ticker et le nom ; le ticker choisi passe toujours par la
+  validation Yahoo Finance existante (v1.8.5) a la soumission. Voir
+  `DESIGN.md` § Recherche de valeur a l'ajout.
+
 ## 1.8.6
 
 - Correctif : suppression impossible d'une valeur dont le ticker contient

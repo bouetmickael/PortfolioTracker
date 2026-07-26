@@ -9,10 +9,25 @@ const fs = require('fs');
 // deterministes et hors ligne. Voir server/valeurs.js (verifierTickerExiste).
 const TICKER_YAHOO_VALIDE = /^[A-Z0-9.\-^]+$/;
 
+// Jeu fixe pour simuler GET /api/valeurs/recherche (server/valeurs.js,
+// rechercherTickers) sans appel reseau reel : seule la requete "schneider"
+// (insensible a la casse) renvoie un resultat, toute autre requete renvoie
+// une liste vide (comme une recherche Yahoo Finance sans correspondance).
+const RECHERCHE_RESULTATS = {
+  schneider: [
+    { symbol: 'SU.PA', longname: 'Schneider Electric SE', shortname: 'SCHNEIDER ELECTRIC', exchDisp: 'Paris' }
+  ]
+};
+
 function mockFetchYahooFinance() {
   const fetchOriginal = global.fetch;
 
   global.fetch = (url, options) => {
+    if (typeof url === 'string' && url.includes('query1.finance.yahoo.com/v1/finance/search')) {
+      const query = new URL(url).searchParams.get('q') || '';
+      const quotes = RECHERCHE_RESULTATS[query.toLowerCase()] || [];
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ quotes }) });
+    }
     if (typeof url === 'string' && url.includes('query1.finance.yahoo.com')) {
       const ticker = decodeURIComponent(url.split('/chart/')[1].split('?')[0]);
       if (!TICKER_YAHOO_VALIDE.test(ticker)) {

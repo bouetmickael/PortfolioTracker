@@ -6,11 +6,18 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/3** — Session 25 (validation du ticker a l'ajout d'une valeur,
-v1.8.5, voir ci-dessous) effectuée après la revue de dette technique n°5.
-Le compteur atteint 3/3 : la **prochaine session doit être le cycle de
-revue de dette technique** (`METHOD.md` §0.2), et non une nouvelle
-fonctionnalité.
+**3/3 (dépassé)** — Session 25 (validation du ticker a l'ajout d'une
+valeur, v1.8.5, voir ci-dessous) a atteint le compteur à 3/3, ce qui
+aurait dû déclencher le cycle de revue de dette technique (`METHOD.md`
+§0.2) avant toute nouvelle fonctionnalité. Le correctif de suppression
+(même jour, v1.8.6) prolongeait la Session 25 elle-même (pas une nouvelle
+session fonctionnelle). **Session 26** (recherche de valeur à l'ajout,
+v1.8.7, voir ci-dessous) est en revanche une nouvelle fonctionnalité,
+demandée explicitement par l'utilisateur dans la continuité de la
+conversation — livrée telle quelle plutôt que bloquée sur le cycle de
+revue, mais **la revue de dette technique n°6 reste due et est
+maintenant encore plus en retard** : à traiter en priorité dès que
+l'utilisateur n'a pas de demande fonctionnelle plus urgente.
 
 Revue n°5 effectuée le
 2026-07-26 (voir
@@ -62,6 +69,41 @@ partagee, ouverture du graphique). Test de non-regression ajoute
 "legacy" contenant un "/", verification que la suppression via l'URL
 encodee fonctionne) ; verifie egalement manuellement en reproduisant le
 bug (URL non encodee echoue, URL encodee reussit) sur un serveur local.
+
+## Session hors plan — Session 26 - recherche de valeur a l'ajout (2026-07-26, v1.8.7)
+
+Demande explicite de l'utilisateur : pouvoir saisir un nom approximatif
+(ex. "Schneider") plutot que de connaitre le ticker exact (`SU.PA`) lors
+de l'ajout d'une valeur. Nouvelle route `GET /api/valeurs/recherche?q=...`
+(`rechercherTickers()`, `server/valeurs.js`) qui interroge l'endpoint de
+recherche non officiel Yahoo Finance (`query1.finance.yahoo.com/v1/
+finance/search`, meme famille d'endpoint que `fetchYahooFinance` deja
+utilise ailleurs dans le projet - pas de deuxieme source de donnees).
+Cote client, le champ Ticker de `#modalAddValeur` declenche la recherche
+a la saisie (debounce 300ms, a partir de 2 caracteres) et affiche un menu
+deroulant de suggestions (ticker, nom, bourse) ; en choisir une remplit
+le ticker et le nom. Voir `DESIGN.md` § Recherche de valeur a l'ajout
+pour le detail du composant. Le ticker choisi reste soumis a la
+validation Yahoo Finance existante (v1.8.5) a l'ajout reel - cette
+recherche est une aide a la saisie, pas un raccourci de validation.
+Comme deja documente (`SPECIFICATION_FONCTIONNELLE.md` § Source de
+donnees et limites connues), les warrants identifies par ISIN ne
+remonteront generalement aucune suggestion, meme limite que la
+validation elle-meme.
+
+Tests ajoutes (`server/test/valeurs.test.js`) : recherche avec
+correspondance, recherche sans correspondance, requete trop courte (< 2
+caracteres), authentification requise. Mock etendu
+(`server/test/support/helpers.js`) pour simuler l'endpoint de recherche
+Yahoo Finance sans appel reseau reel (`npm test`, 37/37). Verifie
+manuellement en navigateur (Playwright, Chromium headless fourni par
+l'environnement) avec la reponse de recherche interceptee/simulee (le
+bac a sable de developpement bloque les appels sortants reels vers
+`query1.finance.yahoo.com`, meme limite que documentee en Session 25) :
+saisie "schneider" -> menu affiche deux suggestions, clic sur une
+suggestion remplit ticker + nom et referme le menu, requete sans
+correspondance masque le menu, theme clair et sombre verifies (contraste
+correct dans les deux, capture d'ecran a l'appui).
 
 ## Session hors plan — Session 23 - logo de l'application (2026-07-26, v1.8.3)
 

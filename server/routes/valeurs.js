@@ -3,7 +3,7 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
-const { HAS_ALERTE_SUBQUERY, toValeursMap, verifierTickerExiste } = require('../valeurs');
+const { HAS_ALERTE_SUBQUERY, toValeursMap, verifierTickerExiste, rechercherTickers } = require('../valeurs');
 
 const router = express.Router();
 
@@ -28,6 +28,17 @@ router.get('/', (req, res) => {
     )
     .all(req.session.userId);
   res.json(toValeursMap(rows));
+});
+
+router.get('/recherche', async (req, res) => {
+  const query = (req.query.q || '').trim();
+
+  if (query.length < 2) {
+    return res.json([]);
+  }
+
+  const resultats = await rechercherTickers(query);
+  res.json(resultats);
 });
 
 router.post('/', async (req, res) => {

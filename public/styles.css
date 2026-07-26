@@ -843,6 +843,51 @@ body {
   margin-top: 6px;
 }
 
+/* RECHERCHE DE VALEUR (ajout par nom, voir GET /api/valeurs/recherche) */
+
+.recherche-ticker-wrapper {
+  position: relative;
+}
+
+.recherche-resultats {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg);
+  border-radius: 8px;
+  box-shadow: var(--shadow-large);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.recherche-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.recherche-item:last-child {
+  border-bottom: none;
+}
+
+.recherche-item:hover {
+  background: var(--bg-secondary);
+}
+
+.recherche-item-nom {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.recherche-item-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
 /* GRAPHIQUES */
 
 .periode-selector {

@@ -128,3 +128,37 @@ test('un ticker contenant un "/" (ajoute avant la validation) reste supprimable'
   const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
   assert.equal(Object.keys(valeurs).length, 0);
 });
+
+test('la recherche de valeur renvoie les tickers correspondant a un nom', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'valeurs-recherche@test.local');
+
+  const res = await fetch(`${baseUrl}/api/valeurs/recherche?q=schneider`, { headers: { Cookie: cookie } });
+  assert.equal(res.status, 200);
+
+  const resultats = await res.json();
+  assert.equal(resultats.length, 1);
+  assert.equal(resultats[0].ticker, 'SU.PA');
+  assert.equal(resultats[0].nom, 'Schneider Electric SE');
+  assert.equal(resultats[0].bourse, 'Paris');
+});
+
+test('la recherche de valeur sans correspondance renvoie une liste vide', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'valeurs-recherche-vide@test.local');
+
+  const res = await fetch(`${baseUrl}/api/valeurs/recherche?q=inconnu`, { headers: { Cookie: cookie } });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), []);
+});
+
+test('la recherche de valeur exige au moins 2 caracteres', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'valeurs-recherche-court@test.local');
+
+  const res = await fetch(`${baseUrl}/api/valeurs/recherche?q=s`, { headers: { Cookie: cookie } });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), []);
+});
+
+test('la recherche de valeur exige une authentification', async () => {
+  const res = await fetch(`${baseUrl}/api/valeurs/recherche?q=schneider`);
+  assert.equal(res.status, 401);
+});

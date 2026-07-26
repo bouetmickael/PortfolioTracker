@@ -48,4 +48,33 @@ async function verifierTickerExiste(ticker) {
   }
 }
 
-module.exports = { HAS_ALERTE_SUBQUERY, toValeurJson, toValeursMap, verifierTickerExiste };
+// Recherche de tickers par nom/mot-cle (ex. "Schneider" -> SU.PA) pour aider
+// a l'ajout d'une valeur sans connaitre son ticker exact, via le meme
+// endpoint non officiel Yahoo Finance que fetchYahooFinance (pas de
+// deuxieme source de donnees). Retourne [] en cas d'echec (recherche non
+// bloquante, l'utilisateur peut toujours saisir un ticker directement).
+async function rechercherTickers(query) {
+  const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Yahoo Finance error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const quotes = Array.isArray(data.quotes) ? data.quotes : [];
+
+    return quotes
+      .filter((quote) => quote.symbol)
+      .map((quote) => ({
+        ticker: quote.symbol,
+        nom: quote.longname || quote.shortname || quote.symbol,
+        bourse: quote.exchDisp || ''
+      }));
+  } catch (error) {
+    return [];
+  }
+}
+
+module.exports = { HAS_ALERTE_SUBQUERY, toValeurJson, toValeursMap, verifierTickerExiste, rechercherTickers };

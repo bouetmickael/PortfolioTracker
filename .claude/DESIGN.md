@@ -294,6 +294,33 @@ délibéré antérieur, non remis en cause).
   fond `--primary`, icône blanche — distinct du bouton icône neutre
   circulaire (`.btn-icon`/`.btn-icon-small`) utilisé pour les actions
   secondaires (renommer, supprimer, alerte).
+- **Recherche de valeur a l'ajout** (session 2026-07-26, demande
+  explicite utilisateur : pouvoir saisir un nom approximatif, ex.
+  "Schneider", plutot que de devoir connaitre le ticker exact,
+  ex. `SU.PA`) : le champ Ticker de `#modalAddValeur` (`#inputTicker`)
+  declenche desormais une recherche a la saisie (debounce 300ms, a partir
+  de 2 caracteres) sur `GET /api/valeurs/recherche?q=...`
+  (`server/valeurs.js` § `rechercherTickers`, meme endpoint non officiel
+  Yahoo Finance que `fetchYahooFinance`, pas de deuxieme source de
+  donnees). Les resultats (jusqu'a 8) s'affichent dans un menu deroulant
+  ancre sous le champ (`#rechercheResultats`/`.recherche-resultats`,
+  meme gabarit que `.dropdown-menu` du menu utilisateur : fond `--bg`,
+  coins 8px, `--shadow-large`), chaque `.recherche-item` affichant le nom
+  (`.recherche-item-nom`, 14px/500) puis ticker et bourse d'origine
+  (`.recherche-item-detail`, 12px, `--text-secondary`, ex. « SU.PA ·
+  Paris »). Cliquer/toucher un resultat remplit `#inputTicker` (ticker
+  exact) et `#inputNom` (nom complet, seulement s'il etait vide - ne
+  remplace pas une saisie manuelle) puis referme le menu ; la selection
+  ecoute `pointerdown` plutot que `click` sur chaque item pour agir avant
+  le `blur` du champ Ticker (qui referme sinon le menu avec un delai de
+  150ms). Aucune correspondance ou saisie de moins de 2 caracteres masque
+  le menu. Reste une aide a la saisie uniquement : le ticker choisi passe
+  toujours par la meme validation Yahoo Finance qu'une saisie manuelle a
+  la soumission du formulaire (voir `BUSINESS_RULES.md` § Valeurs
+  suivies) ; les warrants identifies par ISIN (voir
+  `SPECIFICATION_FONCTIONNELLE.md` § Source de donnees et limites
+  connues) ne remonteront generalement aucun resultat, meme limite que
+  la validation elle-meme.
 - **Modales** : fond semi-transparent (`rgba(0,0,0,0.5)`), contenu centré,
   animation `slideUp` 0.2s, variante `.modal-large` (800px) pour le
   graphique, fermeture via icône `icon-x`. Deux modales génériques
