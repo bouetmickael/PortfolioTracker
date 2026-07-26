@@ -100,7 +100,51 @@ test('supprimer une section reassigne ses valeurs a une section restante', async
   const body = await del.json();
 
   const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
-  assert.equal(valeurs.AAPL.sectionId, body.fallbackSectionId);
+  assert.equal(valeurs.find((v) => v.ticker === 'AAPL').sectionId, body.fallbackSectionId);
+});
+
+test('supprimer une section fusionne (sans erreur) une valeur deja presente dans la section de repli', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'sections-delete-doublon@test.local');
+
+  const [sectionDefaut] = await (await fetch(`${baseUrl}/api/sections`, { headers: { Cookie: cookie } })).json();
+  const section = await (
+    await fetch(`${baseUrl}/api/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ nom: 'A supprimer' })
+    })
+  ).json();
+
+  // AAPL suivi a la fois dans la section a supprimer et dans la section de
+  // repli (la premiere section, ordre le plus bas) : sans traitement
+  // particulier, le deplacement violerait UNIQUE(user_id, ticker, section_id).
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', sectionId: sectionDefaut.id })
+  });
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'MSFT', sectionId: section.id })
+  });
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', sectionId: section.id })
+  });
+
+  const del = await fetch(`${baseUrl}/api/sections/${section.id}`, {
+    method: 'DELETE',
+    headers: { Cookie: cookie }
+  });
+  assert.equal(del.status, 200);
+
+  const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
+  const occurrencesAAPL = valeurs.filter((v) => v.ticker === 'AAPL');
+  assert.equal(occurrencesAAPL.length, 1);
+  assert.equal(occurrencesAAPL[0].sectionId, sectionDefaut.id);
+  assert.equal(valeurs.find((v) => v.ticker === 'MSFT').sectionId, sectionDefaut.id);
 });
 
 test('isolation stricte : un utilisateur ne peut pas renommer ou supprimer la section d un autre', async () => {
@@ -149,6 +193,7 @@ test('reorder persiste l ordre des sections et des valeurs', async () => {
   });
 
   const valeursAvant = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
+  const idAvant = (ticker) => valeursAvant.find((v) => v.ticker === ticker).id;
 
   const reorder = await fetch(`${baseUrl}/api/sections/reorder`, {
     method: 'PUT',
@@ -156,7 +201,7 @@ test('reorder persiste l ordre des sections et des valeurs', async () => {
     body: JSON.stringify({
       sections: [
         { id: section2.id, ordre: 0, valeurIds: [] },
-        { id: sectionDefaut.id, ordre: 1, valeurIds: [valeursAvant.MSFT.id, valeursAvant.AAPL.id] }
+        { id: sectionDefaut.id, ordre: 1, valeurIds: [idAvant('MSFT'), idAvant('AAPL')] }
       ]
     })
   });
@@ -169,8 +214,8 @@ test('reorder persiste l ordre des sections et des valeurs', async () => {
   assert.equal(sections[1].ordre, 1);
 
   const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
-  assert.equal(valeurs.MSFT.ordre, 0);
-  assert.equal(valeurs.AAPL.ordre, 1);
+  assert.equal(valeurs.find((v) => v.ticker === 'MSFT').ordre, 0);
+  assert.equal(valeurs.find((v) => v.ticker === 'AAPL').ordre, 1);
 });
 
 test('reorder refuse une section n appartenant pas a l utilisateur', async () => {

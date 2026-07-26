@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.8.8
+
+- Une meme valeur peut desormais etre suivie dans plusieurs sections
+  (demande explicite utilisateur), tant qu'elle n'est pas dupliquee dans
+  la **meme** section (toujours refuse, 409). Nouveau bouton `+` dans
+  l'en-tete de chaque section possedee pour y ajouter une valeur
+  directement. Changement de contrat d'API : `GET /api/valeurs` et
+  `GET /api/sections/:id/valeurs` renvoient desormais un tableau (chaque
+  element porte son `ticker`) plutot qu'une map indexee par ticker,
+  devenue ambigue ; `DELETE /api/valeurs/:id` prend desormais l'id de la
+  ligne plutot que le ticker. Voir `BUSINESS_RULES.md` § Valeurs suivies
+  et `DESIGN.md` § Valeurs suivies dupliquees entre sections.
+
 ## 1.8.7
 
 - Recherche de valeur a l'ajout (demande explicite utilisateur : pouvoir

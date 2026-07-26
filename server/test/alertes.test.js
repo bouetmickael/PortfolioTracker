@@ -14,6 +14,10 @@ after(async () => {
   await serveur.stop();
 });
 
+function parTicker(valeurs, ticker) {
+  return valeurs.find((v) => v.ticker === ticker);
+}
+
 test('une valeur suivie sans alerte a hasAlerte a false', async () => {
   const { cookie } = await creerUtilisateur(baseUrl, 'alertes-sans@test.local');
 
@@ -24,7 +28,7 @@ test('une valeur suivie sans alerte a hasAlerte a false', async () => {
   });
 
   const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
-  assert.equal(valeurs.AAPL.hasAlerte, false);
+  assert.equal(parTicker(valeurs, 'AAPL').hasAlerte, false);
 });
 
 test('creer une alerte active fait passer hasAlerte a true sur la valeur correspondante', async () => {
@@ -42,7 +46,7 @@ test('creer une alerte active fait passer hasAlerte a true sur la valeur corresp
   });
 
   const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
-  assert.equal(valeurs.AAPL.hasAlerte, true);
+  assert.equal(parTicker(valeurs, 'AAPL').hasAlerte, true);
 });
 
 test('supprimer l alerte fait repasser hasAlerte a false', async () => {
@@ -65,7 +69,7 @@ test('supprimer l alerte fait repasser hasAlerte a false', async () => {
   await fetch(`${baseUrl}/api/alertes/${alerteId}`, { method: 'DELETE', headers: { Cookie: cookie } });
 
   const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
-  assert.equal(valeurs.AAPL.hasAlerte, false);
+  assert.equal(parTicker(valeurs, 'AAPL').hasAlerte, false);
 });
 
 test('une alerte creee pour un ticker suivi par un autre utilisateur ne marque pas sa valeur', async () => {
@@ -91,6 +95,40 @@ test('une alerte creee pour un ticker suivi par un autre utilisateur ne marque p
 
   const valeursA = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: userA.cookie } })).json();
   const valeursB = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: userB.cookie } })).json();
-  assert.equal(valeursA.AAPL.hasAlerte, false);
-  assert.equal(valeursB.AAPL.hasAlerte, true);
+  assert.equal(parTicker(valeursA, 'AAPL').hasAlerte, false);
+  assert.equal(parTicker(valeursB, 'AAPL').hasAlerte, true);
+});
+
+test('une alerte marque toutes les occurrences de son ticker suivies dans plusieurs sections', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alertes-multi-section@test.local');
+
+  const [sectionDefaut] = await (await fetch(`${baseUrl}/api/sections`, { headers: { Cookie: cookie } })).json();
+  const autreSection = await (
+    await fetch(`${baseUrl}/api/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ nom: 'Autre' })
+    })
+  ).json();
+
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', sectionId: sectionDefaut.id })
+  });
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', sectionId: autreSection.id })
+  });
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 200 })
+  });
+
+  const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
+  const occurrences = valeurs.filter((v) => v.ticker === 'AAPL');
+  assert.equal(occurrences.length, 2);
+  assert.ok(occurrences.every((v) => v.hasAlerte === true));
 });

@@ -30,11 +30,49 @@
 
 ## Valeurs suivies
 
-- Un ticker ne peut être suivi qu'une seule fois par utilisateur
-  (contrainte `UNIQUE(user_id, ticker)`) ; tentative de doublon → 409.
-- Supprimer une valeur suivie supprime aussi toutes les alertes associées à
-  ce couple `(user_id, ticker)` (cascade applicative explicite dans la
-  route, pas une contrainte SQL `ON DELETE CASCADE`).
+- **Un ticker peut être suivi dans plusieurs sections d'un même
+  utilisateur, mais pas deux fois dans la même section** (session
+  2026-07-26, demande explicite utilisateur — amende la règle précédente
+  qui limitait un ticker à une seule occurrence par utilisateur, tous
+  sections confondues). Contrainte `UNIQUE(user_id, ticker, section_id)`
+  (`server/db.js`, migration de recréation de table pour les bases
+  existantes — SQLite ne permet pas de modifier une contrainte `UNIQUE`
+  via `ALTER TABLE`) ; tentative de doublon **dans la même section** →
+  409 (`Cette valeur est deja suivie dans cette section`).
+  - `GET /api/valeurs`/`GET /api/sections/:id/valeurs` renvoient donc
+    désormais un **tableau** (`toValeursArray()`, `server/valeurs.js`),
+    plus une map indexée par ticker (impossible dès lors qu'un ticker
+    peut apparaître plusieurs fois pour un même utilisateur) — chaque
+    élément porte son propre `ticker` en plus de son `id`. **Changement
+    de contrat d'API**, `id` est désormais le seul identifiant fiable
+    d'une valeur suivie côté client (le ticker identifie l'instrument,
+    pas une ligne précise) ; voir `public/app.js` (`supprimerValeur`,
+    glisser-déposer déjà basé sur `valeur.id`).
+  - `DELETE /api/valeurs/:id` (par id de ligne, plus par ticker) :
+    supprimer une occurrence d'un ticker dans une section ne supprime
+    pas ses occurrences dans d'autres sections.
+  - Suppression d'une section : si une valeur à déplacer vers la section
+    de repli y a déjà un homologue de même ticker, elle est supprimée
+    (redondante) plutôt que déplacée (la contrainte `UNIQUE` l'interdit
+    de toute façon) — voir `server/routes/sections.js` § `DELETE /:id`.
+- Les alertes de seuil restent liées au **ticker** (`alertes.ticker`),
+  pas à une ligne précise de `valeurs` : `hasAlerte`
+  (`HAS_ALERTE_SUBQUERY`) et le job `checkAlerts()`
+  (`server/jobs/alerts.js`) rejoignent sur `(user_id, ticker)`, jamais
+  sur `valeurs.id`/`alertes.valeur_id` — une alerte créée sur un ticker
+  suivi dans deux sections s'applique donc aux deux occurrences (même
+  badge affiché sur les deux lignes). `checkAlerts()` regroupe désormais
+  explicitement par `alertes.id` (`GROUP BY`) pour ne pas traiter (et
+  emailer) une même alerte plusieurs fois quand son ticker correspond à
+  plusieurs lignes `valeurs`. La colonne `alertes.valeur_id` existe
+  toujours (compatibilité/historique) mais n'est plus utilisée par ces
+  deux mécanismes — dette mineure à nettoyer dans une session dédiée
+  (voir `CLAUDE.md` § Historique des revues).
+- Supprimer la **dernière** occurrence d'un ticker pour un utilisateur
+  (plus aucune section ne le suit) supprime aussi toutes les alertes
+  associées à ce couple `(user_id, ticker)` (cascade applicative
+  explicite dans la route, pas une contrainte SQL `ON DELETE CASCADE`) ;
+  tant qu'une autre occurrence subsiste, les alertes sont conservées.
 - **Le ticker est vérifié sur Yahoo Finance avant l'ajout** (session
   2026-07-26, retour utilisateur explicite : n'importe quel texte pouvait
   être ajouté comme "valeur", y compris pour un warrant, sans jamais
@@ -102,9 +140,9 @@
   ecriture restent rattachees au `user_id` du **proprietaire** de la
   section, pas de l'utilisateur agissant : c'est la section qui est
   partagee (avec ses valeurs), jamais une copie de donnees creee chez
-  l'utilisateur invite. La contrainte `UNIQUE(user_id, ticker)` s'applique
-  donc toujours par rapport au proprietaire de la section, pas a
-  l'utilisateur qui effectue l'ajout.
+  l'utilisateur invite. La contrainte `UNIQUE(user_id, ticker, section_id)`
+  (voir § Valeurs suivies) s'applique donc toujours par rapport au
+  proprietaire de la section, pas a l'utilisateur qui effectue l'ajout.
 - `GET /api/valeurs` (liste principale de l'utilisateur courant) continue de
   ne renvoyer que ses propres valeurs, filtrees par `user_id` en SQL —
   **inchange par cette fonctionnalite**. Les valeurs des sections partagees

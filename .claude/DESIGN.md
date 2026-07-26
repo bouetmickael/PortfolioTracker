@@ -168,10 +168,12 @@ délibéré antérieur, non remis en cause).
   fonctionnalité), chacune un conteneur séparé avec coins 8px/`--shadow`.
   En-tête de section (`.valeurs-section-header`, fond `--bg-secondary`) :
   titre repliable (chevron + nom, poignée de glisser-déposer pour
-  réordonner les sections entre elles) et trois boutons icône à droite,
-  dans cet ordre : `icon-share` (partager la section, voir composant
-  « Partage de section » ci-dessous), `icon-pencil` (renommer) et
-  `icon-trash` (supprimer, masqué s'il ne
+  réordonner les sections entre elles) et quatre boutons icône à droite,
+  dans cet ordre : `icon-plus` (ajouter une valeur directement dans
+  cette section, session 2026-07-26 — voir § Valeurs suivies dupliquées
+  entre sections ci-dessous), `icon-share` (partager la section, voir
+  composant « Partage de section » ci-dessous), `icon-pencil` (renommer)
+  et `icon-trash` (supprimer, masqué s'il ne
   reste qu'une section — la dernière section d'un utilisateur ne peut pas
   être supprimée). Une section se crée via le bouton texte `+ Nouvelle
   section` en bas de liste. Renommer/créer une section et confirmer une
@@ -239,6 +241,20 @@ délibéré antérieur, non remis en cause).
     changement de comportement (glisser-déposer, `stopPropagation` des
     actions, affichage conditionnel du volume) — uniquement une réduction
     de gabarit visuel.
+  - **Valeurs suivies dupliquées entre sections** (session 2026-07-26,
+    demande explicite utilisateur : pouvoir ajouter une valeur déjà
+    suivie dans une section à une autre section, sans que ce soit
+    considéré comme un doublon). Le bouton `icon-plus` de l'en-tête de
+    chaque section possédée (voir ci-dessus) ouvre la modale d'ajout
+    ciblée sur cette section précise (même modale que le FAB/bouton
+    d'ajout global, `#modalAddValeur` — voir `BUSINESS_RULES.md` §
+    Valeurs suivies pour la contrainte d'unicité par section). Chaque
+    occurrence d'un même ticker est une ligne `.valeur-row` indépendante
+    (même avatar/couleur générée depuis le ticker, donc visuellement
+    identique dans les deux sections) : supprimer l'une n'affecte pas
+    l'autre. Le badge d'alerte (`.badge-alerte`) s'affiche en revanche
+    sur **toutes** les occurrences d'un ticker ayant une alerte active,
+    une alerte étant liée au ticker et non à une occurrence précise.
 - **Carte alerte** : coins/ombre façon carte classique (grille séparée de
   la liste des valeurs), action de suppression à droite (`icon-trash`).
   **Densité alignée sur la liste des valeurs suivies** (v1.8.4, retour

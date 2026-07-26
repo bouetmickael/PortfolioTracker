@@ -41,7 +41,9 @@ db.exec(`
     volume INTEGER NOT NULL DEFAULT 0,
     derniere_maj INTEGER,
     ajoute_le INTEGER NOT NULL,
-    UNIQUE(user_id, ticker)
+    section_id INTEGER REFERENCES sections(id),
+    ordre INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(user_id, ticker, section_id)
   );
 
   CREATE TABLE IF NOT EXISTS alertes (
@@ -138,6 +140,45 @@ const backfillSectionsParDefaut = db.transaction(() => {
 });
 
 backfillSectionsParDefaut();
+
+// Migration : assouplissement de la contrainte UNIQUE sur valeurs, pour
+// permettre a une meme valeur (ticker) d'etre suivie dans plusieurs sections
+// du meme utilisateur (ex. "NVDA" dans "General" ET dans une autre section),
+// tout en interdisant toujours un doublon dans une meme section. SQLite ne
+// permet pas de modifier une contrainte UNIQUE existante via ALTER TABLE : la
+// table est recreee avec la nouvelle contrainte si l'ancienne (sans
+// section_id) est encore en place - idempotent, verifie via sqlite_master.sql
+// et sans effet sur une base deja migree ou fraichement creee (le CREATE
+// TABLE IF NOT EXISTS ci-dessus a deja la bonne contrainte). Execute apres
+// backfillSectionsParDefaut() : toutes les valeurs ont deja un section_id.
+const { sql: valeursSchemaSql } = db.prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'valeurs'`).get();
+if (valeursSchemaSql.includes('UNIQUE(user_id, ticker)')) {
+  db.pragma('foreign_keys = OFF');
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE valeurs_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        ticker TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'Action',
+        nom TEXT NOT NULL DEFAULT '',
+        cours REAL NOT NULL DEFAULT 0,
+        variation REAL NOT NULL DEFAULT 0,
+        volume INTEGER NOT NULL DEFAULT 0,
+        derniere_maj INTEGER,
+        ajoute_le INTEGER NOT NULL,
+        section_id INTEGER REFERENCES sections(id),
+        ordre INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(user_id, ticker, section_id)
+      );
+      INSERT INTO valeurs_new (id, user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
+        SELECT id, user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre FROM valeurs;
+      DROP TABLE valeurs;
+      ALTER TABLE valeurs_new RENAME TO valeurs;
+    `);
+  })();
+  db.pragma('foreign_keys = ON');
+}
 
 // Migration : ajout de alertes.valeur_id (cle etrangere vers valeurs.id),
 // introduite apres la creation initiale de la table alertes, pour permettre

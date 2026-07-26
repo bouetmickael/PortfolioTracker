@@ -167,8 +167,8 @@ async function chargerSectionsPartagees(sections) {
     sections.map(async (section) => {
       try {
         const res = await apiFetch(`/api/sections/${section.id}/valeurs`);
-        const valeurs = res.ok ? await res.json() : {};
-        return { ...section, valeurs: Object.entries(valeurs).map(([ticker, v]) => ({ ticker, ...v })) };
+        const valeurs = res.ok ? await res.json() : [];
+        return { ...section, valeurs };
       } catch (error) {
         console.error('Erreur chargement valeurs partagees:', error);
         return { ...section, valeurs: [] };
@@ -197,7 +197,7 @@ async function chargerAlertes() {
 
 function displayValeurs(valeurs, sections) {
   const store = Alpine.store('portfolio');
-  store.valeurs = Object.entries(valeurs).map(([ticker, valeur]) => ({ ticker, ...valeur }));
+  store.valeurs = valeurs;
   store.sections = sections.filter((s) => s.role === 'proprietaire');
   store.chargee = true;
 }
@@ -262,9 +262,11 @@ function createAlerteCard(id, alerte) {
 // ACTIONS CRUD
 // ========================================
 
-// Section partagee ciblee par la modale d'ajout ("+ ajouter" sur une section
-// partagee en ecriture), ou null pour le comportement par defaut (ajout dans
-// la section proprietaire par defaut de l'utilisateur, voir ouvrirAjoutValeur).
+// Section ciblee par la modale d'ajout ("+ ajouter" sur une section possedee
+// ou partagee en ecriture), ou null pour le comportement par defaut (ajout
+// dans la section proprietaire par defaut de l'utilisateur, voir
+// ouvrirAjoutValeur). Le role de la section (`proprietaire` vs `ecriture`)
+// determine la route appelee par ajouterValeur().
 let sectionCibleAjoutPartagee = null;
 
 function ouvrirAjoutValeur(section = null) {
@@ -361,17 +363,25 @@ async function ajouterValeur() {
   showLoader(true);
 
   try {
-    const url = sectionCibleAjoutPartagee
-      ? `/api/sections/${sectionCibleAjoutPartagee.id}/valeurs`
-      : '/api/valeurs';
+    const section = sectionCibleAjoutPartagee;
+    // Une section possedee (role "proprietaire") passe toujours par
+    // /api/valeurs (avec sectionId pour cibler une section precise) ; seule
+    // une section partagee en ecriture (appartenant a un autre utilisateur)
+    // passe par la route dediee /api/sections/:id/valeurs.
+    const url = section && section.role !== 'proprietaire' ? `/api/sections/${section.id}/valeurs` : '/api/valeurs';
+    const body = { ticker, type, nom };
+    if (section && section.role === 'proprietaire') {
+      body.sectionId = section.id;
+    }
 
     const res = await apiFetch(url, {
       method: 'POST',
-      body: JSON.stringify({ ticker, type, nom })
+      body: JSON.stringify(body)
     });
 
     if (res.status === 409) {
-      showToast('Cette valeur est deja suivie', 'warning');
+      const data = await res.json();
+      showToast(data.error || 'Cette valeur est deja suivie', 'warning');
       return;
     }
 
@@ -395,14 +405,14 @@ async function ajouterValeur() {
   }
 }
 
-async function supprimerValeur(ticker) {
+async function supprimerValeur(id, ticker) {
   const ok = await showConfirm(`Supprimer ${ticker} de vos valeurs suivies ?`, 'Supprimer la valeur');
   if (!ok) return;
 
   showLoader(true);
 
   try {
-    const res = await apiFetch(`/api/valeurs/${encodeURIComponent(ticker)}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/valeurs/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Erreur suppression valeur');
 
     await chargerValeurs();

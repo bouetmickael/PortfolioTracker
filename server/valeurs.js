@@ -5,14 +5,20 @@
 
 const { fetchYahooFinance } = require('./jobs/prices');
 
+// Jointure par ticker (pas valeur_id) : une alerte s'applique au ticker pour
+// cet utilisateur, quelle que soit la section dans laquelle il est suivi
+// (voir BUSINESS_RULES.md § Valeurs suivies - une meme valeur peut desormais
+// etre suivie dans plusieurs sections). Si la valeur est dupliquee entre
+// sections, le badge d'alerte est donc affiche sur toutes ses occurrences.
 const HAS_ALERTE_SUBQUERY = `EXISTS(
   SELECT 1 FROM alertes a
-  WHERE a.valeur_id = v.id AND a.user_id = v.user_id AND a.active = 1
+  WHERE a.ticker = v.ticker AND a.user_id = v.user_id AND a.active = 1
 ) AS has_alerte`;
 
 function toValeurJson(row) {
   return {
     id: row.id,
+    ticker: row.ticker,
     type: row.type,
     nom: row.nom,
     cours: row.cours,
@@ -26,12 +32,12 @@ function toValeurJson(row) {
   };
 }
 
-function toValeursMap(rows) {
-  const map = {};
-  for (const row of rows) {
-    map[row.ticker] = toValeurJson(row);
-  }
-  return map;
+// Tableau plutot qu'une map indexee par ticker : le ticker n'identifie plus
+// une valeur de facon unique pour un utilisateur (la meme valeur peut
+// apparaitre dans plusieurs sections), seul l'id de la ligne l'est. Voir
+// BUSINESS_RULES.md § Valeurs suivies.
+function toValeursArray(rows) {
+  return rows.map(toValeurJson);
 }
 
 // Verifie qu'un ticker existe reellement sur Yahoo Finance avant de
@@ -77,4 +83,4 @@ async function rechercherTickers(query) {
   }
 }
 
-module.exports = { HAS_ALERTE_SUBQUERY, toValeurJson, toValeursMap, verifierTickerExiste, rechercherTickers };
+module.exports = { HAS_ALERTE_SUBQUERY, toValeurJson, toValeursArray, verifierTickerExiste, rechercherTickers };

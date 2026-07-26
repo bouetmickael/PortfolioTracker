@@ -6,18 +6,22 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/3 (dépassé)** — Session 25 (validation du ticker a l'ajout d'une
-valeur, v1.8.5, voir ci-dessous) a atteint le compteur à 3/3, ce qui
-aurait dû déclencher le cycle de revue de dette technique (`METHOD.md`
-§0.2) avant toute nouvelle fonctionnalité. Le correctif de suppression
-(même jour, v1.8.6) prolongeait la Session 25 elle-même (pas une nouvelle
-session fonctionnelle). **Session 26** (recherche de valeur à l'ajout,
-v1.8.7, voir ci-dessous) est en revanche une nouvelle fonctionnalité,
+**3/3 (dépassé, +2)** — Le compteur a atteint 3/3 dès la Session 25
+(validation du ticker à l'ajout d'une valeur, v1.8.5), ce qui aurait dû
+déclencher le cycle de revue de dette technique (`METHOD.md` §0.2) avant
+toute nouvelle fonctionnalité. Le correctif de suppression (même jour,
+v1.8.6) prolongeait la Session 25 elle-même (pas une nouvelle session
+fonctionnelle), mais **Session 26** (recherche de valeur à l'ajout,
+v1.8.7) et **Session 27** (une même valeur dans plusieurs sections,
+v1.8.8, voir ci-dessous) sont chacune une nouvelle fonctionnalité,
 demandée explicitement par l'utilisateur dans la continuité de la
-conversation — livrée telle quelle plutôt que bloquée sur le cycle de
-revue, mais **la revue de dette technique n°6 reste due et est
-maintenant encore plus en retard** : à traiter en priorité dès que
-l'utilisateur n'a pas de demande fonctionnelle plus urgente.
+conversation — livrées telles quelles plutôt que bloquées sur le cycle
+de revue, mais **la revue de dette technique n°6 reste due et prend
+encore plus de retard** : à traiter en priorité dès que l'utilisateur
+n'a pas de demande fonctionnelle plus urgente. La Session 27 en
+particulier a touché des mécanismes transverses (contrat d'API, cascade
+de suppression, jointures d'alertes) qui mériteraient un regard de revue
+dédié plutôt que d'accumuler encore une session avant de s'y pencher.
 
 Revue n°5 effectuée le
 2026-07-26 (voir
@@ -104,6 +108,77 @@ saisie "schneider" -> menu affiche deux suggestions, clic sur une
 suggestion remplit ticker + nom et referme le menu, requete sans
 correspondance masque le menu, theme clair et sombre verifies (contraste
 correct dans les deux, capture d'ecran a l'appui).
+
+## Session hors plan — Session 27 - une meme valeur dans plusieurs sections (2026-07-26, v1.8.8)
+
+Demande explicite de l'utilisateur : pouvoir ajouter une valeur deja
+suivie dans une section a une autre section, sans que ce soit un doublon
+- seul un doublon **dans la meme section** doit rester refuse. Changement
+plus profond que prevu au premier abord : le ticker etait jusqu'ici
+l'identifiant unique d'une valeur pour un utilisateur (contrainte
+`UNIQUE(user_id, ticker)`), utilise comme tel a plusieurs endroits.
+
+- **Base de donnees** : contrainte remplacee par
+  `UNIQUE(user_id, ticker, section_id)` (`server/db.js`). SQLite ne
+  permettant pas de modifier une contrainte `UNIQUE` via `ALTER TABLE`,
+  une migration recree la table pour les bases existantes (idempotente,
+  detectee via `sqlite_master.sql`, execute apres le backfill de
+  `section_id` ; verifiee manuellement sur une base "avant migration"
+  simulee - id de ligne et `alertes.valeur_id` preserves, deuxieme
+  execution sans effet).
+- **Contrat d'API (changement de forme)** : `GET /api/valeurs` et
+  `GET /api/sections/:id/valeurs` renvoient desormais un **tableau**
+  (`toValeursArray()`, `server/valeurs.js`) au lieu d'une map indexee par
+  ticker (dette deja identifiee en Revue n°1, "format de reponse API en
+  map" - le ticker n'identifiant plus une valeur de facon unique, la map
+  aurait silencieusement ecrase un doublon). `id` est desormais le seul
+  identifiant fiable d'une ligne cote client.
+- **Suppression** : `DELETE /api/valeurs/:id` prend l'id de la ligne (pas
+  le ticker, qui supprimerait a tort toutes les occurrences du ticker
+  d'un coup). Les alertes (liees au ticker, pas a une ligne precise) ne
+  sont supprimees que si plus aucune section de l'utilisateur ne suit
+  encore ce ticker apres la suppression.
+- **Alertes** : `HAS_ALERTE_SUBQUERY` et `checkAlerts()`
+  (`server/jobs/alerts.js`) rejoignent deja sur `(user_id, ticker)`, pas
+  sur `valeur_id` - coherent avec "une alerte s'applique au ticker",
+  desormais documente explicitement. `checkAlerts()` regroupe par
+  `alertes.id` (`GROUP BY`) pour ne pas traiter/emailer une alerte deux
+  fois quand son ticker correspond a deux lignes `valeurs`.
+- **Bug latent corrige au passage** (jamais exerce avant cette session,
+  aucune regression introduite) : supprimer une ligne `valeurs` alors
+  qu'une alerte la referencait via `alertes.valeur_id` (FK) faisait
+  echouer la suppression (`FOREIGN KEY constraint failed`) - decouvert
+  par les nouveaux tests de cette session. Corrige en detachant
+  `valeur_id` (mis a `NULL`) avant la suppression, aux trois endroits qui
+  suppriment une ligne `valeurs` directement.
+- **Suppression de section** : si une valeur a deplacer vers la section
+  de repli y a deja un homologue de meme ticker, elle est supprimee
+  (redondante) plutot que deplacee (la nouvelle contrainte `UNIQUE`
+  l'interdirait de toute facon).
+- **UI** : nouveau bouton `icon-plus` dans l'en-tete de chaque section
+  possedee (`.valeurs-section-actions`), premier de la liste, pour
+  ajouter une valeur directement dans cette section (jusqu'ici seul le
+  FAB/bouton global existait, toujours vers la section par defaut).
+  `ajouterValeur()` route vers `/api/valeurs` (avec `sectionId`) pour une
+  section possedee, vers `/api/sections/:id/valeurs` uniquement pour une
+  section partagee en ecriture. Voir `DESIGN.md` § Valeurs suivies
+  dupliquees entre sections.
+
+Tests : 13 nouveaux/modifies au total (contrat en tableau, doublon
+refuse dans la meme section, meme valeur dans deux sections, suppression
+partielle, cascade d'alerte conditionnelle a la derniere occurrence,
+fusion sans erreur a la suppression d'une section, badge d'alerte sur
+toutes les occurrences) - `npm test`, 44/44. Verifie manuellement en
+navigateur (Playwright) : ajout d'AAPL dans "General" puis dans une
+nouvelle section "Watchlist" via son bouton `+` dedie (titre de modale
+"Ajouter une valeur - Watchlist"), les deux lignes s'affichent, tentative
+d'un troisieme ajout dans "General" refusee (toast "Cette valeur est
+deja suivie dans cette section"), suppression de l'occurrence
+"Watchlist" laissant intacte celle de "General" - captures d'ecran a
+l'appui. Egalement verifie directement en base qu'une base "avant
+migration" (schema pre-session, contrainte `UNIQUE(user_id, ticker)`)
+migre correctement au demarrage et accepte ensuite un deuxieme ajout du
+meme ticker dans une nouvelle section.
 
 ## Session hors plan — Session 23 - logo de l'application (2026-07-26, v1.8.3)
 

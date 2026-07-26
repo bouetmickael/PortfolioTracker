@@ -4,13 +4,19 @@ const { sendMail } = require('../mailer');
 async function checkAlerts() {
   console.log('Demarrage verification alertes');
 
+  // GROUP BY alertes.id : une meme valeur peut desormais etre suivie dans
+  // plusieurs sections (voir BUSINESS_RULES.md § Valeurs suivies), donc la
+  // jointure sur le ticker peut matcher plusieurs lignes valeurs pour une
+  // seule alerte - sans ce regroupement, l'alerte serait traitee (et l'email
+  // envoye) une fois par occurrence du ticker au lieu d'une seule fois.
   const rows = db
     .prepare(
       `SELECT alertes.*, users.email AS user_email, valeurs.cours AS cours
        FROM alertes
        JOIN users ON users.id = alertes.user_id
        JOIN valeurs ON valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker
-       WHERE alertes.active = 1`
+       WHERE alertes.active = 1
+       GROUP BY alertes.id`
     )
     .all();
 

@@ -4,7 +4,7 @@ const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
 const { ROLES_VALIDES, rolesSection, peutEcrire } = require('../partage');
-const { HAS_ALERTE_SUBQUERY, toValeursMap, verifierTickerExiste } = require('../valeurs');
+const { HAS_ALERTE_SUBQUERY, toValeursArray, verifierTickerExiste } = require('../valeurs');
 
 const router = express.Router();
 
@@ -202,7 +202,7 @@ router.get('/:id/valeurs', (req, res) => {
     )
     .all(Number(req.params.id));
 
-  res.json(toValeursMap(rows));
+  res.json(toValeursArray(rows));
 });
 
 router.post('/:id/valeurs', async (req, res) => {
@@ -220,11 +220,16 @@ router.post('/:id/valeurs', async (req, res) => {
     return res.status(400).json({ error: 'Ticker requis' });
   }
 
+  const sectionId = Number(req.params.id);
+
+  // Une meme valeur peut desormais etre suivie dans plusieurs sections : le
+  // doublon n'est interdit qu'a l'interieur de cette section (voir
+  // BUSINESS_RULES.md § Valeurs suivies).
   const existing = db
-    .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?')
-    .get(info.proprietaireId, ticker);
+    .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ? AND section_id = ?')
+    .get(info.proprietaireId, ticker, sectionId);
   if (existing) {
-    return res.status(409).json({ error: 'Cette valeur est deja suivie' });
+    return res.status(409).json({ error: 'Cette valeur est deja suivie dans cette section' });
   }
 
   const priceData = await verifierTickerExiste(ticker);
@@ -232,7 +237,6 @@ router.post('/:id/valeurs', async (req, res) => {
     return res.status(400).json({ error: 'Valeur introuvable sur Yahoo Finance' });
   }
 
-  const sectionId = Number(req.params.id);
   const ordre = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [info.proprietaireId, sectionId]);
 
   db.prepare(
@@ -268,8 +272,25 @@ router.delete('/:id/valeurs/:ticker', (req, res) => {
     .get(info.proprietaireId, ticker, Number(req.params.id));
 
   if (valeur) {
-    db.prepare('DELETE FROM valeurs WHERE id = ?').run(valeur.id);
-    db.prepare('DELETE FROM alertes WHERE valeur_id = ?').run(valeur.id);
+    const supprimerValeur = db.transaction(() => {
+      // alertes.valeur_id reference cette ligne (FK) : le detacher avant de
+      // supprimer la ligne, sinon la suppression echoue (FOREIGN KEY
+      // constraint) - voir server/routes/valeurs.js pour le meme motif.
+      db.prepare('UPDATE alertes SET valeur_id = NULL WHERE valeur_id = ?').run(valeur.id);
+      db.prepare('DELETE FROM valeurs WHERE id = ?').run(valeur.id);
+
+      // Les alertes sont liees au ticker (pas a une ligne precise, voir
+      // HAS_ALERTE_SUBQUERY dans server/valeurs.js) : ne les supprimer que si
+      // plus aucune section du proprietaire ne suit encore ce ticker.
+      const autreOccurrence = db
+        .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?')
+        .get(info.proprietaireId, ticker);
+
+      if (!autreOccurrence) {
+        db.prepare('DELETE FROM alertes WHERE user_id = ? AND ticker = ?').run(info.proprietaireId, ticker);
+      }
+    });
+    supprimerValeur();
   }
 
   res.json({ success: true });
@@ -314,11 +335,29 @@ router.delete('/:id', (req, res) => {
     let ordreSuivant = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [req.session.userId, fallback.id]);
 
     const valeursADeplacer = db
-      .prepare('SELECT id FROM valeurs WHERE user_id = ? AND section_id = ? ORDER BY ordre ASC')
+      .prepare('SELECT id, ticker FROM valeurs WHERE user_id = ? AND section_id = ? ORDER BY ordre ASC')
       .all(req.session.userId, sectionId);
 
+    const tickerDejaDansFallback = db.prepare(
+      'SELECT id FROM valeurs WHERE user_id = ? AND ticker = ? AND section_id = ?'
+    );
     const deplacerValeur = db.prepare('UPDATE valeurs SET section_id = ?, ordre = ? WHERE id = ?');
+    // Une valeur deja presente dans la section de repli (meme ticker suivi
+    // dans les deux sections, voir BUSINESS_RULES.md § Valeurs suivies) ne
+    // peut pas y etre deplacee (contrainte UNIQUE(user_id, ticker,
+    // section_id)) : elle devient redondante et est supprimee plutot que
+    // deplacee, la section de repli suivant deja ce ticker.
     for (const valeur of valeursADeplacer) {
+      if (tickerDejaDansFallback.get(req.session.userId, valeur.ticker, fallback.id)) {
+        // alertes.valeur_id reference cette ligne (FK) : le detacher avant
+        // de la supprimer, sinon la suppression echoue (FOREIGN KEY
+        // constraint) - voir server/routes/valeurs.js pour le meme motif.
+        // L'alerte elle-meme (liee au ticker) n'est pas supprimee : la
+        // section de repli suit deja ce ticker.
+        db.prepare('UPDATE alertes SET valeur_id = NULL WHERE valeur_id = ?').run(valeur.id);
+        db.prepare('DELETE FROM valeurs WHERE id = ?').run(valeur.id);
+        continue;
+      }
       deplacerValeur.run(fallback.id, ordreSuivant, valeur.id);
       ordreSuivant++;
     }

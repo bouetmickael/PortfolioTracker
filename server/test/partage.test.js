@@ -70,7 +70,7 @@ test('partage en lecture : consultation possible, ecriture refusee', async () =>
   assert.equal(sectionVue.proprietaireEmail, 'partage-lecture-proprio@test.local');
 
   const valeurs = await (await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, { headers: { Cookie: invite.cookie } })).json();
-  assert.ok(valeurs.AAPL);
+  assert.ok(valeurs.some((v) => v.ticker === 'AAPL'));
 
   const ajout = await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, {
     method: 'POST',
@@ -121,10 +121,10 @@ test('partage en ecriture : ajout et suppression de valeurs dans la section part
   // La valeur ajoutee par l'invite reste rattachee au proprietaire de la
   // section (c'est la section qui est partagee, pas une copie chez l'invite).
   const valeursProprio = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: proprio.cookie } })).json();
-  assert.ok(valeursProprio.AAPL);
+  assert.ok(valeursProprio.some((v) => v.ticker === 'AAPL'));
 
   const valeursInvite = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: invite.cookie } })).json();
-  assert.ok(!valeursInvite.AAPL);
+  assert.ok(!valeursInvite.some((v) => v.ticker === 'AAPL'));
 
   const suppression = await fetch(`${baseUrl}/api/sections/${section.id}/valeurs/AAPL`, {
     method: 'DELETE',
@@ -133,7 +133,51 @@ test('partage en ecriture : ajout et suppression de valeurs dans la section part
   assert.equal(suppression.status, 200);
 
   const valeursApres = await (await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, { headers: { Cookie: proprio.cookie } })).json();
-  assert.ok(!valeursApres.AAPL);
+  assert.ok(!valeursApres.some((v) => v.ticker === 'AAPL'));
+});
+
+test('partage en ecriture : supprimer une occurrence partagee ne supprime pas l alerte du proprietaire si une autre occurrence subsiste', async () => {
+  const proprio = await creerUtilisateur(baseUrl, 'partage-alerte-proprio@test.local');
+  const invite = await creerUtilisateur(baseUrl, 'partage-alerte-invite@test.local');
+
+  const [sectionDefaut] = await (await fetch(`${baseUrl}/api/sections`, { headers: { Cookie: proprio.cookie } })).json();
+  const sectionPartagee = await (
+    await fetch(`${baseUrl}/api/sections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: proprio.cookie },
+      body: JSON.stringify({ nom: 'Partagee' })
+    })
+  ).json();
+  await partagerSection(proprio.cookie, sectionPartagee.id, 'partage-alerte-invite@test.local', 'ecriture');
+
+  // Le proprietaire suit AAPL a la fois dans sa section privee (avec une
+  // alerte) et dans la section partagee.
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: proprio.cookie },
+    body: JSON.stringify({ ticker: 'AAPL', sectionId: sectionDefaut.id })
+  });
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: proprio.cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 200 })
+  });
+  await fetch(`${baseUrl}/api/sections/${sectionPartagee.id}/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: invite.cookie },
+    body: JSON.stringify({ ticker: 'AAPL' })
+  });
+
+  // L'invite supprime l'occurrence de la section partagee : l'alerte du
+  // proprietaire (rattachee au ticker) doit survivre puisque sa section
+  // privee suit toujours AAPL.
+  await fetch(`${baseUrl}/api/sections/${sectionPartagee.id}/valeurs/AAPL`, {
+    method: 'DELETE',
+    headers: { Cookie: invite.cookie }
+  });
+
+  const alertes = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: proprio.cookie } })).json();
+  assert.equal(Object.keys(alertes).length, 1);
 });
 
 test('partage en ecriture : un ticker introuvable sur Yahoo Finance est rejete', async () => {
@@ -151,7 +195,7 @@ test('partage en ecriture : un ticker introuvable sur Yahoo Finance est rejete',
   assert.equal(ajout.status, 400);
 
   const valeurs = await (await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, { headers: { Cookie: proprio.cookie } })).json();
-  assert.equal(Object.keys(valeurs).length, 0);
+  assert.equal(valeurs.length, 0);
 });
 
 test('revoquer un partage retire l acces a la section', async () => {

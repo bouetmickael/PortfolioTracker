@@ -158,6 +158,9 @@
                   <h3 class="valeurs-section-nom" x-text="section.nom"></h3>
                 </div>
                 <div class="valeurs-section-actions">
+                  <button class="btn-icon-small" @click="ouvrirAjoutValeur(section)" title="Ajouter une valeur" aria-label="Ajouter une valeur">
+                    <svg class="icon icon-sm"><use href="#icon-plus"></use></svg>
+                  </button>
                   <button class="btn-icon-small" @click="ouvrirPartageModal(section)" title="Partager la section" aria-label="Partager la section">
                     <svg class="icon icon-sm"><use href="#icon-share"></use></svg>
                   </button>
@@ -198,7 +201,7 @@
                       <button class="btn-icon-small" @click.stop="openAlerteModal(valeur.ticker)" title="Creer alerte" aria-label="Creer alerte">
                         <svg class="icon icon-sm"><use href="#icon-bell"></use></svg>
                       </button>
-                      <button class="btn-icon-small" @click.stop="supprimerValeur(valeur.ticker)" title="Supprimer" aria-label="Supprimer">
+                      <button class="btn-icon-small" @click.stop="supprimerValeur(valeur.id, valeur.ticker)" title="Supprimer" aria-label="Supprimer">
                         <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
                       </button>
                     </div>
