@@ -4,6 +4,7 @@
 // booleen hasAlerte.
 
 const { fetchYahooFinance } = require('./jobs/prices');
+const { fetchYahooFinanceJson } = require('./yahooFinance');
 
 // Jointure par ticker (pas valeur_id) : une alerte s'applique au ticker pour
 // cet utilisateur, quelle que soit la section dans laquelle il est suivi
@@ -63,12 +64,7 @@ async function rechercherTickers(query) {
   const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Yahoo Finance error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await fetchYahooFinanceJson(url);
     const quotes = Array.isArray(data.quotes) ? data.quotes : [];
 
     return quotes

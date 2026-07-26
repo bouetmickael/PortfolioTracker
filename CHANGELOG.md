@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.8.10
+
+- Correctif de dette technique (aucun changement de comportement) :
+  factorisation du squelette reseau bas niveau des appels Yahoo Finance
+  (fetch, verification de `response.ok`, parsing JSON) dans un nouveau
+  module `server/yahooFinance.js` (`fetchYahooFinanceJson`), reutilise
+  par les quatre sites qui le reimplementaient independamment
+  (`fetchYahooFinance()` dans `server/jobs/prices.js`, la route
+  `GET /api/chart/:ticker`, et `rechercherTickers()` dans
+  `server/valeurs.js`). Chaque site garde sa propre logique de
+  validation metier (extraction du prix, gestion du cas "aucun
+  resultat"). Correctif reporte depuis la revue de dette technique n°1,
+  aggrave aux revues n°3, n°4 et n°6 (voir `CLAUDE.md` § Historique des
+  revues de dette technique).
+
 ## 1.8.9
 
 - Correctif : selectionner une suggestion de recherche a l'ajout d'une

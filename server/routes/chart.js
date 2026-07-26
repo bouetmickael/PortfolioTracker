@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { fetchYahooFinanceJson } = require('../yahooFinance');
 
 const router = express.Router();
 
@@ -46,8 +47,7 @@ router.get('/:ticker', async (req, res) => {
     const end = Math.floor(endDate.getTime() / 1000);
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${start}&period2=${end}&interval=${interval}`;
 
-    const response = await fetch(url);
-    const json = await response.json();
+    const json = await fetchYahooFinanceJson(url);
 
     if (!json.chart || !json.chart.result) {
       throw new Error('Donnees historiques indisponibles');

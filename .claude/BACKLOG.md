@@ -6,7 +6,13 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/3** — Revue de dette technique n°6 effectuée le 2026-07-26 (voir
+**1/3** — Session 29 (2026-07-26, v1.8.10) a traité un correctif de dette
+technique reporté (« duplication de la logique Yahoo Finance », voir
+ci-dessous), sans changement de comportement observable — comptée comme
+une session au sens du compteur (§0.1 de `METHOD.md`), pas comme un
+nouveau cycle de revue (§0.2).
+
+Revue de dette technique n°6 effectuée le 2026-07-26 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°5 (Session 23 logo de l'application,
 Session 24 densité des cartes d'alerte, Session 25 validation du ticker
@@ -36,6 +42,42 @@ l'échelle Chart.js, factorisation de la création des éléments d'overlay
 du graphique, fusion CSS des pastilles `.alerte-existante-badge`/
 `.alerte-hors-limite`) ; correctifs plus profonds documentés et reportés
 (voir Revue n°5).
+
+## Session 29 - factorisation du squelette reseau Yahoo Finance (2026-07-26, v1.8.10)
+
+Traite le correctif de dette technique reporté « duplication de la
+logique Yahoo Finance », identifié en Revue n°1 et aggravé aux Revues
+n°3, n°4 et n°6 (voir `CLAUDE.md` § Historique des revues). Quatre sites
+réimplémentaient indépendamment le squelette `fetch(url)` → vérifier
+`response.ok` → parser le JSON → gérer l'erreur : `fetchYahooFinance()`
+(`server/jobs/prices.js`, cours d'une valeur/d'un indice), la route
+`GET /api/chart/:ticker` (`server/routes/chart.js`, historique), et
+`rechercherTickers()` (`server/valeurs.js`, recherche par nom).
+Nouveau module `server/yahooFinance.js` (`fetchYahooFinanceJson(url)`)
+partagé par les trois — `verifierTickerExiste()` (`server/valeurs.js`)
+en bénéficie indirectement puisqu'il appelle déjà `fetchYahooFinance()`.
+Chaque site garde sa propre logique de validation métier au-dessus
+(extraction du prix, gestion du cas « aucun résultat », forme de la
+réponse) : seul le squelette réseau bas niveau est partagé, comme
+demandé. Aucun changement de comportement — `server/routes/chart.js`
+gagne au passage une vérification de `response.ok` qu'il n'avait
+jamais eue (un statut HTTP en erreur tombait auparavant directement sur
+le parsing JSON), mais le chemin d'erreur résultant (capturé par le
+`try/catch` de la route, réponse 500 avec `error.message`) reste
+identique pour l'utilisateur.
+
+Vérifié par tests unitaires (`node --test test/*.test.js`, 44/44 —
+`npm test` échoue toujours dans ce bac à sable avec la même anomalie
+d'environnement préexistante déjà documentée en Revue n°6, non liée à
+cette session) et un parcours API réel sur un serveur local dédié avec
+les mêmes mocks Yahoo Finance que les tests (register, recherche
+`GET /api/valeurs/recherche?q=schneider`, ajout d'une valeur
+`POST /api/valeurs`, `GET /api/chart/:ticker`, exécution directe de
+`updatePrices()`/`updateIndices()`) — tous les quatre sites confirmés
+fonctionnels après le changement. Pas de test manuel navigateur/
+Playwright (aucun changement d'UI, la sandbox de développement bloque
+de toute façon les appels sortants réels vers
+`query1.finance.yahoo.com`, comme documenté aux sessions précédentes).
 
 ## Session hors plan — Session 25 - validation du ticker a l'ajout d'une valeur (2026-07-26, v1.8.5)
 

@@ -1,15 +1,11 @@
 const db = require('../db');
 const { INDICES } = require('../indices');
+const { fetchYahooFinanceJson } = require('../yahooFinance');
 
 async function fetchYahooFinance(ticker) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Yahoo Finance error: ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await fetchYahooFinanceJson(url);
 
   if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
     throw new Error('Donnees invalides Yahoo Finance');
