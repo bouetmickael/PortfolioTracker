@@ -35,6 +35,21 @@
 - Supprimer une valeur suivie supprime aussi toutes les alertes associées à
   ce couple `(user_id, ticker)` (cascade applicative explicite dans la
   route, pas une contrainte SQL `ON DELETE CASCADE`).
+- **Le ticker est vérifié sur Yahoo Finance avant l'ajout** (session
+  2026-07-26, retour utilisateur explicite : n'importe quel texte pouvait
+  être ajouté comme "valeur", y compris pour un warrant, sans jamais
+  afficher de cours — voir `server/valeurs.js` § `verifierTickerExiste`,
+  appelée par `POST /api/valeurs` et `POST /api/sections/:id/valeurs`).
+  Un ticker introuvable ou sans cours exploitable (`regularMarketPrice`
+  absent ou nul) est rejeté (400, `Valeur introuvable sur Yahoo Finance`)
+  plutôt qu'ajouté silencieusement avec un cours à 0 en attente du
+  prochain cycle de la tâche planifiée. Une valeur acceptée est donc
+  toujours insérée avec un cours réel dès sa création (pas de valeur à 0
+  temporaire). Yahoo Finance restant la seule source de cours du projet
+  (voir `ARCHITECTURE.md` § Points de vigilance), un warrant sans ticker
+  Yahoo Finance valide (ex. un ISIN ou une désignation BoursoBank interne
+  plutôt qu'un ticker coté) reste rejeté par cette même règle — pas une
+  limitation spécifique aux warrants.
 
 ## Sections (liste des valeurs suivies)
 

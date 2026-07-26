@@ -3,6 +3,8 @@
 // qui exposent tous deux des lignes de la table valeurs enrichies du
 // booleen hasAlerte.
 
+const { fetchYahooFinance } = require('./jobs/prices');
+
 const HAS_ALERTE_SUBQUERY = `EXISTS(
   SELECT 1 FROM alertes a
   WHERE a.valeur_id = v.id AND a.user_id = v.user_id AND a.active = 1
@@ -32,4 +34,18 @@ function toValeursMap(rows) {
   return map;
 }
 
-module.exports = { HAS_ALERTE_SUBQUERY, toValeurJson, toValeursMap };
+// Verifie qu'un ticker existe reellement sur Yahoo Finance avant de
+// l'ajouter aux valeurs suivies (aucune valeur inventee, meme pattern que
+// BUSINESS_RULES.md § Integrite des cours). Retourne le cours recupere
+// (utilise pour peupler la valeur immediatement) ou null si le ticker est
+// introuvable/invalide.
+async function verifierTickerExiste(ticker) {
+  try {
+    const priceData = await fetchYahooFinance(ticker);
+    return priceData.price > 0 ? priceData : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+module.exports = { HAS_ALERTE_SUBQUERY, toValeurJson, toValeursMap, verifierTickerExiste };

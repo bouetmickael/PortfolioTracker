@@ -67,3 +67,38 @@ test('un sectionId appartenant a un autre utilisateur est ignore (retombe sur la
   const valeursA = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: userA.cookie } })).json();
   assert.equal(valeursA.AAPL.sectionId, sectionsA[0].id);
 });
+
+test('un ticker introuvable sur Yahoo Finance est rejete et non ajoute', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'valeurs-introuvable@test.local');
+
+  const res = await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'PAS DE CONTROLE' })
+  });
+
+  assert.equal(res.status, 400);
+  const data = await res.json();
+  assert.equal(data.error, 'Valeur introuvable sur Yahoo Finance');
+
+  const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
+  assert.equal(Object.keys(valeurs).length, 0);
+});
+
+test('une valeur trouvee sur Yahoo Finance est ajoutee avec son cours reel', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'valeurs-trouvee@test.local');
+
+  const res = await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', type: 'Warrant' })
+  });
+
+  assert.equal(res.status, 201);
+
+  const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
+  assert.equal(valeurs.AAPL.cours, 100);
+  assert.equal(valeurs.AAPL.variation, 1.5);
+  assert.equal(valeurs.AAPL.type, 'Warrant');
+  assert.ok(valeurs.AAPL.derniereMaj > 0);
+});

@@ -136,6 +136,24 @@ test('partage en ecriture : ajout et suppression de valeurs dans la section part
   assert.ok(!valeursApres.AAPL);
 });
 
+test('partage en ecriture : un ticker introuvable sur Yahoo Finance est rejete', async () => {
+  const proprio = await creerUtilisateur(baseUrl, 'partage-introuvable-proprio@test.local');
+  const invite = await creerUtilisateur(baseUrl, 'partage-introuvable-invite@test.local');
+
+  const [section] = await (await fetch(`${baseUrl}/api/sections`, { headers: { Cookie: proprio.cookie } })).json();
+  await partagerSection(proprio.cookie, section.id, 'partage-introuvable-invite@test.local', 'ecriture');
+
+  const ajout = await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: invite.cookie },
+    body: JSON.stringify({ ticker: 'LVMH/SGE WT 26' })
+  });
+  assert.equal(ajout.status, 400);
+
+  const valeurs = await (await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, { headers: { Cookie: proprio.cookie } })).json();
+  assert.equal(Object.keys(valeurs).length, 0);
+});
+
 test('revoquer un partage retire l acces a la section', async () => {
   const proprio = await creerUtilisateur(baseUrl, 'partage-revoke-proprio@test.local');
   const invite = await creerUtilisateur(baseUrl, 'partage-revoke-invite@test.local');

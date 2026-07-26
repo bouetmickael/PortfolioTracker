@@ -2,10 +2,46 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
+// Un ticker Yahoo Finance valide ne contient que lettres/chiffres/points/
+// tirets/carets (ex. AAPL, MC.PA, ^GSPC) ; simule ici la reponse Yahoo
+// Finance sans appel reseau reel, pour que les tests d'ajout de valeur
+// (POST /api/valeurs, POST /api/sections/:id/valeurs) restent
+// deterministes et hors ligne. Voir server/valeurs.js (verifierTickerExiste).
+const TICKER_YAHOO_VALIDE = /^[A-Z0-9.\-^]+$/;
+
+function mockFetchYahooFinance() {
+  const fetchOriginal = global.fetch;
+
+  global.fetch = (url, options) => {
+    if (typeof url === 'string' && url.includes('query1.finance.yahoo.com')) {
+      const ticker = decodeURIComponent(url.split('/chart/')[1].split('?')[0]);
+      if (!TICKER_YAHOO_VALIDE.test(ticker)) {
+        return Promise.resolve({ ok: false, status: 404 });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          chart: {
+            result: [
+              {
+                meta: { regularMarketPrice: 100, regularMarketChangePercent: 1.5, regularMarketVolume: 1000, currency: 'USD' }
+              }
+            ]
+          }
+        })
+      });
+    }
+    return fetchOriginal(url, options);
+  };
+}
+
 function demarrerServeurDeTest(nomFichier) {
   const dbFile = path.join(os.tmpdir(), `portfolio-test-${nomFichier}-${Date.now()}-${process.pid}.db`);
   process.env.DB_PATH = dbFile;
   process.env.SESSION_SECRET = 'test-secret';
+
+  mockFetchYahooFinance();
 
   // eslint-disable-next-line global-require
   const app = require('../../app');

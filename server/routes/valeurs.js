@@ -3,7 +3,7 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
-const { HAS_ALERTE_SUBQUERY, toValeursMap } = require('../valeurs');
+const { HAS_ALERTE_SUBQUERY, toValeursMap, verifierTickerExiste } = require('../valeurs');
 
 const router = express.Router();
 
@@ -30,7 +30,7 @@ router.get('/', (req, res) => {
   res.json(toValeursMap(rows));
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const ticker = normalizeTicker(req.body.ticker);
   const type = req.body.type === 'Warrant' ? 'Warrant' : 'Action';
   const nom = (req.body.nom || '').trim();
@@ -47,13 +47,30 @@ router.post('/', (req, res) => {
     return res.status(409).json({ error: 'Cette valeur est deja suivie' });
   }
 
+  const priceData = await verifierTickerExiste(ticker);
+  if (!priceData) {
+    return res.status(400).json({ error: 'Valeur introuvable sur Yahoo Finance' });
+  }
+
   const sectionId = sectionCible(req.session.userId, req.body.sectionId);
   const ordre = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [req.session.userId, sectionId]);
 
   db.prepare(
     `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
-     VALUES (?, ?, ?, ?, 0, 0, 0, NULL, ?, ?, ?)`
-  ).run(req.session.userId, ticker, type, nom, Date.now(), sectionId, ordre);
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    req.session.userId,
+    ticker,
+    type,
+    nom,
+    priceData.price,
+    priceData.changePct,
+    priceData.volume,
+    Date.now(),
+    Date.now(),
+    sectionId,
+    ordre
+  );
 
   res.status(201).json({ success: true });
 });

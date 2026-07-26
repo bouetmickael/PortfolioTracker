@@ -6,9 +6,13 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/3** — Session 23 (logo de l'application, v1.8.3-v1.8.4, voir
-ci-dessous) effectuée après la revue de dette technique n°5. Revue n°5
-effectuée le
+**3/3** — Session 25 (validation du ticker a l'ajout d'une valeur,
+v1.8.5, voir ci-dessous) effectuée après la revue de dette technique n°5.
+Le compteur atteint 3/3 : la **prochaine session doit être le cycle de
+revue de dette technique** (`METHOD.md` §0.2), et non une nouvelle
+fonctionnalité.
+
+Revue n°5 effectuée le
 2026-07-26 (voir
 `CLAUDE.md` § Historique des revues de dette technique), portant sur le
 diff cumulé depuis la revue n°4 (Session 19 alertes existantes sur le
@@ -18,9 +22,31 @@ appliqués (index d'alertes par ticker simplifié en tableau plat, cache de
 l'échelle Chart.js, factorisation de la création des éléments d'overlay
 du graphique, fusion CSS des pastilles `.alerte-existante-badge`/
 `.alerte-hors-limite`) ; correctifs plus profonds documentés et reportés
-(voir Revue n°5). Compteur réinitialisé à 0/3 — la prochaine session
-porte sur le prochain point du backlog produit ci-dessous, à arbitrer
-avec l'utilisateur.
+(voir Revue n°5).
+
+## Session hors plan — Session 25 - validation du ticker a l'ajout d'une valeur (2026-07-26, v1.8.5)
+
+Demande explicite de l'utilisateur (capture d'ecran a l'appui) : n'importe
+quel texte pouvait etre ajoute comme valeur suivie (ex. "PAS DE CONTROLE"),
+et les warrants ajoutes avec un ISIN ou une designation BoursoBank interne
+(ex. "DE000SJ1SRC8", "LVMH/SGE WT 26") n'affichaient jamais de cours
+(`MAJ: -`) sans jamais etre rejetes. `POST /api/valeurs` et
+`POST /api/sections/:id/valeurs` interrogent desormais Yahoo Finance
+(`verifierTickerExiste`, `server/valeurs.js`) avant l'insertion et
+rejettent (400) un ticker introuvable ou sans cours exploitable — meme
+cause racine pour les deux symptomes de la capture (aucune validation
+n'existait avant cette session, y compris pour les warrants, qui
+n'utilisent pas de source de donnees differente des actions ; voir
+`BUSINESS_RULES.md` § Valeurs suivies). Une valeur acceptee est desormais
+inseree avec son cours reel des sa creation (au lieu d'un cours a 0 en
+attente du prochain cycle de la tache planifiee). Tests ajoutes
+(`server/test/valeurs.test.js`, `server/test/partage.test.js`) avec un
+mock de l'appel Yahoo Finance dans `server/test/support/helpers.js`
+(`npm test`, 32/32) — la sandbox de developpement bloque les appels
+sortants reels vers `query1.finance.yahoo.com` (host non liste dans
+l'allowlist reseau), donc le chemin de succes n'a pu etre verifie qu'avec
+ce mock, pas contre l'API Yahoo Finance reelle ; a confirmer sur un
+deploiement reel (Raspberry Pi) avec un ticker valide.
 
 ## Session hors plan — Session 23 - logo de l'application (2026-07-26, v1.8.3)
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.8.5
+
+- Validation du ticker a l'ajout d'une valeur (demande explicite
+  utilisateur : n'importe quel texte pouvait etre ajoute comme valeur
+  suivie, y compris un warrant, sans jamais afficher de cours). Le ticker
+  est desormais verifie sur Yahoo Finance avant l'ajout
+  (`POST /api/valeurs` et `POST /api/sections/:id/valeurs`) ; rejete (400)
+  s'il est introuvable. Une valeur acceptee est inseree avec son cours
+  reel des sa creation, sans attendre le prochain cycle de mise a jour.
+  Voir `BUSINESS_RULES.md` § Valeurs suivies.
+
 ## 1.8.4
 
 - Cartes d'alerte (section "Alertes actives") reduites (retour utilisateur
