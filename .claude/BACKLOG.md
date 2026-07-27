@@ -6,7 +6,29 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 37 (2026-07-27, v1.9.7), **petite fonctionnalité hors
+**5/5** — Session 38 (2026-07-27, v1.9.8), **correctif bloquant hors
+plan** : retour utilisateur (capture d'écran) — impossible de faire
+défiler la liste de résultats de recherche d'une valeur à l'ajout
+(`#rechercheResultats`, Session 26/v1.8.7) sur mobile, empêchant
+d'atteindre un résultat situé plus bas (cas réel : « Renault SA · Paris »
+précédée de 5 doublons d'autres bourses). Cause : la sélection d'un
+résultat écoutait `pointerdown` avec `preventDefault()` (pour agir avant
+le `blur` du champ Ticker) — `preventDefault()` sur `pointerdown`
+supprime aussi le scroll tactile natif du conteneur, et chaque item
+couvrant presque toute la hauteur visible, plus aucun scroll n'était
+possible. Remplacé par une sélection sur `click` (naturellement
+insensible à un geste de glisser) et une fermeture du menu au clic
+extérieur plutôt que sur `blur` + délai. Vérifié par un geste tactile
+CDP réel (`Input.dispatchTouchEvent`) confirmant le scroll fonctionnel.
+**Troisième déviation consécutive à `METHOD.md` §0.2** (compteur à 5/5
+depuis la Session 35) : un bug bloquant une action cœur (impossible
+d'ajouter certaines valeurs par recherche) prime à nouveau sur
+l'ordonnancement du cycle. **La revue de dette technique est due sans
+exception à la prochaine session — aucune nouvelle déviation ne devra
+être acceptée sans un motif au moins aussi sérieux.** Voir
+`CHANGELOG.md` 1.9.8.
+
+Session 37 (2026-07-27, v1.9.7), **petite fonctionnalité hors
 plan** : une fois le correctif de la Session 36 confirmé (capture
 d'écran montrant « Déclenchee a hh:mm » sur une carte), demande
 explicite utilisateur — le texte seul restait trop discret, souhait de

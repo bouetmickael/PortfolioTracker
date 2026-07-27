@@ -1844,3 +1844,73 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   demande utilisateur explicite immediate a prime sur l'attente d'un
   cycle de revue). **La revue de dette technique est due sans exception a
   la prochaine session.**
+
+## 2026-07-27 — Session 38 - la liste de recherche de valeur ne defile pas sur mobile (v1.9.8)
+
+- **Retour utilisateur** (capture d'ecran reelle, clavier virtuel ouvert) :
+  recherche "Renault" dans la modale d'ajout de valeur, plusieurs
+  resultats affiches (FTSE Renault Index, Renault SA Frankfurt, Renault
+  SA Xetra...) mais impossible de faire defiler la liste pour atteindre
+  "Renault SA · Paris" (RNO.PA), le seul resultat pertinent pour un
+  portefeuille CTO BoursoBank. Message explicite : "je ne peux pas
+  scroller pour regarder les autres".
+- **Diagnostic** (`public/app.js`, `afficherRechercheResultats()`) :
+  chaque `.recherche-item` ecoutait `pointerdown` avec `e.preventDefault()`
+  (ajoute en Session 26/v1.8.7 pour que la selection agisse avant que le
+  `blur` du champ Ticker ne referme le menu via un `setTimeout` de
+  150ms). `preventDefault()` sur un evenement `pointerdown` supprime
+  aussi, par specification, le geste de scroll tactile natif pour tout le
+  reste de cette interaction - et puisque chaque item couvre presque
+  toute la hauteur du conteneur (`max-height: 240px`, aucun espace vide
+  entre les lignes), absolument aucun point de la liste ne pouvait
+  demarrer un scroll tactile sans etre intercepte comme une selection.
+  Root cause confirmee comme un comportement standard et documente des
+  Pointer Events (pas une anomalie de navigateur), donc reproductible de
+  facon identique sur tout navigateur mobile respectant la specification -
+  pas un bug limite a un appareil particulier.
+- **Correctif** (`public/app.js`) :
+  - Selection d'un resultat deplacee de `pointerdown`+`preventDefault()`
+    vers `click` (semantique native : un `click` ne se declenche jamais
+    apres un geste de glisser detecte comme un scroll, contrairement a
+    `pointerdown` qui se declenche des le premier contact quel que soit
+    le geste a venir) - restaure le scroll tactile sans code
+    supplementaire, en s'appuyant sur le comportement deja garanti par
+    tout navigateur.
+  - Le mecanisme de fermeture bascule du `blur` + `setTimeout(150ms)`
+    (une course entre la fermeture programmee et le `click` sur un
+    resultat, gagnee jusqu'ici uniquement grace au `preventDefault()`
+    desormais retire) vers un clic/tap exterieur (`setupEventListeners()`,
+    meme principe deja utilise pour le menu utilisateur - fermer le menu
+    de resultats si la cible du clic n'est ni le champ Ticker ni un
+    element a l'interieur de `#rechercheResultats`) : plus aucune
+    dependance a un delai arbitraire, la fermeture est desormais
+    deterministe.
+  - `DESIGN.md` § Recherche de valeur a l'ajout mis a jour pour refleter
+    le nouveau mecanisme (l'ancien texte documentait encore
+    `pointerdown`/150ms).
+- **Verification reelle** : `node --test test/*.test.js` : 53/53 verts
+  (aucun changement serveur). Parcours Playwright reel avec contexte
+  tactile (`hasTouch: true`, `isMobile: true`, meme contournement CDN
+  Chart.js que les sessions precedentes) reproduisant fidelement le cas
+  utilisateur : recherche "renault" mockee avec 8 resultats (dont
+  "Renault SA · Paris" en 7e position, hors de la vue initiale du
+  conteneur `max-height: 240px`), geste de glisser tactile **reel**
+  dispatche via le CDP (`Input.dispatchTouchEvent`, sequence touchStart/
+  touchMove x5/touchEnd - pas un scroll programmatique qui n'aurait pas
+  reproduit le bug) confirmant que `scrollTop` progresse bien (0 -> ~150)
+  la ou il restait bloque a 0 avant le correctif ; selection du resultat
+  Paris apres scroll remplissant correctement `#inputTicker`/`#inputNom`
+  et refermant le menu ; verification separee que le clic en dehors du
+  champ et du menu (sur le titre de la modale) referme bien le menu -
+  le nouveau mecanisme de fermeture fonctionne comme l'ancien.
+- Version : `server/package.json`/`config.yaml` 1.9.7 -> 1.9.8
+  (increment PATCH - correctif bloquant), journalise dans
+  `CHANGELOG.md`.
+- **Troisieme deviation consecutive a `METHOD.md` §0.2** : compteur
+  laisse a 5/5 (deja a 5/5 depuis la Session 35). Un bug bloquant une
+  action cœur (impossible d'ajouter certaines valeurs par recherche,
+  aucun contournement dans l'UI) justifie une nouvelle fois de traiter
+  le correctif avant la revue. **Engagement pris explicitement dans
+  `BACKLOG.md` : la revue de dette technique doit avoir lieu a la
+  prochaine session sans nouvelle exception, sauf motif au moins aussi
+  serieux qu'un bug bloquant.**

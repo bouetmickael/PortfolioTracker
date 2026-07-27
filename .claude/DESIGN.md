@@ -383,11 +383,24 @@ délibéré antérieur, non remis en cause).
   valeur selectionnee (ecrase une eventuelle saisie manuelle prealable -
   correctif 2026-07-26, demande explicite utilisateur ; le premier
   comportement ne remplacait `#inputNom` que s'il etait vide) puis
-  referme le menu ; la selection
-  ecoute `pointerdown` plutot que `click` sur chaque item pour agir avant
-  le `blur` du champ Ticker (qui referme sinon le menu avec un delai de
-  150ms). Aucune correspondance ou saisie de moins de 2 caracteres masque
-  le menu. Reste une aide a la saisie uniquement : le ticker choisi passe
+  referme le menu. La liste elle-meme reste scrollable au-dela de
+  `max-height: 240px` (`overflow-y: auto`) lorsque les 8 resultats ne
+  tiennent pas dans l'espace visible restant sous le clavier virtuel -
+  **correctif v1.9.8** (retour utilisateur explicite : impossible de
+  faire defiler la liste sur mobile pour atteindre un resultat plus bas,
+  ex. « Renault SA · Paris » apres plusieurs doublons d'autres bourses).
+  La selection ecoute desormais `click` (pas `pointerdown`) sur chaque
+  item : un `click` natif ne se declenche pas apres un geste de glisser
+  (l'ancien mecanisme appelait `preventDefault()` sur `pointerdown` pour
+  agir avant le `blur` du champ Ticker, mais `preventDefault()` sur
+  `pointerdown` supprime aussi le scroll tactile natif du conteneur -
+  chaque item couvrant presque toute la hauteur de la liste, plus aucun
+  scroll n'etait possible). La fermeture du menu ne repose plus sur
+  `blur` + un delai de 150ms (course avec le `click` sur un resultat,
+  potentiellement perdue) mais sur un clic/tap en dehors du champ et de
+  la liste (`setupEventListeners()`, meme principe que le menu
+  utilisateur). Aucune correspondance ou saisie de moins de 2 caracteres
+  masque le menu. Reste une aide a la saisie uniquement : le ticker choisi passe
   toujours par la meme validation Yahoo Finance qu'une saisie manuelle a
   la soumission du formulaire (voir `BUSINESS_RULES.md` § Valeurs
   suivies) ; les warrants identifies par ISIN (voir

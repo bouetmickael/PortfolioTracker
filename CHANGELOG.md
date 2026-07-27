@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.8
+
+- Correctif : impossible de faire défiler la liste de résultats lors de
+  la recherche d'une valeur à l'ajout (ex. plusieurs cotations "Renault
+  SA" sur différentes bourses avant celle de Paris, inatteignable). La
+  sélection d'un résultat empêchait par erreur tout scroll tactile dans
+  la liste. Fermeture du menu au clic extérieur plutôt que sur `blur`.
+
 ## 1.9.7
 
 - Ajout de pastilles de notification (points rouges) pour repérer en un

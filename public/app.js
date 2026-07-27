@@ -422,13 +422,15 @@ function afficherRechercheResultats(resultats) {
       <div class="recherche-item-nom">${resultat.nom}</div>
       <div class="recherche-item-detail">${resultat.ticker}${resultat.bourse ? ' · ' + resultat.bourse : ''}</div>
     `;
-    // pointerdown (avant le blur de l'input) plutot que click : le blur de
-    // #inputTicker masquerait la liste avant qu'un click n'ait le temps de
-    // se declencher dessus.
-    item.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      selectionnerResultatRecherche(resultat);
-    });
+    // click (pas pointerdown) : un click natif ne se declenche pas apres un
+    // glisser (scroll tactile dans la liste), contrairement a pointerdown -
+    // appeler preventDefault() sur pointerdown supprimait aussi le geste de
+    // scroll tactile natif pour tout le conteneur (chaque item couvrant
+    // presque toute sa hauteur, plus aucun scroll n'etait possible dans les
+    // resultats - bug reel, retour utilisateur du 2026-07-27). La fermeture
+    // sur clic exterieur (voir setupEventListeners) remplace l'ancien
+    // mecanisme base sur blur + delai de 150ms, qui n'est plus necessaire.
+    item.addEventListener('click', () => selectionnerResultatRecherche(resultat));
     conteneur.appendChild(item);
   }
   conteneur.hidden = false;
@@ -1341,8 +1343,19 @@ function setupEventListeners() {
 
   const inputTicker = document.getElementById('inputTicker');
   inputTicker.addEventListener('input', onInputTickerChange);
-  inputTicker.addEventListener('blur', () => {
-    setTimeout(() => masquerRechercheResultats(), 150);
+
+  // Fermeture sur clic/tap exterieur (meme principe que le menu utilisateur
+  // ci-dessus) plutot que sur blur + delai : blur se declenche des qu'un
+  // autre element recoit le focus (ou meme au premier toucher sur mobile),
+  // avant qu'un tap sur un resultat n'ait eu le temps d'aboutir - la
+  // fermeture sur clic exterieur n'a pas cette course, un tap sur un
+  // resultat le selectionne toujours avant que quoi que ce soit d'autre ne
+  // ferme la liste (voir afficherRechercheResultats).
+  document.addEventListener('click', (e) => {
+    const resultats = document.getElementById('rechercheResultats');
+    if (!resultats.hidden && e.target !== inputTicker && !resultats.contains(e.target)) {
+      masquerRechercheResultats();
+    }
   });
 
   document.getElementById('promptInput').addEventListener('keydown', (e) => {
