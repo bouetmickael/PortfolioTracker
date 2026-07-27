@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.9.4
+
+- Ajout d'un indicateur "Derniere alerte" sur chaque carte d'alerte
+  (`Declenchee a hh:mm` ou `Jamais declenchee`) : jusqu'ici, l'envoi
+  d'email etait le seul moyen de savoir qu'un seuil avait ete franchi, et
+  cet envoi est silencieusement desactive si `SMTP_*` n'est pas configure
+  (comportement volontaire, voir `BUSINESS_RULES.md` § Alertes de
+  seuil) - un utilisateur sans SMTP configure n'avait donc structurellement
+  aucun moyen de savoir qu'une alerte s'etait declenchee. Retour
+  utilisateur explicite du 2026-07-27 (deux seuils franchis un matin sans
+  aucune notification visible).
+
 ## 1.9.3
 
 - Ajout d'un graphique du volume echange sous le graphique de cours d'une

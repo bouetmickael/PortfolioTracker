@@ -274,6 +274,17 @@ function displayAlertes(alertes) {
   });
 }
 
+// derniereAlerte (session 2026-07-27, retour utilisateur explicite : deux
+// seuils franchis un matin sans aucune notification visible nulle part, SMTP
+// non configure). derniereAlerte est ecrite par checkAlerts() des qu'un
+// seuil est franchi, que l'envoi d'email reussisse, echoue ou soit
+// desactive (voir server/jobs/alerts.js/BUSINESS_RULES.md § Alertes de
+// seuil) : seul moyen de verifier dans l'app qu'une alerte s'est bien
+// declenchee, independamment de l'email.
+function texteDerniereAlerte(alerte) {
+  return alerte.derniereAlerte ? `Declenchee a ${formatHeure(alerte.derniereAlerte)}` : 'Jamais declenchee';
+}
+
 function createAlerteCard(id, alerte) {
   const div = document.createElement('div');
   div.className = 'alerte-card';
@@ -286,6 +297,7 @@ function createAlerteCard(id, alerte) {
     <div class="alerte-info">
       <div class="alerte-ticker">${alerte.ticker}</div>
       <div class="alerte-seuils">${seuils.join(' - ')}</div>
+      <div class="alerte-derniere">${texteDerniereAlerte(alerte)}</div>
     </div>
     <button class="btn-icon-small btn-icon-xs" onclick="supprimerAlerte('${id}')" title="Supprimer" aria-label="Supprimer">
       <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>

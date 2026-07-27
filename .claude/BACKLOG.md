@@ -6,7 +6,20 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/5** — Session 33 (2026-07-27, v1.9.3) : fusion de `POST /api/valeurs`
+**4/5** — Session 34 (2026-07-27, v1.9.4) : retour utilisateur explicite
+(deux seuils d'alerte franchis un matin sans aucune notification visible).
+Diagnostic : mécanisme de déclenchement (`checkAlerts()`) sain et
+vérifié par test dédié (`server/test/alerts-job.test.js`), mais l'email
+est le seul canal de notification et il est silencieusement désactivé
+sans `SMTP_*` configuré (comportement volontaire, voir
+`BUSINESS_RULES.md` § Alertes de seuil) — cause la plus probable sur le
+déploiement de l'utilisateur, à confirmer une fois SMTP configuré.
+Correctif appliqué : indicateur « Déclenchée à hh:mm »/« Jamais
+déclenchée » sur chaque carte d'alerte (`derniereAlerte`, déjà renvoyée
+par l'API mais jamais affichée), pour que l'app reste un canal de
+vérification même sans email. Voir `CHANGELOG.md` 1.9.4.
+
+3/5 — Session 33 (2026-07-27, v1.9.3) : fusion de `POST /api/valeurs`
 et `POST /api/sections/:id/valeurs` en un seul endpoint déterminant
 lui-même l'autorisation d'écriture, suppression de la colonne FK
 vestigiale `alertes.valeur_id` (migration de recréation de table) — deux

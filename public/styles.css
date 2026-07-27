@@ -686,7 +686,8 @@ body {
   margin-bottom: 1px;
 }
 
-.alerte-seuils {
+.alerte-seuils,
+.alerte-derniere {
   font-size: 10px;
   line-height: 1.25;
   color: var(--text-secondary);

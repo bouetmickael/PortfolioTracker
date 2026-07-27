@@ -1557,3 +1557,76 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   d'increment MINEUR malgre la nouvelle fonctionnalite visible),
   journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 2/5 -> 3/5.
+
+## 2026-07-27 — Session 34 - indicateur "derniere alerte" suite a un retour utilisateur (v1.9.4)
+
+- **Retour utilisateur** (message direct, pas une capture d'ecran) : deux
+  alertes de seuil definies le matin meme, franchies dans la journee,
+  sans aucune notification recue (ni email, ni badge visible dans
+  l'app).
+- **Diagnostic** :
+  - Le mecanisme de declenchement lui-meme (`checkAlerts()`,
+    `server/jobs/alerts.js`) n'a pas ete touche par la Session 33 et
+    n'a revele aucun bug a la lecture : sous-requete correlee correcte,
+    logique d'anti-repetition conforme a `BUSINESS_RULES.md` §
+    Alertes de seuil, `dernier_cours_alerte`/`derniere_alerte` mis a
+    jour uniquement apres un envoi (reussi ou volontairement saute)
+    - jamais avant, donc une erreur SMTP reelle (auth invalide, port
+      bloque) aurait laisse `derniereAlerte` a `null` et re-tente a
+      chaque cycle de 2 minutes (loguee a chaque fois cote serveur),
+      plutot que de se solder sur un simple silence.
+  - Nouveau test dedie `server/test/alerts-job.test.js` (3 sous-tests,
+    `checkAlerts()` appele directement, pas via HTTP) confirmant que le
+    mecanisme fonctionne correctement independamment du SMTP : un seuil
+    franchi renseigne bien `derniereAlerte`/`dernierCoursAlerte` meme
+    sans `SMTP_*` configure (`Email non envoye (SMTP non configure)`
+    logue mais sans bloquer l'ecriture), un second appel sans nouveau
+    franchissement ne re-declenche pas (anti-repetition), un seuil non
+    franchi ne declenche rien.
+  - Cause la plus probable identifiee par elimination : `SMTP_*` non
+    configure sur le deploiement Home Assistant Add-on de l'utilisateur
+    (`smtp_host`/`smtp_user`/`smtp_pass` dans les options de l'add-on,
+    voir `.claude/DOCKER.md`) - l'envoi d'email est par conception
+    optionnel et non bloquant (`server/mailer.js`), donc silencieux sans
+    configuration. Root cause non verifiable depuis ce bac a sable (pas
+    d'acces au Raspberry Pi/Home Assistant de l'utilisateur) :
+    instructions de configuration (mot de passe d'application Gmail,
+    champs `config.yaml` a renseigner dans l'interface Home Assistant)
+    fournies directement a l'utilisateur en conversation, pas dans le
+    code.
+  - Gap produit repere au passage : meme quand une alerte se declenche
+    reellement, l'unique canal de notification etait l'email - aucun
+    indicateur dans l'app elle-meme (la carte d'alerte n'affichait ni
+    `derniereAlerte` ni `dernierCoursAlerte`, deja renvoyes par
+    `GET /api/alertes` mais jamais consommes cote client).
+- **Correctif applique** (`public/app.js`, `public/styles.css`,
+  `DESIGN.md` § Carte alerte) : troisieme ligne `.alerte-derniere` sur
+  chaque carte d'alerte (`texteDerniereAlerte()`, meme gabarit visuel que
+  `.alerte-seuils` - 10px, `--text-secondary`, `line-height: 1.25`)
+  affichant « Declenchee a hh:mm » ou « Jamais declenchee » - fonctionne
+  independamment de la configuration SMTP, donne enfin un moyen de
+  verifier dans l'app qu'un seuil a ete franchi meme sans email.
+- **Verification reelle** :
+  - `node --test test/*.test.js` : 52/52 verts (49 existants + 3
+    nouveaux dans `alerts-job.test.js`).
+  - Parcours Playwright reel (Chromium local, meme contournement CDN
+    Chart.js que les sessions precedentes) : ajout d'une valeur, creation
+    d'une alerte sur un seuil non franchi (`Jamais declenchee` affichee),
+    ajout d'une seconde alerte sur un seuil deja franchi par le cours
+    mocke, appel direct de `checkAlerts()` (reproduisant le log `Email
+    non envoye (SMTP non configure)` observe en reel), rafraichissement
+    de la page : la carte affiche bien « Declenchee a hh:mm », l'autre
+    reste « Jamais declenchee ». Capture d'ecran verifiee visuellement
+    (gabarit coherent avec le reste de la carte, pas de debordement).
+- Version : `server/package.json`/`config.yaml` 1.9.3 -> 1.9.4
+  (increment PATCH - correctif de visibilite suite a un retour
+  utilisateur direct, pas une nouvelle fonctionnalite au sens produit),
+  journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 3/5 -> 4/5.
+- **Suite pour l'utilisateur** (hors code, action sur son Raspberry
+  Pi/Home Assistant) : configurer `smtp_host`/`smtp_port`/`smtp_user`/
+  `smtp_pass`/`mail_from` dans la configuration de l'add-on (Gmail choisi
+  - necessite un mot de passe d'application Google, pas le mot de passe
+  du compte), redemarrer l'add-on, puis verifier dans les logs l'absence
+  de ligne `Email non envoye (SMTP non configure)` lors du prochain
+  cycle de `checkAlerts()`.

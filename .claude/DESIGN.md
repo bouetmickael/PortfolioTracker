@@ -276,6 +276,19 @@ délibéré antérieur, non remis en cause).
   Résultat vérifié : carte d'alerte 37.75px de haut contre 47.75px pour
   une ligne de valeur (mesure DOM réelle) — strictement plus compacte,
   pas seulement égale.
+  **Dernier déclenchement affiché** (session 2026-07-27, retour
+  utilisateur explicite : deux seuils franchis un matin sans aucune
+  notification visible, SMTP non configuré sur le déploiement — voir
+  `BUSINESS_RULES.md` § Alertes de seuil, l'email est optionnel et non
+  bloquant). Troisième ligne `.alerte-derniere` (même gabarit que
+  `.alerte-seuils` : 10px, `--text-secondary`, `line-height: 1.25`)
+  affichant « Déclenchée à hh:mm » (`derniereAlerte`, déjà renvoyée par
+  `GET /api/alertes` mais jamais affichée jusqu'ici) ou « Jamais
+  déclenchée » sinon (`texteDerniereAlerte()`, `public/app.js`) — seul
+  moyen de vérifier dans l'app qu'un seuil a bien été franchi
+  indépendamment de l'envoi d'email (`derniereAlerte` est écrite par
+  `checkAlerts()` dès qu'un seuil est franchi, que l'email réussisse,
+  échoue ou soit désactivé faute de SMTP configuré).
 - **Partage de section** (Session D de `BACKLOG.md`, voir
   `BUSINESS_RULES.md` § Partage de section pour les règles d'accès) :
   - Bouton `icon-share` dans l'en-tête de chaque section possédée ouvre
