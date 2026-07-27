@@ -6,14 +6,29 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/3** — Session 30 (2026-07-26, v1.9.0) a traité, sur demande explicite
-de l'utilisateur, l'ensemble des correctifs de dette technique reportés
-cumulés depuis les Revues n°1 à n°6 (voir `CLAUDE.md` § Historique des
-revues, entrée « Session 30 » pour le détail correctif par correctif) —
-comptée comme une session au sens du compteur (§0.1 de `METHOD.md`), pas
-comme un nouveau cycle de revue (§0.2), puisqu'aucun nouveau `/simplify`
-n'a été lancé sur un diff cumulé : il s'agissait de résoudre le backlog
-déjà identifié, pas d'en détecter un nouveau.
+**0/5** — Compteur réinitialisé et seuil de déclenchement porté de 3 à 5
+sessions sur demande explicite de l'utilisateur (2026-07-26, juste après
+la Session 30). Voir `METHOD.md` §0.2 (règle de méthode mise à jour en
+conséquence — « toutes les 5 sessions », compteur cible `5/5`). Ce reset
+n'est pas la clôture d'un cycle de revue (§0.2, qui suppose un
+`/simplify` effectivement lancé sur le diff cumulé) : c'est une remise à
+zéro directe demandée par l'utilisateur, immédiatement après la Session
+30 qui venait de traiter l'intégralité de la dette reportée jusqu'alors
+(voir ci-dessous et `CLAUDE.md` § Historique des revues).
+
+Historique du compteur avant ce reset (conservé pour mémoire, les
+mentions `X/3` ci-dessous reflètent l'ancien seuil, en vigueur au moment
+de ces sessions) :
+
+Session 30 (2026-07-26, v1.9.0) avait porté le compteur à 2/3 en
+traitant, sur demande explicite de l'utilisateur, l'ensemble des
+correctifs de dette technique reportés cumulés depuis les Revues n°1 à
+n°6 (voir `CLAUDE.md` § Historique des revues, entrée « Session 30 »
+pour le détail correctif par correctif) — comptée comme une session au
+sens du compteur (§0.1 de `METHOD.md`), pas comme un nouveau cycle de
+revue (§0.2), puisqu'aucun nouveau `/simplify` n'a été lancé sur un diff
+cumulé : il s'agissait de résoudre le backlog déjà identifié, pas d'en
+détecter un nouveau.
 
 Session 29 (2026-07-26, v1.8.10) avait déjà traité un premier correctif
 de dette technique reporté (« duplication de la logique Yahoo

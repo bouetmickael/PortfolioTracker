@@ -65,12 +65,12 @@ ajouté spécifiquement pour ce projet.
    question.
 10. Si oui → fournir le **prompt exact** de la session suivante (§0.3) :
    - soit la prochaine fonctionnalité du backlog (`BACKLOG.md`),
-   - soit — si le compteur atteint 3/3 — le déclenchement du cycle de revue
+   - soit — si le compteur atteint 5/5 — le déclenchement du cycle de revue
      (§0.2).
 
-## 0.2 Cycle de revue obligatoire (toutes les 3 sessions)
+## 0.2 Cycle de revue obligatoire (toutes les 5 sessions)
 
-Dès que le compteur de `BACKLOG.md` atteint 3/3, la session suivante est
+Dès que le compteur de `BACKLOG.md` atteint 5/5, la session suivante est
 **obligatoirement** une revue de dette technique, et non une nouvelle
 fonctionnalité :
 
@@ -89,7 +89,7 @@ fonctionnalité :
 5. Committer et pousser les correctifs — **sur la branche d'intégration
    unique du projet**, comme n'importe quelle autre session (§5). Ne jamais
    créer de branche de revue séparée.
-6. Réinitialiser le compteur à 0/3 dans `BACKLOG.md` et journaliser la
+6. Réinitialiser le compteur à 0/5 dans `BACKLOG.md` et journaliser la
    revue (date, portée, correctifs appliqués, correctifs reportés) dans la
    section « Historique des revues » de `CLAUDE.md`.
 7. Fournir le prompt de la prochaine fonctionnalité du backlog (§0.3).
