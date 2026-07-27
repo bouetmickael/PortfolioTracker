@@ -982,6 +982,12 @@ body {
   position: relative;
 }
 
+#graphiqueVolumeContainer {
+  height: 70px;
+  margin-top: 4px;
+  position: relative;
+}
+
 /* Base commune : proprietes strictement identiques entre les deux lignes
    pointillees du graphique (mode placement vs seuil deja actif), meme
    technique de fusion que .alerte-existante-badge/.alerte-hors-limite

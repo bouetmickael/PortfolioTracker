@@ -4,15 +4,7 @@ const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
 const { ROLES_VALIDES, rolesSection, roleSection, peutEcrire } = require('../partage');
-const {
-  HAS_ALERTE_SUBQUERY,
-  toValeursArray,
-  verifierTickerExiste,
-  supprimerValeurEtDetacherAlertes,
-  supprimerAlertesOrphelines,
-  creerValeur
-} = require('../valeurs');
-const { asyncHandler } = require('../middleware/asyncHandler');
+const { HAS_ALERTE_SUBQUERY, toValeursArray, supprimerValeur, supprimerAlertesOrphelines } = require('../valeurs');
 
 const router = express.Router();
 
@@ -191,9 +183,12 @@ router.delete('/:id/partages/:userId', (req, res) => {
 
 // Valeurs d'une section partagee (lecture/ecriture). GET /api/valeurs reste
 // strictement limite aux valeurs propres de l'utilisateur (voir
-// server/routes/valeurs.js) ; ces routes exposent uniquement les valeurs
+// server/routes/valeurs.js) ; cette route expose uniquement les valeurs
 // d'UNE section a la fois, ce qui reste sans ambiguite de ticker puisqu'une
 // section n'appartient qu'a un seul proprietaire (voir BUSINESS_RULES.md).
+// L'ajout d'une valeur dans une section (possedee ou partagee en ecriture)
+// passe desormais par POST /api/valeurs (voir server/routes/valeurs.js
+// § sectionCibleEcriture, CLAUDE.md Historique des revues, Revue n°6).
 
 router.get('/:id/valeurs', (req, res) => {
   const info = roleSection(db, req.session.userId, Number(req.params.id));
@@ -212,45 +207,6 @@ router.get('/:id/valeurs', (req, res) => {
   res.json(toValeursArray(rows));
 });
 
-router.post(
-  '/:id/valeurs',
-  asyncHandler(async (req, res) => {
-    const info = roleSection(db, req.session.userId, Number(req.params.id));
-    if (!peutEcrire(info)) {
-      return res.status(403).json({ error: 'Section invalide' });
-    }
-
-    const ticker = normalizeTicker(req.body.ticker);
-    const type = req.body.type === 'Warrant' ? 'Warrant' : 'Action';
-    const nom = (req.body.nom || '').trim();
-
-    if (!ticker) {
-      return res.status(400).json({ error: 'Ticker requis' });
-    }
-
-    const sectionId = Number(req.params.id);
-
-    // Une meme valeur peut desormais etre suivie dans plusieurs sections : le
-    // doublon n'est interdit qu'a l'interieur de cette section (voir
-    // BUSINESS_RULES.md § Valeurs suivies).
-    const existing = db
-      .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ? AND section_id = ?')
-      .get(info.proprietaireId, ticker, sectionId);
-    if (existing) {
-      return res.status(409).json({ error: 'Cette valeur est deja suivie dans cette section' });
-    }
-
-    const priceData = await verifierTickerExiste(ticker);
-    if (!priceData) {
-      return res.status(400).json({ error: 'Valeur introuvable sur Yahoo Finance' });
-    }
-
-    creerValeur(db, { proprietaireId: info.proprietaireId, sectionId, ticker, type, nom, priceData });
-
-    res.status(201).json({ success: true });
-  })
-);
-
 router.delete('/:id/valeurs/:ticker', (req, res) => {
   const info = roleSection(db, req.session.userId, Number(req.params.id));
   if (!peutEcrire(info)) {
@@ -263,11 +219,11 @@ router.delete('/:id/valeurs/:ticker', (req, res) => {
     .get(info.proprietaireId, ticker, Number(req.params.id));
 
   if (valeur) {
-    const supprimerValeur = db.transaction(() => {
-      supprimerValeurEtDetacherAlertes(db, valeur.id);
+    const executerSuppression = db.transaction(() => {
+      supprimerValeur(db, valeur.id);
       supprimerAlertesOrphelines(db, info.proprietaireId, ticker);
     });
-    supprimerValeur();
+    executerSuppression();
   }
 
   res.json({ success: true });
@@ -339,7 +295,7 @@ router.delete('/:id', (req, res) => {
     // suit deja ce ticker.
     for (const valeur of valeursADeplacer) {
       if (tickersFallback.has(valeur.ticker)) {
-        supprimerValeurEtDetacherAlertes(db, valeur.id);
+        supprimerValeur(db, valeur.id);
         continue;
       }
       deplacerValeur.run(fallback.id, ordreSuivant, valeur.id);

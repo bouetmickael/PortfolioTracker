@@ -72,10 +72,10 @@ test('partage en lecture : consultation possible, ecriture refusee', async () =>
   const valeurs = await (await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, { headers: { Cookie: invite.cookie } })).json();
   assert.ok(valeurs.some((v) => v.ticker === 'AAPL'));
 
-  const ajout = await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, {
+  const ajout = await fetch(`${baseUrl}/api/valeurs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: invite.cookie },
-    body: JSON.stringify({ ticker: 'MSFT' })
+    body: JSON.stringify({ ticker: 'MSFT', sectionId: section.id })
   });
   assert.equal(ajout.status, 403);
 
@@ -111,10 +111,10 @@ test('partage en ecriture : ajout et suppression de valeurs dans la section part
   const partage = await partagerSection(proprio.cookie, section.id, 'partage-ecriture-invite@test.local', 'ecriture');
   assert.equal(partage.status, 201);
 
-  const ajout = await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, {
+  const ajout = await fetch(`${baseUrl}/api/valeurs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: invite.cookie },
-    body: JSON.stringify({ ticker: 'AAPL' })
+    body: JSON.stringify({ ticker: 'AAPL', sectionId: section.id })
   });
   assert.equal(ajout.status, 201);
 
@@ -162,10 +162,10 @@ test('partage en ecriture : supprimer une occurrence partagee ne supprime pas l 
     headers: { 'Content-Type': 'application/json', Cookie: proprio.cookie },
     body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 200 })
   });
-  await fetch(`${baseUrl}/api/sections/${sectionPartagee.id}/valeurs`, {
+  await fetch(`${baseUrl}/api/valeurs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: invite.cookie },
-    body: JSON.stringify({ ticker: 'AAPL' })
+    body: JSON.stringify({ ticker: 'AAPL', sectionId: sectionPartagee.id })
   });
 
   // L'invite supprime l'occurrence de la section partagee : l'alerte du
@@ -187,10 +187,10 @@ test('partage en ecriture : un ticker introuvable sur Yahoo Finance est rejete',
   const [section] = await (await fetch(`${baseUrl}/api/sections`, { headers: { Cookie: proprio.cookie } })).json();
   await partagerSection(proprio.cookie, section.id, 'partage-introuvable-invite@test.local', 'ecriture');
 
-  const ajout = await fetch(`${baseUrl}/api/sections/${section.id}/valeurs`, {
+  const ajout = await fetch(`${baseUrl}/api/valeurs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: invite.cookie },
-    body: JSON.stringify({ ticker: 'LVMH/SGE WT 26' })
+    body: JSON.stringify({ ticker: 'LVMH/SGE WT 26', sectionId: section.id })
   });
   assert.equal(ajout.status, 400);
 

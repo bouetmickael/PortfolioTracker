@@ -1447,3 +1447,113 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   (increment PATCH - correctif de donnees, pas de nouvelle
   fonctionnalite), journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 1/5 -> 2/5.
+
+## 2026-07-27 — Session 33 - fusion des endpoints d'ajout, retrait de alertes.valeur_id, volume echange sur le graphique (v1.9.3)
+
+- **Demande explicite utilisateur** : traiter les deux derniers points de
+  dette technique reportes depuis la Revue n°6/Session 30 (voir
+  `CLAUDE.md` § Historique des revues, `BACKLOG.md` § Backlog produit) et
+  ajouter un graphique du volume echange dans la fenetre de graphique
+  d'evolution d'une valeur.
+- **Fusion `POST /api/valeurs`/`POST /api/sections/:id/valeurs`**
+  (`server/routes/valeurs.js`, `server/routes/sections.js`) :
+  - Nouveau helper `sectionCibleEcriture(userId, sectionIdBrut)`
+    (`server/routes/valeurs.js`) : `sectionId` fourni -> resolu via
+    `roleSection()`/`peutEcrire()` (`server/partage.js`), rejette (403,
+    aucun `sectionId` retourne) si la section n'est ni possedee ni
+    partagee en ecriture ; `sectionId` absent -> repli sur la premiere
+    section possedee (comportement historique inchange). Remplace
+    l'ancien `sectionCible()` qui ne verifiait que la propriete directe
+    et retombait silencieusement sur la section par defaut en cas
+    d'echec.
+  - `POST /:id/valeurs` retiree de `server/routes/sections.js` (`GET`/
+    `DELETE` conserves, seule l'ecriture etait dupliquee) ; imports
+    devenus inutiles (`verifierTickerExiste`, `creerValeur`,
+    `asyncHandler`) retires.
+  - Client (`public/app.js`, `ajouterValeur()`) : appelle desormais
+    toujours `POST /api/valeurs` avec `sectionId` dans le corps de la
+    requete si une section est ciblee, sans plus decider lui-meme de la
+    route selon `section.role` (variable `sectionCibleAjout` renommee en
+    consequence dans son commentaire).
+  - **Changement de comportement mineur assume** : un `sectionId` fourni
+    sans droit d'ecriture est desormais explicitement rejete (403,
+    `Section invalide`) plutot que silencieusement ignore au profit de
+    la section par defaut - comportement plus previsible, deja celui de
+    l'ancienne route dediee aux sections partagees. Test
+    `valeurs.test.js` mis a jour en consequence (nouveau titre, assertion
+    403 au lieu d'un repli silencieux) ; 4 sites `partage.test.js`
+    migres de `POST /api/sections/:id/valeurs` vers `POST /api/valeurs`
+    avec `sectionId`.
+- **Retrait de `alertes.valeur_id`** (`server/db.js`) : l'ancienne
+  migration `ALTER TABLE ADD COLUMN valeur_id` + backfill remplacee par
+  une migration de recreation de table (meme technique que la migration
+  `UNIQUE(user_id, ticker, section_id)` de `valeurs`, Session 27 -
+  SQLite ne permet pas de retirer une colonne portant une contrainte FK
+  via `ALTER TABLE`), executee seulement si la colonne existe encore
+  (base ayant deja subi l'ancienne migration). `server/routes/alertes.js`
+  (`POST /`) : `INSERT` a 9 colonnes au lieu de 10, plus de recherche
+  prealable de la valeur correspondante (devenue inutile).
+  `server/valeurs.js` : `supprimerValeurEtDetacherAlertes()` renommee
+  `supprimerValeur()` et simplifiee (suppression directe, sans plus
+  detacher une FK qui n'existe plus) - un bug de shadowing de variable a
+  ete introduit puis corrige en cours de session par un remplacement
+  global trop large (`sed`) qui avait renomme aussi la variable locale
+  `const supprimerValeur = db.transaction(...)` portant le meme nom que
+  la fonction importee dans les 2 routes qui l'utilisent
+  (`server/routes/valeurs.js` `DELETE /:id`, `server/routes/sections.js`
+  `DELETE /:id/valeurs/:ticker`) : la transaction locale s'appelait alors
+  elle-meme au lieu d'appeler le helper importe ; renommee
+  `executerSuppression` dans les deux cas pour lever l'ombrage, verifie
+  par la suite complete de tests avant de considerer le correctif acquis.
+  `server/test/db-migration.test.js` entierement reecrit (l'ancien
+  testait le backfill de `valeur_id`, desormais sans objet) pour tester
+  la migration de retrait de colonne sur une base "avant migration"
+  simulee (table `alertes` avec `valeur_id`), verifiant la disparition de
+  la colonne et la preservation des autres colonnes des alertes
+  existantes.
+- **Volume echange sur le graphique** (`public/app.js`, `public/
+  index.html`, `public/styles.css`) : `GET /api/chart/:ticker`
+  (`server/routes/chart.js`) exposait deja `volume` par point sans
+  jamais l'exploiter cote client. Nouveau graphique Chart.js separe en
+  barres (`#graphiqueVolumeContainer`/`#volumeCanvas`, 70px, sous
+  `#graphiqueContainer`), construit par `chargerGraphiqueVolume()`,
+  appele a chaque `chargerGraphique()` (ouverture, changement de
+  periode) - instance Chart.js distincte du graphique de cours (pas un
+  axe secondaire du meme graphique) pour rester independante de son
+  echelle de prix. Barres colorees `--success`/`--danger` selon que le
+  cours du point est en hausse/baisse par rapport au point precedent
+  (calcule cote client a partir des `close` deja recuperes, aucun appel
+  API supplementaire), premier point neutre (gris) faute de reference ;
+  axe Y en libelles compacts via `formatVolume()` (deja utilise par le
+  footer de la liste des valeurs suivies, `4.0K`/`1.2M`). Alignement
+  horizontal des deux graphiques (barres de volume sous la courbe de
+  cours correspondante) assure par une largeur d'axe Y fixe partagee
+  (`afterFit`, constante `LARGEUR_AXE_Y_GRAPHIQUE`) plutot que la largeur
+  auto-calculee de Chart.js a partir des libelles de CET axe (qui aurait
+  divergé entre les deux graphiques : prix en EUR vs volumes compacts).
+  Voir `DESIGN.md` § Volume echange sur le graphique.
+- **Verification reelle** :
+  - `node --test test/*.test.js` : 49/49 verts (contrat inchange en
+    nombre de tests, 1 test renomme/reecrit pour le nouveau comportement
+    403, 4 sites de test migres vers le nouvel endpoint unique,
+    `db-migration.test.js` entierement reecrit).
+  - Demarrage reel du serveur (`GET /`/`GET /login.html`/`GET /app.js`/
+    `GET /styles.css` -> 200).
+  - Parcours Playwright reel (Chromium local, viewport 390x844, Chart.js
+    servi depuis un paquet npm local le temps du test via interception
+    de requete - le CDN `jsdelivr` est bloque par la politique reseau du
+    bac a sable, meme limite que la Session 30) : inscription, ajout
+    d'une valeur, ouverture de son graphique, verification DOM que
+    `#volumeCanvas` existe et que les rectangles de
+    `#graphiqueContainer`/`#graphiqueVolumeContainer` partagent
+    exactement les memes bornes gauche/droite (alignement pixel-perfect
+    confirme, pas seulement visuel), capture d'ecran en periode 1M puis
+    apres bascule vers 1A (le graphique de volume se met a jour sans
+    erreur), meme parcours rejoue en `colorScheme: 'dark'` pour verifier
+    la lisibilite des couleurs de barres sur le theme sombre. Aucune
+    erreur console sur l'ensemble du parcours.
+- Version : `server/package.json`/`config.yaml` 1.9.2 -> 1.9.3
+  (increment PATCH - defaut de la regle, aucune demande explicite
+  d'increment MINEUR malgre la nouvelle fonctionnalite visible),
+  journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 2/5 -> 3/5.

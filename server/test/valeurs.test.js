@@ -58,22 +58,22 @@ test('deux valeurs ajoutees a la meme section recoivent un ordre croissant', asy
   assert.equal(parTicker(valeurs, 'MSFT').ordre, 1);
 });
 
-test('un sectionId appartenant a un autre utilisateur est ignore (retombe sur la section par defaut)', async () => {
+test('un sectionId appartenant a un autre utilisateur non partagee est rejete (403)', async () => {
   const userA = await creerUtilisateur(baseUrl, 'valeurs-iso-a@test.local');
   const userB = await creerUtilisateur(baseUrl, 'valeurs-iso-b@test.local');
 
   const sectionsB = await (await fetch(`${baseUrl}/api/sections`, { headers: { Cookie: userB.cookie } })).json();
   const [sectionB] = sectionsB;
 
-  await fetch(`${baseUrl}/api/valeurs`, {
+  const res = await fetch(`${baseUrl}/api/valeurs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: userA.cookie },
     body: JSON.stringify({ ticker: 'AAPL', sectionId: sectionB.id })
   });
+  assert.equal(res.status, 403);
 
-  const sectionsA = await (await fetch(`${baseUrl}/api/sections`, { headers: { Cookie: userA.cookie } })).json();
   const valeursA = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: userA.cookie } })).json();
-  assert.equal(parTicker(valeursA, 'AAPL').sectionId, sectionsA[0].id);
+  assert.equal(parTicker(valeursA, 'AAPL'), undefined);
 });
 
 test('un ticker introuvable sur Yahoo Finance est rejete et non ajoute', async () => {

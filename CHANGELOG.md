@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.9.3
+
+- Ajout d'un graphique du volume echange sous le graphique de cours d'une
+  valeur (barres colorees hausse/baisse, alignees avec la courbe de
+  cours) — voir `DESIGN.md` § Volume echange sur le graphique.
+- Fusion de `POST /api/valeurs` et `POST /api/sections/:id/valeurs` en un
+  seul endpoint (`POST /api/valeurs`, avec `sectionId` optionnel) qui
+  determine lui-meme l'autorisation d'ecriture sur la section ciblee
+  (possedee ou partagee en ecriture) plutot que de laisser le client
+  choisir la route. Changement de comportement mineur : un `sectionId`
+  fourni sans droit d'ecriture est desormais rejete (403) plutot que
+  silencieusement ignore au profit de la section par defaut.
+- Suppression de `alertes.valeur_id`, colonne FK vestigiale non lue
+  depuis que les alertes sont rejointes par `(user_id, ticker)` (dette
+  technique reportee depuis la Revue n°6, voir `CLAUDE.md` § Historique
+  des revues) — migration de base par recreation de table.
+
 ## 1.9.2
 
 - Correctif : la variation du jour restait a `+0.00%` pour toutes les

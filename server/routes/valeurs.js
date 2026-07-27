@@ -2,12 +2,13 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
+const { roleSection, peutEcrire } = require('../partage');
 const {
   HAS_ALERTE_SUBQUERY,
   toValeursArray,
   verifierTickerExiste,
   rechercherTickers,
-  supprimerValeurEtDetacherAlertes,
+  supprimerValeur,
   supprimerAlertesOrphelines,
   creerValeur
 } = require('../valeurs');
@@ -17,14 +18,25 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-function sectionCible(userId, sectionId) {
-  if (sectionId) {
-    const section = db.prepare('SELECT id FROM sections WHERE id = ? AND user_id = ?').get(sectionId, userId);
-    if (section) return section.id;
+// Determine la section cible et son proprietaire pour l'ajout d'une valeur,
+// et l'autorisation d'ecriture correspondante :
+// - sectionId fourni -> section possedee ou partagee en ecriture avec
+//   l'utilisateur (roleSection), aucun acces en ecriture -> { sectionId: null } ;
+// - sectionId absent -> premiere section possedee par l'utilisateur (repli
+//   historique, voir BUSINESS_RULES.md § Valeurs suivies).
+// Remplace POST /api/valeurs et POST /api/sections/:id/valeurs (deux routes
+// distinctes) : un seul point d'entree determine desormais lui-meme
+// l'autorisation d'ecriture plutot que de la laisser au client choisir la
+// route (voir CLAUDE.md Historique des revues, Revue n°6, correctif reporte).
+function sectionCibleEcriture(userId, sectionIdBrut) {
+  if (sectionIdBrut) {
+    const info = roleSection(db, userId, Number(sectionIdBrut));
+    if (!peutEcrire(info)) return { proprietaireId: null, sectionId: null };
+    return { proprietaireId: info.proprietaireId, sectionId: Number(sectionIdBrut) };
   }
 
   const defaut = db.prepare('SELECT id FROM sections WHERE user_id = ? ORDER BY ordre ASC LIMIT 1').get(userId);
-  return defaut ? defaut.id : null;
+  return { proprietaireId: userId, sectionId: defaut ? defaut.id : null };
 }
 
 router.get('/', (req, res) => {
@@ -63,14 +75,17 @@ router.post(
       return res.status(400).json({ error: 'Ticker requis' });
     }
 
-    const sectionId = sectionCible(req.session.userId, req.body.sectionId);
+    const { proprietaireId, sectionId } = sectionCibleEcriture(req.session.userId, req.body.sectionId);
+    if (!sectionId) {
+      return res.status(403).json({ error: 'Section invalide' });
+    }
 
     // Une meme valeur peut desormais etre suivie dans plusieurs sections : le
     // doublon n'est interdit qu'a l'interieur d'une meme section (voir
     // BUSINESS_RULES.md § Valeurs suivies).
     const existing = db
       .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ? AND section_id = ?')
-      .get(req.session.userId, ticker, sectionId);
+      .get(proprietaireId, ticker, sectionId);
 
     if (existing) {
       return res.status(409).json({ error: 'Cette valeur est deja suivie dans cette section' });
@@ -81,7 +96,7 @@ router.post(
       return res.status(400).json({ error: 'Valeur introuvable sur Yahoo Finance' });
     }
 
-    creerValeur(db, { proprietaireId: req.session.userId, sectionId, ticker, type, nom, priceData });
+    creerValeur(db, { proprietaireId, sectionId, ticker, type, nom, priceData });
 
     res.status(201).json({ success: true });
   })
@@ -100,11 +115,11 @@ router.delete('/:id', (req, res) => {
     return res.json({ success: true });
   }
 
-  const supprimerValeur = db.transaction(() => {
-    supprimerValeurEtDetacherAlertes(db, req.params.id);
+  const executerSuppression = db.transaction(() => {
+    supprimerValeur(db, req.params.id);
     supprimerAlertesOrphelines(db, req.session.userId, valeur.ticker);
   });
-  supprimerValeur();
+  executerSuppression();
 
   res.json({ success: true });
 });

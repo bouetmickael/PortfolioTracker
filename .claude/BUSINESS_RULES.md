@@ -77,7 +77,9 @@
   2026-07-26, retour utilisateur explicite : n'importe quel texte pouvait
   être ajouté comme "valeur", y compris pour un warrant, sans jamais
   afficher de cours — voir `server/valeurs.js` § `verifierTickerExiste`,
-  appelée par `POST /api/valeurs` et `POST /api/sections/:id/valeurs`).
+  appelée par `POST /api/valeurs`, seule route d'ajout depuis la fusion
+  avec l'ancienne `POST /api/sections/:id/valeurs` — voir § Sections
+  ci-dessous).
   Un ticker introuvable ou sans cours exploitable (`regularMarketPrice`
   absent ou nul) est rejeté (400, `Valeur introuvable sur Yahoo Finance`)
   plutôt qu'ajouté silencieusement avec un cours à 0 en attente du
@@ -106,10 +108,13 @@
   en lecture ou en ecriture avec d'autres utilisateurs sans changer de
   proprietaire — voir § Partage de section (lecture/ecriture) ci-dessous
   pour le detail de cette exception.
-- Un `sectionId` fourni a la creation d'une valeur (`POST /api/valeurs`)
-  n'est accepte que s'il designe une section appartenant a l'utilisateur
-  courant ; sinon la valeur est rattachee a la section par defaut de
-  l'utilisateur (jamais a une section d'un autre utilisateur).
+- Un `sectionId` fourni a la creation d'une valeur (`POST /api/valeurs`,
+  voir § Sections ci-dessous pour l'unification de cette route) n'est
+  accepte que s'il designe une section possedee par l'utilisateur courant
+  ou partagee en ecriture avec lui ; sinon la requete est rejetee (403,
+  `Section invalide`) plutot que rattachee silencieusement a une autre
+  section. Aucun `sectionId` fourni : repli sur la section par defaut de
+  l'utilisateur (premiere section possedee, meme comportement qu'avant).
 
 ## Partage de section (lecture/ecriture)
 
@@ -132,10 +137,12 @@
   partages` verifient explicitement `user_id = proprietaire` en SQL).
 - Role `lecture` : consultation seule des valeurs de la section partagee
   (`GET /api/sections/:id/valeurs`), aucune ecriture possible.
-- Role `ecriture` : peut en plus ajouter et supprimer des valeurs dans la
-  section partagee via des routes dediees
-  (`POST`/`DELETE /api/sections/:id/valeurs/:ticker`), mais ne peut
-  toujours pas renommer/supprimer la section ni gerer son partage.
+- Role `ecriture` : peut en plus ajouter des valeurs dans la section
+  partagee via `POST /api/valeurs` (avec `sectionId`, route unique
+  partagee avec l'ajout dans une section possedee — voir § Valeurs
+  suivies) et en supprimer via `DELETE /api/sections/:id/valeurs/:ticker`,
+  mais ne peut toujours pas renommer/supprimer la section ni gerer son
+  partage.
 - Les valeurs ajoutees dans une section partagee par un utilisateur en
   ecriture restent rattachees au `user_id` du **proprietaire** de la
   section, pas de l'utilisateur agissant : c'est la section qui est

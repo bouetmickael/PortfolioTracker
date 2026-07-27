@@ -180,30 +180,40 @@ if (valeursSchemaSql.includes('UNIQUE(user_id, ticker)')) {
   db.pragma('foreign_keys = ON');
 }
 
-// Migration : ajout de alertes.valeur_id (cle etrangere vers valeurs.id),
-// introduite apres la creation initiale de la table alertes, pour permettre
-// de savoir en une jointure/sous-requete si une valeur suivie a une alerte
-// active (badge d'alerte sur la liste des valeurs).
-if (!columnExists('alertes', 'valeur_id')) {
-  db.exec('ALTER TABLE alertes ADD COLUMN valeur_id INTEGER REFERENCES valeurs(id)');
+// Migration : suppression de alertes.valeur_id, colonne FK vestigiale
+// (ajoutee en Session 11 pour savoir en une jointure/sous-requete si une
+// valeur suivie a une alerte active, puis backfillee) - plus lue nulle
+// part depuis que les alertes sont rejointes par (user_id, ticker) (voir
+// HAS_ALERTE_SUBQUERY dans server/valeurs.js, checkAlerts() dans
+// server/jobs/alerts.js) - voir CLAUDE.md Historique des revues, Revue
+// n°6. SQLite ne permet pas de retirer une colonne portant une contrainte
+// FK via ALTER TABLE : meme technique de recreation de table que la
+// migration UNIQUE(user_id, ticker, section_id) de valeurs ci-dessus. Ne
+// s'applique qu'aux bases ayant deja subi l'ancienne migration ADD COLUMN
+// valeur_id - une base fraiche a deja la bonne definition via le CREATE
+// TABLE IF NOT EXISTS en tete de ce fichier.
+if (columnExists('alertes', 'valeur_id')) {
+  db.pragma('foreign_keys = OFF');
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE alertes_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        ticker TEXT NOT NULL,
+        seuil_haut REAL,
+        seuil_bas REAL,
+        active INTEGER NOT NULL DEFAULT 1,
+        dernier_cours_alerte REAL,
+        derniere_alerte INTEGER,
+        cree_le INTEGER NOT NULL
+      );
+      INSERT INTO alertes_new (id, user_id, ticker, seuil_haut, seuil_bas, active, dernier_cours_alerte, derniere_alerte, cree_le)
+        SELECT id, user_id, ticker, seuil_haut, seuil_bas, active, dernier_cours_alerte, derniere_alerte, cree_le FROM alertes;
+      DROP TABLE alertes;
+      ALTER TABLE alertes_new RENAME TO alertes;
+    `);
+  })();
+  db.pragma('foreign_keys = ON');
 }
-
-const backfillValeurIdAlertes = db.transaction(() => {
-  const alertesSansValeurId = db
-    .prepare('SELECT id, user_id, ticker FROM alertes WHERE valeur_id IS NULL')
-    .all();
-
-  const trouverValeur = db.prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?');
-  const affecterValeurId = db.prepare('UPDATE alertes SET valeur_id = ? WHERE id = ?');
-
-  for (const alerte of alertesSansValeurId) {
-    const valeur = trouverValeur.get(alerte.user_id, alerte.ticker);
-    if (valeur) {
-      affecterValeurId.run(valeur.id, alerte.id);
-    }
-  }
-});
-
-backfillValeurIdAlertes();
 
 module.exports = db;

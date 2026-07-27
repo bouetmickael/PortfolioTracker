@@ -432,6 +432,29 @@ délibéré antérieur, non remis en cause).
   (`public/app.js`), pas de plugin d'annotation Chart.js supplémentaire
   (mêmes API publiques d'échelle `getPixelForValue`/`min`/`max` que le
   composant « Alerte depuis le graphique »).
+- **Volume échangé sur le graphique** (session 2026-07-27, demande
+  explicite utilisateur) : sous le graphique de cours (`#graphiqueContainer`,
+  300px), un second graphique Chart.js compact en barres
+  (`#graphiqueVolumeContainer`/`#volumeCanvas`, 70px, `margin-top: 4px`,
+  même largeur que le graphique de cours) affiche le volume échangé de
+  chaque point de la période courante — présent pour toute ouverture du
+  graphique (valeur suivie, valeur d'une section partagée, indice de
+  marché), sans restriction contrairement aux composants « Alerte depuis
+  le graphique »/« Alertes existantes » ci-dessus (le volume n'a pas de
+  lien avec les alertes). Barres colorées `--success`/`--danger` selon que
+  le cours du point est en hausse ou en baisse par rapport au point
+  précédent (même convention que `.valeur-variation`/`.stat-variation`),
+  premier point sans référence en gris neutre ; axe Y à libellés compacts
+  (`formatVolume()`, ex. « 4.0K »/« 1.2M », déjà utilisé par le footer de
+  la liste des valeurs suivies). Recalculé à chaque chargement du
+  graphique (ouverture, changement de période) via
+  `chargerGraphiqueVolume()` (`public/app.js`), instance Chart.js séparée
+  du graphique de cours (pas un axe secondaire du même graphique) pour
+  rester indépendante de son échelle de prix ; les deux graphiques fixent
+  la largeur de leur axe Y à une valeur commune (`afterFit`,
+  `LARGEUR_AXE_Y_GRAPHIQUE`) pour que les barres de volume restent alignées
+  sous la courbe de cours malgré des libellés d'axe de largeurs
+  naturellement différentes (prix en EUR vs volumes compacts).
 
 ## Responsive
 

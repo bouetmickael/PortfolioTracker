@@ -9,6 +9,11 @@ let valeursPollInterval = null;
 let alertesPollInterval = null;
 let indicesPollInterval = null;
 let chartInstance = null;
+let volumeChartInstance = null;
+// Largeur fixe (px) de l'axe Y des graphiques de cours et de volume, pour que
+// les deux graphiques Chart.js separes restent alignes horizontalement (voir
+// chargerGraphique/chargerGraphiqueVolume).
+const LARGEUR_AXE_Y_GRAPHIQUE = 50;
 let graphiqueState = { ticker: null, alertable: false };
 let placementAlerteActif = false;
 
@@ -297,8 +302,10 @@ function createAlerteCard(id, alerte) {
 // Section ciblee par la modale d'ajout ("+ ajouter" sur une section possedee
 // ou partagee en ecriture), ou null pour le comportement par defaut (ajout
 // dans la section proprietaire par defaut de l'utilisateur, voir
-// ouvrirAjoutValeur). Le role de la section (`proprietaire` vs `ecriture`)
-// determine la route appelee par ajouterValeur().
+// ouvrirAjoutValeur). POST /api/valeurs determine lui-meme l'autorisation
+// d'ecriture sur la section ciblee (voir CLAUDE.md Historique des revues,
+// Revue n°6, correctif reporte) : le client n'a plus besoin de choisir la
+// route selon le role de la section.
 let sectionCibleAjout = null;
 
 // Squelette showLoader/try/catch/finally/toast partage par les actions CRUD
@@ -412,17 +419,12 @@ async function ajouterValeur() {
 
   await executerAction(async () => {
     const section = sectionCibleAjout;
-    // Une section possedee (role "proprietaire") passe toujours par
-    // /api/valeurs (avec sectionId pour cibler une section precise) ; seule
-    // une section partagee en ecriture (appartenant a un autre utilisateur)
-    // passe par la route dediee /api/sections/:id/valeurs.
-    const url = section && section.role !== 'proprietaire' ? `/api/sections/${section.id}/valeurs` : '/api/valeurs';
     const body = { ticker, type, nom };
-    if (section && section.role === 'proprietaire') {
+    if (section) {
       body.sectionId = section.id;
     }
 
-    const res = await apiFetch(url, {
+    const res = await apiFetch('/api/valeurs', {
       method: 'POST',
       body: JSON.stringify(body)
     });
@@ -1065,6 +1067,7 @@ async function chargerGraphique(ticker, period) {
 
     const labels = data.map((d) => formatGraphiqueLabel(d.date, period));
     const prices = data.map((d) => d.close);
+    const volumes = data.map((d) => d.volume || 0);
 
     container.innerHTML = '<canvas id="chartCanvas"></canvas>';
     const canvas = document.getElementById('chartCanvas');
@@ -1125,6 +1128,15 @@ async function chargerGraphique(ticker, period) {
               callback(value) {
                 return value.toFixed(2) + ' EUR';
               }
+            },
+            // Largeur fixe (pas seulement une largeur minimale) plutot que la
+            // largeur auto-calculee a partir des libelles de CET axe : le
+            // graphique de volume (chargerGraphiqueVolume) est un Chart.js
+            // separe avec ses propres libelles (volumes, pas des prix), donc
+            // une largeur auto-calculee different-e entre les deux graphiques
+            // desalignerait les barres de volume sous la courbe de cours.
+            afterFit(scale) {
+              scale.width = LARGEUR_AXE_Y_GRAPHIQUE;
             }
           }
         },
@@ -1136,6 +1148,7 @@ async function chargerGraphique(ticker, period) {
       }
     });
 
+    chargerGraphiqueVolume(labels, volumes, prices, themeSombre);
     afficherAlertesGraphique(ticker);
 
     // Evenement generique plutot qu'une branche if (placementAlerteActif)
@@ -1153,7 +1166,88 @@ async function chargerGraphique(ticker, period) {
         <small>${error.message}</small>
       </div>
     `;
+    if (volumeChartInstance) {
+      volumeChartInstance.destroy();
+      volumeChartInstance = null;
+    }
+    document.getElementById('graphiqueVolumeContainer').innerHTML = '<canvas id="volumeCanvas"></canvas>';
   }
+}
+
+// Graphique en barres du volume echange, sous le graphique de cours
+// (session 2026-07-27, demande explicite utilisateur). Barre coloree en
+// --success/--danger selon que le cours du point est en hausse ou en
+// baisse par rapport au point precedent (meme convention que
+// .valeur-variation/.stat-variation), plutot qu'une couleur neutre unique
+// - le premier point du graphique, sans point precedent, est neutre. Un
+// graphique Chart.js separe (pas un axe secondaire du graphique de cours)
+// pour rester independant de son echelle Y, avec ses propres ticks
+// compacts (formatVolume).
+function chargerGraphiqueVolume(labels, volumes, prices, themeSombre) {
+  const container = document.getElementById('graphiqueVolumeContainer');
+  container.innerHTML = '<canvas id="volumeCanvas"></canvas>';
+  const ctx = document.getElementById('volumeCanvas').getContext('2d');
+
+  if (volumeChartInstance) {
+    volumeChartInstance.destroy();
+  }
+
+  const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';
+  const couleurNeutre = themeSombre ? 'rgba(154, 160, 166, 0.5)' : 'rgba(95, 99, 104, 0.4)';
+  const couleurHausse = themeSombre ? 'rgba(95, 187, 122, 0.6)' : 'rgba(52, 168, 83, 0.6)';
+  const couleurBaisse = themeSombre ? 'rgba(242, 104, 92, 0.6)' : 'rgba(234, 67, 53, 0.6)';
+
+  const couleurs = prices.map((prix, i) => {
+    if (i === 0) return couleurNeutre;
+    return prix >= prices[i - 1] ? couleurHausse : couleurBaisse;
+  });
+
+  volumeChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Volume',
+          data: volumes,
+          backgroundColor: couleurs,
+          categoryPercentage: 0.9,
+          barPercentage: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(context) {
+              return `Volume: ${formatVolume(context.parsed.y)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { display: false },
+        y: {
+          display: true,
+          grid: { display: false },
+          ticks: {
+            color: couleurTexte,
+            maxTicksLimit: 3,
+            callback(value) {
+              return formatVolume(value);
+            }
+          },
+          afterFit(scale) {
+            scale.width = LARGEUR_AXE_Y_GRAPHIQUE;
+          }
+        }
+      }
+    }
+  });
 }
 
 // ========================================

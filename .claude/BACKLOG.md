@@ -6,7 +6,17 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/5** — Session 32 (2026-07-27, v1.9.2) : correctif de la variation du
+**3/5** — Session 33 (2026-07-27, v1.9.3) : fusion de `POST /api/valeurs`
+et `POST /api/sections/:id/valeurs` en un seul endpoint déterminant
+lui-même l'autorisation d'écriture, suppression de la colonne FK
+vestigiale `alertes.valeur_id` (migration de recréation de table) — deux
+correctifs de dette technique reportés depuis la Revue n°6/Session 30
+(voir `CLAUDE.md` § Historique des revues) — et ajout d'un graphique du
+volume échangé sous le graphique de cours d'une valeur (nouvelle
+fonctionnalité, demande explicite utilisateur). Voir `CHANGELOG.md`
+1.9.3 pour le détail.
+
+2/5 — Session 32 (2026-07-27, v1.9.2) : correctif de la variation du
 jour, restée à `+0.00%` pour toutes les valeurs/indices même marchés
 ouverts — calcul reposant sur un champ Yahoo Finance
 (`regularMarketChangePercent`) absent de l'endpoint `/v8/finance/chart`
@@ -497,12 +507,13 @@ ci-dessus. Ne pas confondre avec les « limites connues » listées dans
 volatilité implicite, parité) : ce sont des limites assumées par le
 README public, pas des éléments déjà priorisés pour une future session —
 à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
-de revue est à 0/5 (voir ci-dessus, seuil porté à 5 sessions) : la
-Session 30 a déjà traité l'intégralité de la dette technique reportée
-jusqu'alors (voir `CLAUDE.md` § Historique des revues) — il ne reste que
-deux points explicitement encore hors périmètre (fusion de
-`POST /api/valeurs`/`POST /api/sections/:id/valeurs` en un seul endpoint,
-migration de schéma pour la colonne `alertes.valeur_id`) — la prochaine
+de revue est à 3/5 (voir ci-dessus, seuil porté à 5 sessions) : la
+Session 30 avait déjà traité l'intégralité de la dette technique reportée
+jusqu'alors (voir `CLAUDE.md` § Historique des revues), et les deux seuls
+points qui restaient explicitement hors périmètre à ce moment-là (fusion
+de `POST /api/valeurs`/`POST /api/sections/:id/valeurs` en un seul
+endpoint, migration de schéma pour la colonne `alertes.valeur_id`) ont
+été traités par la Session 33 (voir ci-dessus et `CHANGELOG.md` 1.9.3) —
+plus aucun point de dette technique connu en attente. La prochaine
 session porte donc sur un point de ce backlog produit, à arbitrer avec
-l'utilisateur, ou sur l'un de ces deux points si l'utilisateur préfère
-les traiter en priorité.
+l'utilisateur.

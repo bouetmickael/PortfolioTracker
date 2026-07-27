@@ -5,8 +5,8 @@ const fs = require('fs');
 // Un ticker Yahoo Finance valide ne contient que lettres/chiffres/points/
 // tirets/carets (ex. AAPL, MC.PA, ^GSPC) ; simule ici la reponse Yahoo
 // Finance sans appel reseau reel, pour que les tests d'ajout de valeur
-// (POST /api/valeurs, POST /api/sections/:id/valeurs) restent
-// deterministes et hors ligne. Voir server/valeurs.js (verifierTickerExiste).
+// (POST /api/valeurs, avec ou sans sectionId) restent deterministes et
+// hors ligne. Voir server/valeurs.js (verifierTickerExiste).
 const TICKER_YAHOO_VALIDE = /^[A-Z0-9.\-^]+$/;
 
 // Jeu fixe pour simuler GET /api/valeurs/recherche (server/valeurs.js,

@@ -36,10 +36,11 @@ function rolesSection(db, userId) {
 }
 
 // Equivalent cible d'un seul id a rolesSection(db, userId).get(sectionId) :
-// les routes /api/sections/:id/valeurs (GET/POST/DELETE) n'ont besoin que
-// de l'acces a CETTE section precise, pas de la carte complete de toutes
-// les sections visibles par l'utilisateur (voir CLAUDE.md Historique des
-// revues, Revue n°3).
+// les routes /api/sections/:id/valeurs (GET/DELETE) et POST /api/valeurs
+// (quand sectionId est fourni, voir server/routes/valeurs.js §
+// sectionCibleEcriture) n'ont besoin que de l'acces a CETTE section
+// precise, pas de la carte complete de toutes les sections visibles par
+// l'utilisateur (voir CLAUDE.md Historique des revues, Revue n°3).
 function roleSection(db, userId, sectionId) {
   const propre = db.prepare('SELECT id, user_id FROM sections WHERE id = ? AND user_id = ?').get(sectionId, userId);
   if (propre) {

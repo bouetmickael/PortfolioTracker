@@ -80,15 +80,13 @@ async function rechercherTickers(query) {
   }
 }
 
-// Detache une ligne valeurs de alertes.valeur_id (FK) puis la supprime.
-// Necessaire avant tout DELETE FROM valeurs, sinon la suppression echoue
-// (FOREIGN KEY constraint) - alertes.valeur_id n'est plus lu nulle part
-// (les alertes sont rejointes par ticker, voir HAS_ALERTE_SUBQUERY), ce
-// detachement ne change donc rien d'observable. Factorise les trois sites
-// qui suppriment une ligne valeurs directement (server/routes/valeurs.js,
-// server/routes/sections.js x2).
-function supprimerValeurEtDetacherAlertes(db, valeurId) {
-  db.prepare('UPDATE alertes SET valeur_id = NULL WHERE valeur_id = ?').run(valeurId);
+// Supprime une ligne valeurs. Factorise les trois sites qui suppriment une
+// ligne valeurs directement (server/routes/valeurs.js, server/routes/
+// sections.js x2). alertes n'a plus de colonne valeur_id referencant
+// valeurs.id (colonne FK vestigiale retiree par migration, voir
+// server/db.js et CLAUDE.md Historique des revues, Revue n°6) : plus
+// besoin de detacher quoi que ce soit avant la suppression.
+function supprimerValeur(db, valeurId) {
   db.prepare('DELETE FROM valeurs WHERE id = ?').run(valeurId);
 }
 
@@ -106,12 +104,12 @@ function supprimerAlertesOrphelines(db, userId, ticker) {
 }
 
 // Insertion d'une ligne valeurs suivie de son cours initial : factorise
-// l'INSERT a 11 colonnes et le calcul de l'ordre, dupliques verbatim entre
-// POST /api/valeurs (server/routes/valeurs.js) et POST /api/sections/:id/
-// valeurs (server/routes/sections.js) depuis que ce dernier existe (voir
-// CLAUDE.md Historique des revues, Revue n°6). Chaque route garde son
-// propre controle d'acces/deduplication en amont : ce helper ne fait que
-// la persistance une fois ces verifications passees.
+// l'INSERT a 11 colonnes et le calcul de l'ordre. Utilise par l'unique
+// route d'ajout POST /api/valeurs (server/routes/valeurs.js), qui
+// determine elle-meme la section/le proprietaire cible (possedee ou
+// partagee en ecriture, voir § sectionCibleEcriture) avant d'appeler ce
+// helper une fois son propre controle d'acces/deduplication passe (voir
+// CLAUDE.md Historique des revues, Revue n°6).
 function creerValeur(db, { proprietaireId, sectionId, ticker, type, nom, priceData }) {
   const ordre = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [proprietaireId, sectionId]);
 
@@ -139,7 +137,7 @@ module.exports = {
   toValeursArray,
   verifierTickerExiste,
   rechercherTickers,
-  supprimerValeurEtDetacherAlertes,
+  supprimerValeur,
   supprimerAlertesOrphelines,
   creerValeur
 };
