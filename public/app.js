@@ -10,10 +10,26 @@ let alertesPollInterval = null;
 let indicesPollInterval = null;
 let chartInstance = null;
 let volumeChartInstance = null;
-// Largeur fixe (px) de l'axe Y des graphiques de cours et de volume, pour que
-// les deux graphiques Chart.js separes restent alignes horizontalement (voir
-// chargerGraphique/chargerGraphiqueVolume).
-const LARGEUR_AXE_Y_GRAPHIQUE = 50;
+// Largeur (px) de l'axe Y partagee entre le graphique de cours et le
+// graphique de volume (deux instances Chart.js separees, voir
+// chargerGraphique/chargerGraphiqueVolume), recalculee a chaque chargement
+// (alignerLargeurAxeY). PAS une constante fixe : une largeur figee en dur
+// (ex. 50px) s'est averee trop etroite pour des libelles de prix a 3
+// chiffres et tronquait les premiers caracteres hors du canvas (bug
+// corrige, retour utilisateur du 2026-07-27) - la largeur reellement
+// necessaire depend du nombre de chiffres du cours ET de la police/taille
+// de rendu du navigateur, donc pas d'une valeur devinable a l'avance.
+let largeurAxeYGraphique = 0;
+
+// Callback afterFit partage par les deux axes Y (cours et volume) : chacun
+// impose sa propre largeur naturelle (calculee par Chart.js a partir de ses
+// propres libelles) comme largeur minimale commune, jamais moins que ce
+// dont CHAQUE graphique a besoin pour ne pas tronquer ses libelles.
+function alignerLargeurAxeY(scale) {
+  largeurAxeYGraphique = Math.max(largeurAxeYGraphique, scale.width);
+  scale.width = largeurAxeYGraphique;
+}
+
 let graphiqueState = { ticker: null, alertable: false };
 let placementAlerteActif = false;
 
@@ -1089,6 +1105,11 @@ async function chargerGraphique(ticker, period) {
       chartInstance.destroy();
     }
 
+    // Remise a zero avant chaque chargement : une valeur a 4 chiffres ne doit
+    // pas laisser une largeur d'axe surdimensionnee a la prochaine ouverture
+    // d'une valeur a 2 chiffres (voir alignerLargeurAxeY).
+    largeurAxeYGraphique = 0;
+
     const themeSombre = getTheme() === 'dark';
     const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';
     const couleurGrille = themeSombre ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
@@ -1141,15 +1162,11 @@ async function chargerGraphique(ticker, period) {
                 return value.toFixed(2) + ' EUR';
               }
             },
-            // Largeur fixe (pas seulement une largeur minimale) plutot que la
-            // largeur auto-calculee a partir des libelles de CET axe : le
-            // graphique de volume (chargerGraphiqueVolume) est un Chart.js
-            // separe avec ses propres libelles (volumes, pas des prix), donc
-            // une largeur auto-calculee different-e entre les deux graphiques
-            // desalignerait les barres de volume sous la courbe de cours.
-            afterFit(scale) {
-              scale.width = LARGEUR_AXE_Y_GRAPHIQUE;
-            }
+            // Largeur partagee avec le graphique de volume (chargerGraphiqueVolume,
+            // Chart.js separe avec ses propres libelles) plutot que la largeur
+            // auto-calculee a partir des seuls libelles de CET axe, sinon les deux
+            // graphiques desalignent leurs barres/courbe (voir alignerLargeurAxeY).
+            afterFit: alignerLargeurAxeY
           }
         },
         interaction: {
@@ -1161,6 +1178,17 @@ async function chargerGraphique(ticker, period) {
     });
 
     chargerGraphiqueVolume(labels, volumes, prices, themeSombre);
+
+    // Deuxieme passe de layout sur les DEUX graphiques : la largeur d'axe Y
+    // partagee (largeurAxeYGraphique) n'est connue definitivement qu'une fois
+    // les deux graphiques construits (le plus large des deux impose sa
+    // largeur a l'autre, voir alignerLargeurAxeY) - sans cette deuxieme
+    // passe, celui construit en premier resterait sur sa propre largeur
+    // naturelle si le second s'avere plus large (ex. libelles de volume
+    // "12.3M" plus larges que des libelles de prix courts).
+    chartInstance.update('none');
+    volumeChartInstance.update('none');
+
     afficherAlertesGraphique(ticker);
 
     // Evenement generique plutot qu'une branche if (placementAlerteActif)
@@ -1253,9 +1281,7 @@ function chargerGraphiqueVolume(labels, volumes, prices, themeSombre) {
               return formatVolume(value);
             }
           },
-          afterFit(scale) {
-            scale.width = LARGEUR_AXE_Y_GRAPHIQUE;
-          }
+          afterFit: alignerLargeurAxeY
         }
       }
     }

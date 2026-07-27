@@ -6,7 +6,27 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**4/5** — Session 34 (2026-07-27, v1.9.4) : retour utilisateur explicite
+**5/5** — Session 35 (2026-07-27, v1.9.5) : retour utilisateur direct
+(capture d'écran) sur le graphique de volume ajouté en v1.9.3 : libellés
+de l'axe Y des cours tronqués (largeur d'axe figée à 50px, trop étroite
+pour un cours à 3 chiffres) et bouton cloche d'ajout d'alerte recouvrant
+les libellés de l'axe Y du volume (positionné par rapport à l'ensemble
+du bloc graphique au lieu du seul graphique de cours). Deux correctifs :
+largeur d'axe Y calculée dynamiquement et partagée entre les deux
+graphiques (`alignerLargeurAxeY`, `public/app.js`), nouveau conteneur
+`#graphiquePriceZone` dédié au graphique de cours pour le positionnement
+des éléments superposés (`public/index.html`/`styles.css`). Compteur à
+5/5 : **la prochaine session est donc obligatoirement un cycle de revue
+de dette technique** (`METHOD.md` §0.2), portant sur le diff cumulé
+depuis la clôture de la Revue n°6 (commit `d22e4f8`, « Session 28 -
+technical debt review n6 », voir `CLAUDE.md` § Historique des revues)
+jusqu'à `HEAD` — couvre nominalement les Sessions 29 à 35, à vérifier par
+`git log` en début de revue plutôt qu'à supposer exact (plusieurs revues
+précédentes ont dû corriger cette borne, voir Revues n°3/n°4/n°5/n°6
+ci-dessus pour ce même type de correction récurrent). Voir `CHANGELOG.md`
+1.9.5.
+
+4/5 — Session 34 (2026-07-27, v1.9.4) : retour utilisateur explicite
 (deux seuils d'alerte franchis un matin sans aucune notification visible).
 Diagnostic : mécanisme de déclenchement (`checkAlerts()`) sain et
 vérifié par test dédié (`server/test/alerts-job.test.js`), mais l'email

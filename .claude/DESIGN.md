@@ -397,7 +397,10 @@ délibéré antérieur, non remis en cause).
   moi — même périmètre que le bouton cloche existant sur la ligne, voir
   `BUSINESS_RULES.md` § Alertes de seuil pour la raison technique), un
   bouton rond `icon-bell` (`.alerte-drag-trigger`, ancré en bas-gauche du
-  graphique, `position: absolute` dans `#graphiqueWrapper`) ouvre un
+  graphique, `position: absolute` dans `#graphiquePriceZone` — conteneur
+  dédié au seul graphique de cours, distinct de `#graphiqueWrapper` qui
+  englobe aussi le graphique de volume en dessous, voir § Volume échangé
+  sur le graphique ci-dessous) ouvre un
   « mode placement » : une ligne pointillée or (`.alerte-drag-line`,
   même couleur `--primary` que la courbe du graphique) apparaît sur le
   cours actuel de la valeur, accompagnée d'une pastille sombre
@@ -463,11 +466,20 @@ délibéré antérieur, non remis en cause).
   graphique (ouverture, changement de période) via
   `chargerGraphiqueVolume()` (`public/app.js`), instance Chart.js séparée
   du graphique de cours (pas un axe secondaire du même graphique) pour
-  rester indépendante de son échelle de prix ; les deux graphiques fixent
-  la largeur de leur axe Y à une valeur commune (`afterFit`,
-  `LARGEUR_AXE_Y_GRAPHIQUE`) pour que les barres de volume restent alignées
-  sous la courbe de cours malgré des libellés d'axe de largeurs
-  naturellement différentes (prix en EUR vs volumes compacts).
+  rester indépendante de son échelle de prix ; les deux graphiques
+  partagent la largeur de leur axe Y (`afterFit: alignerLargeurAxeY`,
+  variable `largeurAxeYGraphique` réinitialisée à chaque chargement) pour
+  que les barres de volume restent alignées sous la courbe de cours
+  malgré des libellés d'axe de largeurs naturellement différentes (prix
+  en EUR vs volumes compacts). **Largeur calculée dynamiquement, jamais
+  figée en dur** (correctif v1.9.5, retour utilisateur explicite : une
+  largeur fixe à 50px tronquait les premiers chiffres d'un cours à 3
+  chiffres, hors du canvas) — chaque axe impose sa propre largeur
+  naturelle (calculée par Chart.js à partir de ses propres libellés)
+  comme largeur minimale commune, réconciliée par une deuxième passe de
+  layout (`chartInstance.update('none')`/`volumeChartInstance.update('none')`)
+  une fois les deux graphiques construits, le plus large des deux
+  imposant sa largeur à l'autre.
 
 ## Responsive
 

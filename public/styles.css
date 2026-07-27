@@ -945,6 +945,18 @@ body {
   position: relative;
 }
 
+/* Contexte de positionnement des elements superposes au graphique de cours
+   (overlay d'alertes existantes, ligne/pastille/boutons du mode placement) :
+   un conteneur dedie plutot que #graphiqueWrapper lui-meme, qui englobe
+   aussi #graphiqueVolumeContainer depuis l'ajout du graphique de volume -
+   un positionnement "bottom" relatif a #graphiqueWrapper atterrirait sinon
+   dans le graphique de volume au lieu du bas du graphique de cours (bug
+   corrige, retour utilisateur du 2026-07-27 : le bouton cloche recouvrait
+   les libelles de l'axe Y du volume). */
+#graphiquePriceZone {
+  position: relative;
+}
+
 #graphiqueWrapper.placement-actif #graphiqueContainer {
   cursor: ns-resize;
   touch-action: none;

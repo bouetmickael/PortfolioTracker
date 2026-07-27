@@ -415,24 +415,26 @@
           <button class="btn-periode" data-period="MAX">Max</button>
         </div>
         <div id="graphiqueWrapper">
-          <div id="graphiqueContainer">
-            <canvas id="chartCanvas"></canvas>
+          <div id="graphiquePriceZone">
+            <div id="graphiqueContainer">
+              <canvas id="chartCanvas"></canvas>
+            </div>
+            <div id="alertesGraphiqueOverlay"></div>
+            <div id="alerteLigne" class="alerte-drag-line"></div>
+            <div id="alerteBadge" class="alerte-drag-badge"></div>
+            <button id="alerteDeclencheur" class="alerte-drag-trigger" onclick="ouvrirPlacementAlerte()" title="Ajouter une alerte" aria-label="Ajouter une alerte">
+              <svg class="icon icon-sm"><use href="#icon-bell"></use></svg>
+            </button>
+            <button id="alerteAnnuler" class="alerte-drag-cancel" onclick="fermerPlacementAlerte()" title="Annuler" aria-label="Annuler">
+              <svg class="icon icon-sm"><use href="#icon-x"></use></svg>
+            </button>
+            <button id="alerteConfirmer" class="alerte-drag-confirm" onclick="confirmerPlacementAlerte()" title="Creer l'alerte a ce seuil" aria-label="Creer l'alerte a ce seuil">
+              <svg class="icon icon-sm"><use href="#icon-check"></use></svg>
+            </button>
           </div>
           <div id="graphiqueVolumeContainer">
             <canvas id="volumeCanvas"></canvas>
           </div>
-          <div id="alertesGraphiqueOverlay"></div>
-          <div id="alerteLigne" class="alerte-drag-line"></div>
-          <div id="alerteBadge" class="alerte-drag-badge"></div>
-          <button id="alerteDeclencheur" class="alerte-drag-trigger" onclick="ouvrirPlacementAlerte()" title="Ajouter une alerte" aria-label="Ajouter une alerte">
-            <svg class="icon icon-sm"><use href="#icon-bell"></use></svg>
-          </button>
-          <button id="alerteAnnuler" class="alerte-drag-cancel" onclick="fermerPlacementAlerte()" title="Annuler" aria-label="Annuler">
-            <svg class="icon icon-sm"><use href="#icon-x"></use></svg>
-          </button>
-          <button id="alerteConfirmer" class="alerte-drag-confirm" onclick="confirmerPlacementAlerte()" title="Creer l'alerte a ce seuil" aria-label="Creer l'alerte a ce seuil">
-            <svg class="icon icon-sm"><use href="#icon-check"></use></svg>
-          </button>
         </div>
       </div>
     </div>

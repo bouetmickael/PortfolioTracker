@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.9.5
+
+- Correctif : sur le graphique d'une valeur, les libelles de l'axe Y des
+  cours (ex. "156.00 EUR") pouvaient etre tronques sur leurs premiers
+  chiffres - une largeur d'axe fixee en dur (50px, introduite avec le
+  graphique de volume en v1.9.3) etait trop etroite pour des cours a 3
+  chiffres. La largeur de l'axe Y est desormais calculee dynamiquement
+  (partagee entre le graphique de cours et celui du volume, chacun
+  imposant sa propre largeur minimale).
+- Correctif : le bouton cloche d'ajout d'alerte depuis le graphique (et
+  les autres elements superposes au graphique de cours) recouvrait les
+  libelles de l'axe Y du graphique de volume, ajoute juste en dessous en
+  v1.9.3 - ces elements etaient positionnes par rapport a l'ensemble du
+  bloc graphique (cours + volume) au lieu du seul graphique de cours.
+
 ## 1.9.4
 
 - Ajout d'un indicateur "Derniere alerte" sur chaque carte d'alerte

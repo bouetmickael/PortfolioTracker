@@ -1630,3 +1630,81 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   du compte), redemarrer l'add-on, puis verifier dans les logs l'absence
   de ligne `Email non envoye (SMTP non configure)` lors du prochain
   cycle de `checkAlerts()`.
+
+## 2026-07-27 — Session 35 - correctifs axe Y du graphique et bouton cloche (v1.9.5)
+
+- **Retour utilisateur** (capture d'ecran reelle d'un telephone, graphique
+  "TotalEnergies SE" en periode 1J) : deux problemes visibles sur le
+  graphique ajoute en v1.9.3 (volume echange) -
+  1. les libelles de l'axe Y du graphique de cours etaient tronques sur
+     leurs premiers chiffres (ex. un cours a 3 chiffres affichait
+     seulement les deux derniers) ;
+  2. le bouton cloche (ajout d'une alerte depuis le graphique, en
+     bas-gauche) recouvrait les libelles de l'axe Y du graphique de
+     volume juste en dessous.
+- **Diagnostic** :
+  1. `chargerGraphique()`/`chargerGraphiqueVolume()` (`public/app.js`,
+     Session 33) forçaient une largeur d'axe Y fixe (`LARGEUR_AXE_Y_
+     GRAPHIQUE = 50`) pour aligner les deux graphiques Chart.js separes
+     (cours et volume). Cette largeur, choisie sans verifier des cours
+     reels a 3 chiffres (seulement testee avec des cours mockes a 2
+     chiffres lors de la verification Playwright de la Session 33 - le
+     texte etait deja legerement tronque a ce moment-la mais passe
+     inaperçu, l'alignement horizontal ayant ete le seul point verifie),
+     etait trop etroite : Chart.js dessine les libelles d'axe alignes a
+     droite de la largeur allouee, donc tout libelle plus large que 50px
+     deborde hors du canvas cote gauche (simplement non rendu, un canvas
+     2D clippe implicitement a ses propres bords).
+  2. `#alertesGraphiqueOverlay`/`#alerteLigne`/`#alerteBadge`/les 3
+     boutons du mode placement etaient positionnes en `position: absolute`
+     par rapport a `#graphiqueWrapper` (`bottom: 8px` pour les boutons).
+     Avant la Session 33, `#graphiqueWrapper` ne contenait que
+     `#graphiqueContainer` (300px), donc `bottom: 8px` du wrapper
+     coincidait avec le bas du graphique de cours. Depuis l'ajout de
+     `#graphiqueVolumeContainer` (70px + marge) comme second enfant du
+     wrapper en flux normal, le wrapper est devenu plus haut de ~74px,
+     et `bottom: 8px` du wrapper atterrit desormais pres du bas du
+     graphique de VOLUME plutot que du graphique de cours - regression
+     introduite par la Session 33, non detectee car la verification
+     Playwright de cette session-la ne couvrait pas le mode placement
+     d'alerte (seulement l'ouverture/alignement/bascule de periode).
+- **Correctifs appliques** :
+  1. Remplacement de la largeur fixe par un calcul dynamique partage
+     (`alignerLargeurAxeY()`, variable `largeurAxeYGraphique`
+     reinitialisee a chaque chargement) : chaque axe impose sa propre
+     largeur naturelle (calculee par Chart.js a partir de ses propres
+     libelles) comme largeur minimale commune, avec une deuxieme passe
+     de layout (`chartInstance.update('none')`/`volumeChartInstance.
+     update('none')`) une fois les deux graphiques construits pour que
+     celui construit en premier beneficie retroactivement d'une largeur
+     plus grande si le second s'avere plus large.
+  2. Nouveau conteneur `#graphiquePriceZone` (`public/index.html`,
+     `position: relative` en CSS) englobant uniquement
+     `#graphiqueContainer` et les elements superposes au graphique de
+     cours (overlay d'alertes existantes, ligne/pastille/boutons du mode
+     placement), desormais siblings de `#graphiqueVolumeContainer` sous
+     `#graphiqueWrapper` plutot que tous les six enfants directs du
+     wrapper. Les selecteurs CSS `#graphiqueWrapper.placement-actif
+     .alerte-drag-*` etc. restent valides sans modification (combinateur
+     descendant, pas enfant direct).
+- **Verification reelle** :
+  - `node --test test/*.test.js` : 52/52 verts (changements limites au
+    front-end, aucun test serveur affecte).
+  - Parcours Playwright reel (Chromium local, meme contournement CDN
+    Chart.js que les sessions precedentes) : cours mocke a 3 chiffres
+    (156.78 EUR, reproduisant le cas reel signale) - tous les libelles
+    d'axe Y verifies visuellement complets sur la capture d'ecran ;
+    mesure DOM du bouton cloche confirmant `cloche.bottom <=
+    volumeContainer.top` (ne recouvre plus l'axe du volume) ; second
+    scenario avec un cours a 2 chiffres mais un volume a 9 chiffres
+    (libelle "123.5M", plus large que le libelle de prix) verifiant que
+    l'alignement reste exact dans les deux sens (le graphique de cours
+    s'elargit correctement pour matcher le graphique de volume plus
+    large, pas seulement l'inverse), y compris en theme sombre.
+- Version : `server/package.json`/`config.yaml` 1.9.4 -> 1.9.5
+  (increment PATCH - correctif visuel suite a un retour utilisateur
+  direct), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 4/5 -> 5/5 - **cycle de revue de dette
+  technique obligatoire a la prochaine session** (`METHOD.md` §0.2),
+  portant sur le diff cumule depuis la cloture de la Revue n°6 (commit
+  `d22e4f8`).
