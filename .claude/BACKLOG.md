@@ -340,9 +340,10 @@ réutilisables (`#modalPrompt`/`#modalConfirm`, résolues comme des
 l'architecture complète) : glisser-déposer, sections, badges d'alerte,
 partage RW de section entre utilisateurs. **Plan complet, les quatre
 sessions sont livrées** (voir découpage ci-dessous). Aucune fonctionnalité
-en cours actuellement : la revue de dette technique n°5 vient de clore le
-cycle (voir `CLAUDE.md` § Historique des revues, compteur remis à 0/3
-ci-dessus) — la prochaine session porte sur le prochain point du backlog
+en cours actuellement : la Session 30 vient de traiter l'intégralité de la
+dette technique reportée (voir `CLAUDE.md` § Historique des revues), et le
+compteur/seuil de revue ont été remis à 0/5 juste après (voir ci-dessus)
+— la prochaine session porte sur le prochain point du backlog
 produit ci-après, à arbitrer avec l'utilisateur.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé
@@ -476,7 +477,12 @@ ci-dessus. Ne pas confondre avec les « limites connues » listées dans
 volatilité implicite, parité) : ce sont des limites assumées par le
 README public, pas des éléments déjà priorisés pour une future session —
 à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
-de revue est à 0/3 (voir ci-dessus) : la prochaine session porte sur un
-point de ce backlog produit, à arbitrer avec l'utilisateur, ou sur l'un
-des correctifs de dette technique reportés (voir `CLAUDE.md` § Historique
-des revues) si l'utilisateur préfère les traiter en priorité.
+de revue est à 0/5 (voir ci-dessus, seuil porté à 5 sessions) : la
+Session 30 a déjà traité l'intégralité de la dette technique reportée
+jusqu'alors (voir `CLAUDE.md` § Historique des revues) — il ne reste que
+deux points explicitement encore hors périmètre (fusion de
+`POST /api/valeurs`/`POST /api/sections/:id/valeurs` en un seul endpoint,
+migration de schéma pour la colonne `alertes.valeur_id`) — la prochaine
+session porte donc sur un point de ce backlog produit, à arbitrer avec
+l'utilisateur, ou sur l'un de ces deux points si l'utilisateur préfère
+les traiter en priorité.
