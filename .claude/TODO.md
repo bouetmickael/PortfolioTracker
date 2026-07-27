@@ -1708,3 +1708,67 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   technique obligatoire a la prochaine session** (`METHOD.md` §0.2),
   portant sur le diff cumule depuis la cloture de la Revue n°6 (commit
   `d22e4f8`).
+
+## 2026-07-27 — Session 36 - correctif critique : les alertes ne se declenchent plus du tout (v1.9.6)
+
+- **Retour utilisateur** (capture d'ecran reelle, section "TEST",
+  valeur HO.PA/Thales S.A. a 243.60 EUR, +3.05%) : 6 alertes actives sur
+  ce ticker, toutes affichant "Jamais declenchee" - y compris trois dont
+  le seuil est manifestement franchi par le cours affiche (Haut: 238.68
+  EUR, Haut: 243.48 EUR, Bas: 243.63 EUR, tous au-dela/en-deca de 243.60
+  EUR). Aucune notification ni dans l'app ni par email. Message
+  utilisateur explicite : "Elles ne se declenchent pas du tout."
+- **Diagnostic** : ce rapport est plus grave que celui de la Session 34
+  (SMTP absent) - la ecriture attendue de `derniereAlerte` dans l'app
+  (fonctionnalite ajoutee justement pour rester visible independamment
+  de l'email) etait elle-meme absente, pas seulement l'email. Lecture de
+  `server/jobs/alerts.js` (`checkAlerts()`) : `await sendMail(...)`
+  s'executait **avant** `updateAlerte.run(cours, Date.now(), alerte.id)`.
+  Si `sendMail()` rejette (SMTP configure - probablement suite a la
+  config Gmail demandee en fin de Session 34 - mais en echec : mauvais
+  mot de passe d'application, port sortant bloque par le FAI/routeur,
+  etc.), l'exception remonte hors du callback passe a
+  `traiterEnParallele()`, capturee par `Promise.allSettled` et
+  simplement loguee (`Erreur envoi alerte pour ...`) - `updateAlerte.run`
+  n'est alors **jamais atteint**. Resultat : le franchissement de seuil
+  n'est jamais enregistre en base, reproduisant exactement le symptome
+  rapporte (aucune des deux notifications, indefiniment, meme au cycle
+  suivant puisque `dernier_cours_alerte` reste `NULL` et le seuil reste
+  toujours "nouvellement" franchi a chaque tentative - qui echoue a
+  nouveau de la meme facon).
+- **Correctif** (`server/jobs/alerts.js`) :
+  - `updateAlerte.run(...)` deplace **avant** l'appel a `sendMail()` -
+    le declenchement est desormais toujours enregistre des qu'un seuil
+    est franchi, quel que soit le sort de l'email.
+  - Appel a `sendMail()` entoure de son propre `try/catch` local
+    (n'affecte plus le retour de la fonction ni le compteur
+    `alertesEnvoyees`, qui compte desormais les *declenchements*, pas
+    les emails reussis - log renomme en consequence, `Alerte
+    declenchee`/`Verification terminee : N alertes declenchees`).
+  - `require('../mailer')` change de destructuration (`const {
+    sendMail }`) vers une reference au module (`const mailer =
+    require('../mailer')`) : la destructuration figeait la reference a
+    `sendMail` au chargement du module, empechant tout mock cote test
+    sans egard a l'ordre de chargement.
+  - `BUSINESS_RULES.md` § Alertes de seuil : nouveau paragraphe
+    documentant explicitement cet ordre comme invariant a ne pas
+    regresser (meme convention que le paragraphe existant sur
+    l'anti-repetition), pour eviter qu'un futur refactor ne le
+    reintroduise par inadvertance.
+- **Tests** : nouveau test dans `server/test/alerts-job.test.js`
+  simulant un SMTP configure qui echoue (`mailer.sendMail` remplace
+  temporairement par une fonction qui rejette, restauree dans un
+  `finally`, aucun appel reseau reel) - verifie que `derniereAlerte`/
+  `dernierCoursAlerte` sont bien renseignes malgre l'echec d'envoi.
+  `node --test test/*.test.js` : 53/53 verts (52 existants + 1 nouveau).
+- Version : `server/package.json`/`config.yaml` 1.9.5 -> 1.9.6
+  (increment PATCH - correctif critique), journalise dans
+  `CHANGELOG.md`.
+- **Deviation assumee a `METHOD.md` §0.2** : le compteur `BACKLOG.md`
+  etait deja a 5/5 depuis la Session 35 (revue de dette technique due a
+  la session suivante), mais un correctif de severite critique
+  (fonctionnalite cœur - les alertes - totalement inoperante) prime sur
+  l'ordonnancement normal du cycle. Compteur laisse a 5/5 (ce correctif
+  cible et teste n'ajoute pas de dette notable) - **la revue de dette
+  technique reste due a la prochaine session**, non reportee davantage
+  par cette deviation.

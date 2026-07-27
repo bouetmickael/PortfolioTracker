@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.6
+
+- **Correctif critique** : les alertes de seuil ne se déclenchaient plus
+  du tout (ni notification dans l'app, ni email), même sur un seuil
+  clairement franchi. `checkAlerts()` tentait d'envoyer l'email **avant**
+  d'enregistrer le déclenchement en base ; si l'envoi échouait (SMTP
+  configuré mais en panne - mauvais mot de passe, port bloqué...),
+  l'enregistrement n'avait jamais lieu, empêchant l'alerte d'apparaître
+  déclenchée nulle part, indéfiniment. Le déclenchement est désormais
+  enregistré avant la tentative d'envoi ; un échec d'email reste local et
+  n'affecte plus l'enregistrement (voir `BUSINESS_RULES.md` § Alertes de
+  seuil).
+
 ## 1.9.5
 
 - Correctif : sur le graphique d'une valeur, les libelles de l'axe Y des

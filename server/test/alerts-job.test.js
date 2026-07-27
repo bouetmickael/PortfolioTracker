@@ -7,6 +7,7 @@ const serveur = demarrerServeurDeTest('alerts-job');
 // module server/db.js deja charge (singleton partage par tout le process),
 // checkAlerts() opere donc sur la meme base que le serveur de test.
 const { checkAlerts } = require('../jobs/alerts');
+const mailer = require('../mailer');
 let baseUrl;
 
 before(async () => {
@@ -101,4 +102,44 @@ test('checkAlerts() ne declenche rien quand le cours reste dans les seuils', asy
 
   const alerte = parTicker(await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json(), 'AAPL');
   assert.equal(alerte.derniereAlerte, null);
+});
+
+// Regression pour le retour utilisateur du 2026-07-27 (deuxieme rapport, une
+// fois SMTP configure) : plusieurs seuils clairement franchis restaient tous
+// affiches "Jamais declenchee" et aucun email n'arrivait. Cause reelle :
+// sendMail() etait appele AVANT l'ecriture de derniere_alerte/
+// dernier_cours_alerte - un SMTP configure mais en echec (mauvais mot de
+// passe, port bloque) faisait donc systematiquement echouer l'ecriture en
+// base, empechant l'alerte d'apparaitre declenchee nulle part (voir
+// BUSINESS_RULES.md § Alertes de seuil). Ce test simule un SMTP configure
+// qui echoue (mailer.sendMail mocke pour rejeter) sans jamais toucher au
+// reseau.
+test("checkAlerts() enregistre le declenchement meme si l'envoi d'email echoue (SMTP configure mais en panne)", async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alerts-job-smtp-echec@test.local');
+
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL' })
+  });
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 100 })
+  });
+
+  const sendMailOriginal = mailer.sendMail;
+  mailer.sendMail = async () => {
+    throw new Error('Erreur SMTP simulee (auth invalide)');
+  };
+
+  try {
+    await checkAlerts();
+  } finally {
+    mailer.sendMail = sendMailOriginal;
+  }
+
+  const alerte = parTicker(await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json(), 'AAPL');
+  assert.ok(alerte.derniereAlerte, 'derniereAlerte doit etre renseignee malgre l\'echec d\'envoi de l\'email');
+  assert.equal(alerte.dernierCoursAlerte, 101.5);
 });

@@ -6,7 +6,29 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 35 (2026-07-27, v1.9.5) : retour utilisateur direct
+**5/5** — Session 36 (2026-07-27, v1.9.6), **correctif critique hors
+plan** : retour utilisateur (capture d'écran) — plusieurs alertes de
+seuil clairement franchies (ex. seuil haut à 238.68 EUR pour un cours à
+243.60 EUR) toujours affichées « Jamais déclenchée », aucune notification
+ni dans l'app ni par email. Cause réelle : `checkAlerts()`
+(`server/jobs/alerts.js`) appelait `sendMail()` **avant** d'écrire
+`dernier_cours_alerte`/`derniere_alerte` en base ; un SMTP configuré mais
+en échec (probablement suite à la config Gmail demandée en Session 34)
+faisait donc systématiquement échouer l'écriture, empêchant l'alerte
+d'apparaître déclenchée nulle part, indéfiniment — bug distinct de celui
+diagnostiqué en Session 34 (SMTP absent), plus grave puisqu'il cassait
+aussi l'indicateur in-app censé fonctionner indépendamment de l'email.
+Correctif : écriture en base déplacée avant la tentative d'envoi, échec
+d'email capturé localement (voir `BUSINESS_RULES.md` § Alertes de
+seuil), test de régression dédié simulant un SMTP configuré qui échoue.
+**Déviation assumée à `METHOD.md` §0.2** : le compteur était déjà à 5/5
+après la Session 35 (revue de dette due à la session suivante), mais un
+correctif de sévérité critique (fonctionnalité cœur totalement inopérante
+pour l'utilisateur) prime sur l'ordonnancement du cycle — la revue de
+dette reste due à la **prochaine** session, non reportée davantage. Voir
+`CHANGELOG.md` 1.9.6.
+
+Session 35 (2026-07-27, v1.9.5) : retour utilisateur direct
 (capture d'écran) sur le graphique de volume ajouté en v1.9.3 : libellés
 de l'axe Y des cours tronqués (largeur d'axe figée à 50px, trop étroite
 pour un cours à 3 chiffres) et bouton cloche d'ajout d'alerte recouvrant

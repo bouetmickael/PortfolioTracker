@@ -188,6 +188,19 @@
 - L'envoi d'email est optionnel et non bloquant : sans `SMTP_*` configuré,
   l'alerte est seulement loguée (`Email non envoye (SMTP non configure)`),
   jamais une erreur qui bloque le reste de l'application.
+- **Le déclenchement (`dernier_cours_alerte`/`derniere_alerte`) est
+  toujours enregistré avant la tentative d'envoi d'email, jamais après**
+  (`server/jobs/alerts.js`) — l'envoi est entouré de son propre
+  `try/catch` qui ne fait que loguer un échec, sans jamais empêcher
+  l'écriture déjà faite. Bug réel corrigé en v1.9.6 (retour utilisateur
+  du 2026-07-27) : l'ordre inverse (email envoyé avant l'écriture)
+  faisait qu'un SMTP configuré mais en échec (mauvais mot de passe, port
+  bloqué…) empêchait indéfiniment `dernier_cours_alerte`/
+  `derniere_alerte` d'être écrits — l'alerte n'apparaissait alors plus
+  jamais comme déclenchée nulle part, ni dans l'app (voir `DESIGN.md` §
+  Carte alerte) ni par email au cycle suivant. Ne pas réintroduire cet
+  ordre : l'échec de l'email ne doit jamais pouvoir empêcher
+  l'enregistrement du franchissement de seuil.
 - **Portée technique de toute voie de création d'alerte** (formulaire
   `#modalCreateAlerte` ou glisser-déposer sur le graphique, voir
   `DESIGN.md` § Alerte depuis le graphique) : `checkAlerts()`

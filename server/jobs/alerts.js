@@ -1,5 +1,8 @@
 const db = require('../db');
-const { sendMail } = require('../mailer');
+// Reference au module (pas de destructuration de sendMail) : permet de
+// remplacer mailer.sendMail par un mock en test sans dependre de l'ordre de
+// chargement des modules (voir server/test/alerts-job.test.js).
+const mailer = require('../mailer');
 const { traiterEnParallele } = require('./parallel');
 
 async function checkAlerts() {
@@ -56,20 +59,35 @@ async function checkAlerts() {
 
       if (!alerteDeclenchee) return 0;
 
-      await sendMail(
-        alerte.user_email,
-        `Alerte ${typeAlerte} : ${alerte.ticker}`,
-        `Cours actuel : ${cours.toFixed(2)} EUR (seuil : ${seuil} EUR)`
-      );
-
+      // Le declenchement est enregistre AVANT la tentative d'envoi d'email,
+      // jamais apres : sinon un email qui echoue (SMTP mal configure, port
+      // bloque, etc.) empeche indefiniment dernier_cours_alerte/
+      // derniere_alerte d'etre ecrits, et donc l'alerte de jamais apparaitre
+      // comme declenchee - ni dans l'app (voir DESIGN.md § Carte alerte),
+      // ni par email au prochain cycle (l'ecriture n'ayant jamais eu lieu,
+      // rien ne distingue plus ce cas d'un seuil non franchi). Bug reel
+      // observe en production (retour utilisateur du 2026-07-27) : SMTP
+      // configure mais en echec, aucune des deux notifications ne
+      // s'affichait plus jamais. Voir BUSINESS_RULES.md § Alertes de seuil.
       updateAlerte.run(cours, Date.now(), alerte.id);
-      console.log(`Alerte envoyee : ${alerte.ticker} ${typeAlerte} pour ${alerte.user_email}`);
+      console.log(`Alerte declenchee : ${alerte.ticker} ${typeAlerte} pour ${alerte.user_email}`);
+
+      try {
+        await mailer.sendMail(
+          alerte.user_email,
+          `Alerte ${typeAlerte} : ${alerte.ticker}`,
+          `Cours actuel : ${cours.toFixed(2)} EUR (seuil : ${seuil} EUR)`
+        );
+      } catch (error) {
+        console.error(`Erreur envoi email alerte pour ${alerte.user_email}:`, error.message);
+      }
+
       return 1;
     },
-    (alerte) => `Erreur envoi alerte pour ${alerte.user_email}`
+    (alerte) => `Erreur verification alerte pour ${alerte.user_email}`
   );
 
-  console.log(`Verification terminee : ${alertesEnvoyees} alertes envoyees`);
+  console.log(`Verification terminee : ${alertesEnvoyees} alertes declenchees`);
 }
 
 module.exports = { checkAlerts };
