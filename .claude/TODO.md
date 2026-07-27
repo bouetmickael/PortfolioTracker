@@ -1348,3 +1348,52 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - Voir `.claude/CLAUDE.md` § Historique des revues de dette technique
   (section "2026-07-26 — Revue n°6") pour la portee, les correctifs
   appliques et reportes. Compteur `BACKLOG.md` : 3/3 -> 0/3.
+
+## 2026-07-26 — Session 30 - resolution complete de la dette reportee (v1.9.0), puis reset du compteur/seuil
+
+- Voir `.claude/CLAUDE.md` § Historique des revues de dette technique
+  (section "2026-07-26 — Session 30") pour le detail correctif par
+  correctif (traitement complet, sur demande explicite de l'utilisateur,
+  de la dette reportee cumulee depuis les Revues n1 a n6). Session 29
+  (factorisation Yahoo Finance, v1.8.10) traitee juste avant, non
+  detaillee individuellement ici (meme lacune de journalisation deja
+  signalee pour les Sessions 25-27, non comblee retroactivement).
+- Juste apres, sur demande explicite de l'utilisateur : compteur remis a
+  0/5 et seuil de declenchement porte de 3 a 5 sessions (`METHOD.md`
+  §0.2 mis a jour en consequence). Voir `BACKLOG.md` pour le detail de
+  cet arbitrage.
+
+## 2026-07-27 — Session 31 - correctif FAB recouvrant le dernier element scrolle (v1.9.1)
+
+- **Retour utilisateur** (capture d'ecran reelle sur iPhone) : le bouton
+  flottant d'ajout (FAB, `position: fixed` en bas a droite) recouvrait le
+  bouton de suppression de la derniere alerte active une fois la page
+  scrollee tout en bas, le rendant inaccessible.
+- **Diagnostic** : `body` (`public/styles.css`) ne reservait aucun espace
+  en bas de page pour le FAB (56px + 16px de marge) — en scrollant
+  jusqu'au bout, le dernier element restait sous le bouton flottant, qui
+  reste toujours a la meme position ecran.
+- **Implementation** (`public/styles.css`) : `padding-bottom: 88px` sur
+  `body`, plus une variante dans le bloc `@supports (padding: max(0px))`
+  existant (`max(88px, calc(72px + env(safe-area-inset-bottom)))`) pour
+  les iPhone a encoche — meme convention que celle deja utilisee pour le
+  FAB lui-meme.
+- **Ergonomie discutee avec l'utilisateur** : alternative d'un pied de
+  page fixe avec le bouton evoquee puis explicitement ecartee par
+  l'utilisateur (« le correctif actuel me convient, laisse comme ca ») —
+  le FAB reste le composant documente dans `DESIGN.md`, pas de
+  changement de pattern visuel.
+- **Verification reelle** : `node --test test/*.test.js` (45/45 verts,
+  aucun fichier serveur modifie). Serveur demarre localement, compte de
+  test avec des valeurs et 2 alertes actives inserees directement en
+  base (memes tickers/seuils que la capture utilisateur, sans appel
+  reseau) ; capture d'ecran Playwright (Chromium local, viewport 390 px,
+  page scrollee tout en bas) confirmant que le bouton poubelle de la
+  derniere alerte n'est plus recouvert par le FAB — puis re-verifie que
+  le bug se reproduisait bien sans le correctif (`git stash`) avant de le
+  restaurer, pour confirmer que c'est bien ce changement qui resout le
+  probleme.
+- Version : `server/package.json`/`config.yaml` 1.9.0 -> 1.9.1
+  (increment PATCH - correctif visuel, pas de nouvelle fonctionnalite),
+  journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 0/5 -> 1/5.

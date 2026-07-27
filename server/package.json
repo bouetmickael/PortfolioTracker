@@ -1,7 +1,7 @@
 {
   "name": "portfolio-tracker-server",
   "description": "Backend Portfolio Tracker (Express + SQLite, sans Firebase)",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "private": true,
   "main": "index.js",
   "scripts": {

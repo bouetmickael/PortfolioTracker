@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.1
+
+- Correctif : le bouton flottant d'ajout (FAB) recouvrait le dernier
+  element de la page une fois le contenu scrolle tout en bas (ex.
+  l'action de suppression de la derniere alerte active, la rendant
+  inaccessible). Ajout d'un espace reserve en bas de page (`padding-
+  bottom` sur `body`, avec variante `safe-area-inset-bottom`) couvrant
+  la hauteur du FAB et sa marge.
+
 ## 1.9.0
 
 - Résolution complète de la dette technique reportée depuis les revues

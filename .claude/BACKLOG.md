@@ -6,7 +6,15 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/5** — Compteur réinitialisé et seuil de déclenchement porté de 3 à 5
+**1/5** — Session 31 (2026-07-27, v1.9.1) : correctif du FAB (bouton
+flottant d'ajout) qui recouvrait le dernier élément de la page une fois
+scrollée tout en bas (ex. l'action de suppression de la dernière alerte
+active), le rendant inaccessible — espace réservé en bas de `body`
+(hauteur du FAB + marge, avec variante safe-area iOS). Comportement
+utilisateur observable, comptée comme une session au sens du compteur
+(`METHOD.md` §0.1).
+
+Compteur réinitialisé à 0/5 et seuil de déclenchement porté de 3 à 5
 sessions sur demande explicite de l'utilisateur (2026-07-26, juste après
 la Session 30). Voir `METHOD.md` §0.2 (règle de méthode mise à jour en
 conséquence — « toutes les 5 sessions », compteur cible `5/5`). Ce reset
@@ -342,9 +350,11 @@ partage RW de section entre utilisateurs. **Plan complet, les quatre
 sessions sont livrées** (voir découpage ci-dessous). Aucune fonctionnalité
 en cours actuellement : la Session 30 vient de traiter l'intégralité de la
 dette technique reportée (voir `CLAUDE.md` § Historique des revues), et le
-compteur/seuil de revue ont été remis à 0/5 juste après (voir ci-dessus)
-— la prochaine session porte sur le prochain point du backlog
-produit ci-après, à arbitrer avec l'utilisateur.
+compteur/seuil de revue ont été remis à 0/5 juste après (voir ci-dessus).
+La Session 31 (v1.9.1) a traité un correctif ponctuel signalé par
+l'utilisateur (FAB recouvrant le dernier élément scrollé en bas), portant
+le compteur à 1/5 — la prochaine session porte sur le prochain point du
+backlog produit ci-après, à arbitrer avec l'utilisateur.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé
   (`public/vendor/alpine.min.js`), rendu de la liste des valeurs migré sur
