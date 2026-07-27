@@ -56,6 +56,10 @@ body {
   transition: background-color 0.2s, color 0.2s;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* Espace reserve pour que le FAB (fixe, 56px + 16px de marge) ne
+     recouvre jamais le dernier element quand la page est scrollee tout
+     en bas. */
+  padding-bottom: 88px;
 }
 
 /* HEADER */
@@ -1325,5 +1329,9 @@ body {
   .fab {
     bottom: max(16px, env(safe-area-inset-bottom));
     right: max(16px, env(safe-area-inset-right));
+  }
+
+  body {
+    padding-bottom: max(88px, calc(72px + env(safe-area-inset-bottom)));
   }
 }
