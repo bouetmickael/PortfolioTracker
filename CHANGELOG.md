@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.7
+
+- Ajout de pastilles de notification (points rouges) pour repérer en un
+  coup d'œil qu'une alerte s'est déclenchée, en complément du texte
+  « Déclenchée à hh:mm » ajouté en 1.9.4 : sur le badge cloche de la
+  liste des valeurs suivies, devant le ticker de chaque carte d'alerte
+  concernée, et un compteur sur l'en-tête de la section « Alertes
+  actives ».
+
 ## 1.9.6
 
 - **Correctif critique** : les alertes de seuil ne se déclenchaient plus

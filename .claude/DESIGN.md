@@ -289,6 +289,35 @@ délibéré antérieur, non remis en cause).
   indépendamment de l'envoi d'email (`derniereAlerte` est écrite par
   `checkAlerts()` dès qu'un seuil est franchi, que l'email réussisse,
   échoue ou soit désactivé faute de SMTP configuré).
+  **Pastilles de notification** (session 2026-07-27, demande explicite
+  utilisateur : le texte seul « Déclenchée à hh:mm » restait trop
+  discret pour remarquer un déclenchement sans lire chaque carte une par
+  une). Trois emplacements partagent le même point rouge
+  `.badge-notif-dot` (`--danger`, 7px, cercle plein) :
+  - superposé en haut à droite du badge cloche `.badge-alerte` existant
+    sur chaque ligne de la liste des valeurs suivies (variante
+    `.badge-notif-dot-overlay`, `position: absolute`, bordure `--bg` pour
+    le détacher visuellement du fond doré — même principe qu'un badge de
+    notification sur une icône d'application), affiché si au moins une
+    alerte active de ce ticker a `derniereAlerte` renseignée
+    (`$store.portfolio.aUneAlerteDeclenchee(ticker)`) — le seul
+    emplacement visible sans avoir à faire défiler jusqu'à la section
+    « Alertes actives » ;
+  - devant le ticker de chaque carte d'alerte déclenchée
+    (`createAlerteCard()`, `public/app.js`), pour repérer en un coup
+    d'œil les cartes concernées dans une liste de plusieurs alertes sans
+    lire le texte de chacune ;
+  - `.badge-notif-count` (variante avec un nombre : fond `--danger`,
+    texte blanc 11px/600, pilule `border-radius: 9px`) sur l'en-tête de
+    la section « Alertes actives » elle-même, comptant le nombre total
+    d'alertes actives déclenchées (`$store.portfolio.alertesDeclenchees()`)
+    — visible même section repliée, contrairement aux deux points
+    précédents.
+  Un déclenchement reste signalé tant que l'anti-répétition ne l'a pas
+  effacé (`derniereAlerte` n'est jamais remis à `null`, voir
+  `server/jobs/alerts.js`), donc jusqu'à suppression/ajustement de
+  l'alerte par l'utilisateur — pas une notification « lue/non lue » avec
+  un état séparé à maintenir, un signal « ce seuil a été franchi ».
 - **Partage de section** (Session D de `BACKLOG.md`, voir
   `BUSINESS_RULES.md` § Partage de section pour les règles d'accès) :
   - Bouton `icon-share` dans l'en-tête de chaque section possédée ouvre

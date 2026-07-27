@@ -77,6 +77,23 @@ document.addEventListener('alpine:init', () => {
     // maintenir en synchronisation.
     alertesActivesPour(ticker) {
       return this.alertes.filter((a) => a.active && a.ticker === ticker);
+    },
+
+    // Pastilles de notification (session 2026-07-27, demande explicite
+    // utilisateur : le texte "Declenchee a hh:mm" sur la carte d'alerte,
+    // seul ajout de la Session 34, restait trop discret pour remarquer
+    // qu'un seuil avait ete franchi). Un declenchement reste visible tant
+    // que l'anti-repetition ne l'a pas efface (derniereAlerte n'est jamais
+    // remis a null - voir server/jobs/alerts.js), donc jusqu'a suppression/
+    // ajustement de l'alerte par l'utilisateur : pas une notification
+    // "lue/non lue" avec etat separe a maintenir, mais un signal "ce seuil
+    // a ete franchi et merite votre attention".
+    alertesDeclenchees() {
+      return this.alertes.filter((a) => a.active && a.derniereAlerte);
+    },
+
+    aUneAlerteDeclenchee(ticker) {
+      return this.alertesActivesPour(ticker).some((a) => a.derniereAlerte);
     }
   });
 });
@@ -309,9 +326,15 @@ function createAlerteCard(id, alerte) {
   if (alerte.seuilHaut) seuils.push(`Haut: ${formatCours(alerte.seuilHaut)}`);
   if (alerte.seuilBas) seuils.push(`Bas: ${formatCours(alerte.seuilBas)}`);
 
+  // Pastille rouge devant le ticker si declenchee (voir $store.portfolio.
+  // alertesDeclenchees, meme demande utilisateur) : permet de reperer en un
+  // coup d'oeil les cartes declenchees dans une longue liste, sans avoir a
+  // lire le texte "Declenchee a hh:mm"/"Jamais declenchee" de chacune.
+  const pastille = alerte.derniereAlerte ? '<span class="badge-notif-dot" title="Alerte declenchee"></span>' : '';
+
   div.innerHTML = `
     <div class="alerte-info">
-      <div class="alerte-ticker">${alerte.ticker}</div>
+      <div class="alerte-ticker">${pastille}${alerte.ticker}</div>
       <div class="alerte-seuils">${seuils.join(' - ')}</div>
       <div class="alerte-derniere">${texteDerniereAlerte(alerte)}</div>
     </div>

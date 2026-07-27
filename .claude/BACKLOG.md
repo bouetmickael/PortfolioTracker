@@ -6,7 +6,24 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 36 (2026-07-27, v1.9.6), **correctif critique hors
+**5/5** — Session 37 (2026-07-27, v1.9.7), **petite fonctionnalité hors
+plan** : une fois le correctif de la Session 36 confirmé (capture
+d'écran montrant « Déclenchee a hh:mm » sur une carte), demande
+explicite utilisateur — le texte seul restait trop discret, souhait de
+« pastilles comme pour les notifications », choix du positionnement/
+gabarit exact laissé à l'appréciation de la session. Voir `DESIGN.md` §
+Carte alerte pour le détail des trois emplacements retenus (badge cloche
+de la liste des valeurs, carte d'alerte, en-tête de section). Utilisateur
+a par ailleurs confirmé une erreur SMTP dans ses logs (« Invalid login:
+535-5.7.8 Username and Password not accepted » — Gmail rejette les
+identifiants), en cours d'investigation de son côté, aucune action code
+associée. **Déviation à `METHOD.md` §0.2 toujours en cours** (compteur à
+5/5 depuis la Session 35, cf. Sessions 36/37 ci-dessous et au-dessus) :
+la revue de dette technique reste due, sans exception cette fois, à la
+**prochaine session** — deux sessions hors plan consécutives ont
+suffisamment repoussé le cycle. Voir `CHANGELOG.md` 1.9.7.
+
+Session 36 (2026-07-27, v1.9.6), **correctif critique hors
 plan** : retour utilisateur (capture d'écran) — plusieurs alertes de
 seuil clairement franchies (ex. seuil haut à 238.68 EUR pour un cours à
 243.60 EUR) toujours affichées « Jamais déclenchée », aucune notification

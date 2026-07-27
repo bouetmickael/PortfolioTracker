@@ -606,6 +606,7 @@ body {
 }
 
 .badge-alerte {
+  position: relative;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -615,6 +616,45 @@ body {
   padding: 1px 4px;
   border-radius: 4px;
   margin-left: 5px;
+}
+
+/* Pastilles de notification (session 2026-07-27, demande explicite
+   utilisateur : rendre visible qu'une alerte s'est declenchee, le texte
+   seul "Declenchee a hh:mm" de la carte d'alerte - Session 34 - restant
+   trop discret). Trois emplacements partagent le meme point rouge
+   .badge-notif-dot : superpose au badge cloche existant de la liste des
+   valeurs (variante .badge-notif-dot-overlay, coin superieur droit, meme
+   principe qu'un badge de notification d'icone d'application), devant le
+   ticker de chaque carte d'alerte declenchee, et .badge-notif-count
+   (variante avec un nombre) sur l'en-tete "Alertes actives". */
+.badge-notif-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+.badge-notif-dot-overlay {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  border: 1.5px solid var(--bg);
+}
+
+.badge-notif-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--danger);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .valeur-footer {
@@ -684,6 +724,11 @@ body {
   font-weight: 500;
   line-height: 1.25;
   margin-bottom: 1px;
+}
+
+.alerte-ticker .badge-notif-dot {
+  vertical-align: middle;
+  margin-right: 5px;
 }
 
 .alerte-seuils,

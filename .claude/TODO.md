@@ -1772,3 +1772,75 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   cible et teste n'ajoute pas de dette notable) - **la revue de dette
   technique reste due a la prochaine session**, non reportee davantage
   par cette deviation.
+
+## 2026-07-27 — Session 37 - pastilles de notification pour les alertes declenchees (v1.9.7)
+
+- **Retour utilisateur** (capture d'ecran confirmant le correctif de la
+  Session 36 : "Declenchee a 15:38" affichee sur une carte HO.PA) : le
+  declenchement fonctionne desormais, mais "rien de bien visible sur
+  l'application hormis le declenche le..." - demande explicite d'une
+  "pastille comme pour les notifications", positionnement/gabarit laisse
+  a l'appreciation de la session ("je te laisse voir ce qui est le plus
+  adapte"). Confirmation separee d'une erreur SMTP Gmail dans les logs
+  ("Invalid login: 535-5.7.8 Username and Password not accepted"),
+  utilisateur indiquant investiguer de son cote - aucune action code
+  associee, mais confirme que le correctif de la Session 36 fonctionne
+  bien independamment de l'email (le declenchement etait visible malgre
+  l'echec SMTP en cours).
+- **Design retenu** (voir `DESIGN.md` § Carte alerte) : un point rouge
+  reutilisable `.badge-notif-dot` (`--danger`, 7px) decline a trois
+  emplacements plutot qu'un seul, pour couvrir aussi bien le parcours
+  "je regarde ma liste de valeurs" (le plus frequent) que "je regarde mes
+  alertes actives" :
+  1. superpose au badge cloche existant de chaque ligne de la liste des
+     valeurs suivies (`.badge-notif-dot-overlay`, coin superieur droit,
+     meme principe qu'un badge de notification d'icone d'application) -
+     visible sans meme faire defiler jusqu'a "Alertes actives" ;
+  2. devant le ticker de chaque carte d'alerte declenchee, pour reperer
+     en un coup d'oeil les cartes concernees dans une liste de plusieurs
+     alertes (le cas reel de l'utilisateur : 6 alertes sur le meme
+     ticker) ;
+  3. `.badge-notif-count`, une pastille numerique (fond `--danger`, texte
+     blanc) sur l'en-tete "Alertes actives" comptant le nombre total
+     d'alertes declenchees, visible meme section repliee.
+- **Implementation** :
+  - Deux getters derives sur `Alpine.store('portfolio')`
+    (`public/app.js`) : `alertesDeclenchees()` (toutes les alertes
+    actives avec `derniereAlerte` renseignee) et
+    `aUneAlerteDeclenchee(ticker)` (booleen pour un ticker donne, base
+    sur `alertesActivesPour()` deja existant) - aucune donnee cliente
+    nouvelle, `derniereAlerte` est deja chargee par `chargerAlertes()`.
+  - `public/index.html` : nouveau `<span>` dans le `x-show` du badge
+    cloche existant (emplacement 1) et dans l'en-tete "Alertes actives"
+    (emplacement 3, `x-show`/`x-text` sur le getter).
+  - `createAlerteCard()` (`public/app.js`, emplacement 2) : pastille
+    ajoutee devant le texte du ticker si `alerte.derniereAlerte` est
+    renseignee.
+  - `public/styles.css` : `.badge-alerte` passe en `position: relative`
+    (contexte de positionnement pour l'overlay) ; nouvelles classes
+    `.badge-notif-dot`/`.badge-notif-dot-overlay`/`.badge-notif-count`.
+  - Semantique assumee (documentee dans un commentaire `public/app.js`) :
+    pas de notion "lue/non lue" avec etat separe a maintenir - la
+    pastille reste affichee tant que l'anti-repetition ne l'efface pas
+    (`derniereAlerte` n'est jamais remis a `null`), donc jusqu'a
+    suppression/ajustement de l'alerte par l'utilisateur.
+- **Verification reelle** : `node --test test/*.test.js` : 53/53 verts
+  (aucun changement serveur cette session). Parcours Playwright reel
+  (Chromium local, meme contournement CDN Chart.js que les sessions
+  precedentes) : creation de 3 alertes sur un ticker (1 seuil franchi,
+  2 non), `checkAlerts()` appele directement, verification que les 3
+  emplacements affichent l'etat attendu (pastille count = "1", overlay
+  present sur le badge cloche, exactement 1 pastille parmi les 3 cartes)
+  en theme clair et sombre, plus une capture rapprochee (zoom x4)
+  confirmant que la pastille superposee reste lisible sur le tres petit
+  badge cloche (icon-xs 10px) sans le deborder de facon disgracieuse.
+- Version : `server/package.json`/`config.yaml` 1.9.6 -> 1.9.7
+  (increment PATCH - amelioration visuelle suite a un retour utilisateur
+  direct), journalise dans `CHANGELOG.md`.
+- **Deviation a `METHOD.md` §0.2 toujours en cours** : compteur laisse a
+  5/5 (deuxieme session hors plan consecutive apres la Session 36, cette
+  fois une petite fonctionnalite plutot qu'un correctif critique - moins
+  clairement justifiable de la meme facon, mais servir directement une
+  demande utilisateur explicite immediate a prime sur l'attente d'un
+  cycle de revue). **La revue de dette technique est due sans exception a
+  la prochaine session.**
