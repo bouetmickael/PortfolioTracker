@@ -15,9 +15,16 @@ async function fetchYahooFinance(ticker) {
   const result = data.chart.result[0];
   const meta = result.meta;
 
+  // meta ne porte pas de pourcentage de variation pre-calcule (ce champ
+  // n'existe que sur l'endpoint /v7/finance/quote, pas sur /v8/finance/chart
+  // utilise ici) : recalcule a partir du cours et de la cloture precedente.
+  const price = meta.regularMarketPrice || 0;
+  const previousClose = meta.previousClose || meta.chartPreviousClose || 0;
+  const changePct = previousClose ? ((price - previousClose) / previousClose) * 100 : 0;
+
   return {
-    price: meta.regularMarketPrice || 0,
-    changePct: meta.regularMarketChangePercent || 0,
+    price,
+    changePct,
     volume: meta.regularMarketVolume || 0,
     currency: meta.currency || 'USD'
   };

@@ -1397,3 +1397,53 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   (increment PATCH - correctif visuel, pas de nouvelle fonctionnalite),
   journalise dans `CHANGELOG.md`.
 - Compteur `BACKLOG.md` : 0/5 -> 1/5.
+
+## 2026-07-27 — Session 32 - correctif variation du jour bloquee a +0.00% (v1.9.2)
+
+- **Retour utilisateur** (capture d'ecran reelle, marches ouverts,
+  version deployee 1.9.1) : toutes les valeurs suivies affichent
+  `+0.00%` de variation malgre des cours a jour (`MAJ` recente, prix
+  plausibles), sur des tickers/marches varies simultanement - pas un cas
+  isole d'un seul ticker.
+- **Diagnostic** (`server/jobs/prices.js`, `fetchYahooFinance`) :
+  `changePct` etait lu depuis `meta.regularMarketChangePercent`, un champ
+  qui n'existe que sur l'endpoint Yahoo Finance `/v7/finance/quote` - pas
+  sur `/v8/finance/chart`, l'endpoint reellement appele ici. Le champ
+  etait donc systematiquement `undefined`, ramene a `0` par le
+  `|| 0` de secours. `regularMarketPrice` (le cours), lui, existe bien
+  dans `meta` sur cet endpoint - d'ou des cours a jour mais une variation
+  toujours nulle. Root cause jamais verifiee en direct auparavant :
+  l'acces reseau vers Yahoo Finance est bloque dans ce bac a sable
+  (politique reseau, confirme via `curl`/`$HTTPS_PROXY/__agentproxy/
+  status`), documente comme limite connue depuis la session d'origine des
+  indices de marche (v1.6.0) - le bug n'a donc pu se reveler que sur le
+  Raspberry Pi en production.
+- **Implementation** (`server/jobs/prices.js`) : `changePct` recalcule a
+  partir de `meta.regularMarketPrice` et de `meta.previousClose` (repli
+  sur `meta.chartPreviousClose` si absent, aucune cloture precedente
+  disponible -> `0` plutot qu'une erreur, meme convention que le reste de
+  la fonction). Reutilise par `updatePrices()`, `updateIndices()` et
+  `verifierTickerExiste()` (creation d'une valeur), tous bases sur
+  `fetchYahooFinance()`.
+- **Tests** :
+  - Nouveau `server/test/prices.test.js` (4 sous-tests unitaires, mock de
+    `global.fetch` direct sans serveur complet) : variation en hausse,
+    en baisse, repli sur `chartPreviousClose`, absence totale de cloture
+    precedente (`0` sans erreur).
+  - `server/test/support/helpers.js` (mock partage par tous les tests
+    serveur) : le faux `meta` simulait `regularMarketChangePercent`, un
+    champ qui n'existe pas reellement - remplace par
+    `regularMarketPrice`/`previousClose` (101.5/100, variation exacte de
+    1.5% en flottant, valeur deja attendue par `valeurs.test.js`) pour
+    que les tests exercent le vrai calcul plutot qu'un champ fictif qui
+    masquait le bug depuis l'origine.
+  - `valeurs.test.js` : assertion `aapl.cours` mise a jour de `100` a
+    `101.5` (nouveau cours du mock), `aapl.variation` inchangee (`1.5`).
+- **Verification reelle** : `node --test test/*.test.js` (49/49 verts -
+  45 existants + 4 nouveaux). Pas de verification navigateur
+  supplementaire (correctif limite au calcul serveur, deja couvert par
+  les tests unitaires directs sur `fetchYahooFinance`).
+- Version : `server/package.json`/`config.yaml` 1.9.1 -> 1.9.2
+  (increment PATCH - correctif de donnees, pas de nouvelle
+  fonctionnalite), journalise dans `CHANGELOG.md`.
+- Compteur `BACKLOG.md` : 1/5 -> 2/5.

@@ -40,8 +40,17 @@ function mockFetchYahooFinance() {
       // construire ses points, en plus de meta (utilise par
       // fetchYahooFinance() pour le cours courant).
       const estHistorique = url.includes('period1=');
+      // previousClose (pas de regularMarketChangePercent : ce champ n'existe
+      // pas sur /v8/finance/chart, voir server/jobs/prices.js) choisi pour
+      // une variation exacte de 1.5% ((101.5 - 100) / 100 * 100), valeur
+      // attendue par les tests existants.
       const chartResult = {
-        meta: { regularMarketPrice: 100, regularMarketChangePercent: 1.5, regularMarketVolume: 1000, currency: 'USD' }
+        meta: {
+          regularMarketPrice: 101.5,
+          previousClose: 100,
+          regularMarketVolume: 1000,
+          currency: 'USD'
+        }
       };
       if (estHistorique) {
         chartResult.timestamp = [1700000000, 1700003600];

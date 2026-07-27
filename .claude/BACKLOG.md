@@ -6,7 +6,15 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/5** — Session 31 (2026-07-27, v1.9.1) : correctif du FAB (bouton
+**2/5** — Session 32 (2026-07-27, v1.9.2) : correctif de la variation du
+jour, restée à `+0.00%` pour toutes les valeurs/indices même marchés
+ouverts — calcul reposant sur un champ Yahoo Finance
+(`regularMarketChangePercent`) absent de l'endpoint `/v8/finance/chart`
+réellement appelé, donc toujours `undefined`. Recalcul à partir du cours
+et de la clôture précédente (`previousClose`/`chartPreviousClose`). Voir
+`server/jobs/prices.js` § `fetchYahooFinance`.
+
+Session 31 (2026-07-27, v1.9.1) : correctif du FAB (bouton
 flottant d'ajout) qui recouvrait le dernier élément de la page une fois
 scrollée tout en bas (ex. l'action de suppression de la dernière alerte
 active), le rendant inaccessible — espace réservé en bas de `body`
@@ -353,7 +361,9 @@ dette technique reportée (voir `CLAUDE.md` § Historique des revues), et le
 compteur/seuil de revue ont été remis à 0/5 juste après (voir ci-dessus).
 La Session 31 (v1.9.1) a traité un correctif ponctuel signalé par
 l'utilisateur (FAB recouvrant le dernier élément scrollé en bas), portant
-le compteur à 1/5 — la prochaine session porte sur le prochain point du
+le compteur à 1/5. La Session 32 (v1.9.2) a traité un second correctif
+ponctuel (variation du jour bloquée à `+0.00%`), portant le compteur à
+2/5 — la prochaine session porte sur le prochain point du
 backlog produit ci-après, à arbitrer avec l'utilisateur.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé

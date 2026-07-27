@@ -106,7 +106,7 @@ test('une valeur trouvee sur Yahoo Finance est ajoutee avec son cours reel', asy
 
   const valeurs = await (await fetch(`${baseUrl}/api/valeurs`, { headers: { Cookie: cookie } })).json();
   const aapl = parTicker(valeurs, 'AAPL');
-  assert.equal(aapl.cours, 100);
+  assert.equal(aapl.cours, 101.5);
   assert.equal(aapl.variation, 1.5);
   assert.equal(aapl.type, 'Warrant');
   assert.ok(aapl.derniereMaj > 0);

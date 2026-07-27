@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.9.2
+
+- Correctif : la variation du jour restait a `+0.00%` pour toutes les
+  valeurs et tous les indices, meme marches ouverts. Le calcul reposait
+  sur `regularMarketChangePercent`, un champ qui n'existe pas sur
+  l'endpoint Yahoo Finance reellement appele (`/v8/finance/chart` ; ce
+  champ n'existe que sur `/v7/finance/quote`), toujours `undefined` et
+  donc toujours ramene a 0. La variation est desormais recalculee a
+  partir du cours et de la cloture precedente (`previousClose`/
+  `chartPreviousClose`). Le cours lui-meme n'etait pas affecte (deja lu
+  depuis un champ existant).
+
 ## 1.9.1
 
 - Correctif : le bouton flottant d'ajout (FAB) recouvrait le dernier
