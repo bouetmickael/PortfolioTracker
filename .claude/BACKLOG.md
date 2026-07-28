@@ -6,7 +6,16 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/5** — Session 41 (2026-07-28, v1.9.10) : le graphique s'ouvre
+**3/5** — Session 42 (2026-07-28, v1.9.11) : correctif same-day de la
+Session 41 - la periode de graphique retenue est desormais persistee
+dans `localStorage` (survit a un rafraichissement de page et a une
+fermeture/reouverture de la PWA), plutot que seulement memorisee en
+memoire pour la session applicative en cours (voir entree detaillee
+ci-dessous).
+
+Compteur avant cette session :
+
+2/5 — Session 41 (2026-07-28, v1.9.10) : le graphique s'ouvre
 desormais sur la derniere periode consultee au lieu de toujours revenir
 sur 1 mois (voir entree detaillee ci-dessous).
 
@@ -532,7 +541,19 @@ Playwright réel (Chart.js servi depuis un paquet npm local le temps du
 test, référence CDN restaurée avant le commit) : ouverture du graphique
 d'une valeur (période active 1M par défaut), sélection de la période 1S,
 fermeture puis réouverture du même graphique (période active toujours 1S
-à la réouverture). Compteur porté à 2/5. La prochaine session porte sur
+à la réouverture). Compteur porté à 2/5. Session 42 (2026-07-28,
+v1.9.11), correctif same-day suite à retour utilisateur direct : la
+persistance de la Session 41 ne survivait pas à un rafraîchissement de
+page (état en mémoire uniquement) — `dernierePeriodeGraphique` est
+désormais persistée dans `localStorage` (clé `graphique_periode`, même
+mécanisme que le thème clair/sombre), lue au chargement avec une
+whitelist des 5 périodes valides pour ignorer sans erreur une valeur
+corrompue. Voir `DESIGN.md` § Sélecteur de période (graphique) et
+`CHANGELOG.md` 1.9.11. Vérifié par un parcours Playwright réel incluant
+un `page.reload()` complet (équivalent fermeture/réouverture de la PWA) :
+période par défaut 1M sans historique, sélection de 1A, valeur `1Y`
+confirmée en `localStorage`, période active toujours 1A après rechargement
+complet de la page. Compteur porté à 3/5. La prochaine session porte sur
 le prochain point du backlog produit ci-après, à arbitrer avec
 l'utilisateur.
 

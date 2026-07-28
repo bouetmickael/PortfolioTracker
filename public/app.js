@@ -35,11 +35,14 @@ let placementAlerteActif = false;
 
 // Periode du dernier graphique consulte (n'importe quelle valeur ou indice) :
 // reutilisee comme periode par defaut a la prochaine ouverture, plutot que de
-// revenir systematiquement sur '1M' - demande explicite utilisateur. En
-// memoire uniquement (non persistee), reinitialisee a chaque rechargement de
-// l'application, meme convention que l'etat replie/deplie des sections (voir
-// DESIGN.md § Sections repliables).
-let dernierePeriodeGraphique = '1M';
+// revenir systematiquement sur '1M' - demande explicite utilisateur. Persistee
+// dans localStorage (meme mecanisme que le theme clair/sombre, voir
+// initTheme()) pour survivre a un rafraichissement de page ou une fermeture de
+// la PWA - demande explicite utilisateur (la premiere version, en memoire
+// uniquement, ne survivait pas a un rechargement).
+const PERIODES_GRAPHIQUE_VALIDES = ['1D', '1W', '1M', '1Y', 'MAX'];
+const periodeStockee = localStorage.getItem('graphique_periode');
+let dernierePeriodeGraphique = PERIODES_GRAPHIQUE_VALIDES.includes(periodeStockee) ? periodeStockee : '1M';
 
 document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
@@ -950,6 +953,7 @@ async function openGraphique(ticker, nom = null, alertable = false) {
       document.querySelectorAll('.btn-periode').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       dernierePeriodeGraphique = btn.dataset.period;
+      localStorage.setItem('graphique_periode', dernierePeriodeGraphique);
       await chargerGraphique(ticker, btn.dataset.period);
     };
   });

@@ -2113,3 +2113,43 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   "Fonctionnalite en cours").
 - Version : `server/package.json`/`config.yaml` 1.9.9 -> 1.9.10
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-07-28 — Session 42, persister la periode du graphique (v1.9.11)
+
+- **Demande** : retour utilisateur direct apres la Session 41 - la
+  memorisation de la periode ne survit pas a un rafraichissement de la
+  page ni a une fermeture/reouverture de l'application PWA, souhait
+  explicite d'une vraie persistance.
+- **Implemente** (`public/app.js`) : `dernierePeriodeGraphique` est
+  desormais initialisee au chargement du script en lisant
+  `localStorage.getItem('graphique_periode')`, avec une whitelist
+  (`PERIODES_GRAPHIQUE_VALIDES`, les 5 codes `1D`/`1W`/`1M`/`1Y`/`MAX`)
+  pour retomber sur `'1M'` si la valeur stockee est absente ou invalide
+  (protege contre une valeur corrompue/modifiee manuellement dans
+  localStorage, qui aurait sinon fait planter `openGraphique()` en
+  cherchant un bouton `[data-period="..."]` inexistant). Le gestionnaire
+  de clic des boutons de periode ecrit desormais aussi dans localStorage
+  en plus de mettre a jour la variable - meme mecanisme que la
+  persistance du theme clair/sombre (`initTheme()`), un seul point
+  d'ecriture.
+- **Verification reelle en navigateur** : meme protocole que la Session
+  41 (Chart.js charge temporairement depuis un paquet npm local, CDN
+  bloque par la politique reseau du bac a sable, reference CDN restauree
+  avant le commit). Script Playwright jetable (non commite, supprime
+  apres verification) : ouverture du graphique sans historique localStorage
+  (periode par defaut confirmee `1M`), selection de la periode `1A`
+  (`1Y`), lecture directe de `localStorage.getItem('graphique_periode')`
+  confirmant `1Y`, fermeture de la modale puis **`page.reload()`
+  complet** (rechargement total du document, equivalent d'une fermeture/
+  reouverture de la PWA - contrairement au test de la Session 41 qui ne
+  fermait/rouvrait que la modale sans recharger la page) : reouverture du
+  graphique confirmant la periode active toujours `1A`.
+- **Tests automatises** : aucun changement necessaire cote serveur (JS
+  front pur) ; `node --test test/*.test.js` toujours 60/60 verts
+  (non-regression).
+- **Documentation mise a jour** : `DESIGN.md` § Selecteur de periode
+  (graphique), `SPECIFICATION_FONCTIONNELLE.md` (bloc Graphique),
+  `CHANGELOG.md` 1.9.11, `BACKLOG.md` (compteur porte a 3/5, entree
+  "Fonctionnalite en cours").
+- Version : `server/package.json`/`config.yaml` 1.9.10 -> 1.9.11
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).

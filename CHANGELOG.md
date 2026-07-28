@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.11
+
+- La période de graphique retenue depuis la 1.9.10 est désormais
+  persistée (`localStorage`) au lieu d'être seulement mémorisée pour la
+  session en cours : elle survit à un rafraîchissement de la page ou à
+  la fermeture/réouverture de l'application (PWA).
+
 ## 1.9.10
 
 - Le graphique s'ouvre désormais sur la dernière période consultée (1J/

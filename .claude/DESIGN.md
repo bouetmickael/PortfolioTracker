@@ -442,10 +442,17 @@ délibéré antérieur, non remis en cause).
   précédente) : `openGraphique()` réutilise `dernierePeriodeGraphique`
   (`public/app.js`, variable module mise à jour à chaque clic sur un
   bouton de période, toutes valeurs et indices confondus) plutôt que la
-  valeur fixe `'1M'`. Etat en mémoire uniquement, non persisté côté
-  serveur ni `localStorage` — réinitialisé sur `'1M'` à chaque
-  rechargement de l'application, même convention que l'état replié/
-  déplié des sections (voir § Sections repliables).
+  valeur fixe `'1M'`. **Persistée dans `localStorage`** (clé
+  `graphique_periode`, correctif same-day, demande explicite
+  utilisateur : la première version, en mémoire uniquement, ne
+  survivait pas à un rafraîchissement de la page ni à une fermeture/
+  réouverture de la PWA) — même mécanisme que la persistance du thème
+  clair/sombre (voir § Thème clair/sombre), avec une whitelist des 5
+  valeurs valides (`1D`/`1W`/`1M`/`1Y`/`MAX`) à la lecture pour ignorer
+  sans erreur une valeur corrompue ou manuellement modifiée dans
+  `localStorage`. Contrairement à l'état replié/déplié des sections
+  (§ Sections repliables), qui reste volontairement en mémoire
+  uniquement.
 - **Alerte depuis le graphique** (session 2026-07-25, demande explicite
   utilisateur, inspirée du geste de glisser-déposer de TradingView) :
   sur le graphique d'une valeur de ma propre liste "Valeurs suivies"
