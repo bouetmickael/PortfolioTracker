@@ -6,7 +6,13 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/5** — Session 40 (2026-07-28, v1.9.9) : ajout de l'affichage du
+**2/5** — Session 41 (2026-07-28, v1.9.10) : le graphique s'ouvre
+desormais sur la derniere periode consultee au lieu de toujours revenir
+sur 1 mois (voir entree detaillee ci-dessous).
+
+Compteur avant cette session :
+
+1/5 — Session 40 (2026-07-28, v1.9.9) : ajout de l'affichage du
 cours avant-bourse (voir entrée détaillée ci-dessous). Première session
 fonctionnelle depuis la Revue n°7.
 
@@ -514,8 +520,20 @@ Finance déjà utilisé) — voir `DESIGN.md` § Avant-bourse et `CHANGELOG.md`
 `valeurs` et `indices_marche`, nullable, `ALTER TABLE` gardé par
 `columnExists()`) vérifiée sur une base fraîche et sur deux simulations de
 base existante (avec/sans la migration `UNIQUE(user_id, ticker,
-section_id)` déjà appliquée). Compteur porté à 1/5. La prochaine session
-porte sur le prochain point du backlog produit ci-après, à arbitrer avec
+section_id)` déjà appliquée). Compteur porté à 1/5. Session 41
+(2026-07-28, v1.9.10), demande explicite utilisateur hors backlog : le
+graphique s'ouvrait toujours sur la période 1 mois quelle que soit la
+période choisie à la précédente ouverture — `openGraphique()`
+(`public/app.js`) réutilise désormais `dernierePeriodeGraphique` (état en
+mémoire, non persisté) au lieu de la valeur fixe `'1M'`, mise à jour à
+chaque clic sur un bouton de période. Voir `DESIGN.md` § Sélecteur de
+période (graphique) et `CHANGELOG.md` 1.9.10. Vérifié par un parcours
+Playwright réel (Chart.js servi depuis un paquet npm local le temps du
+test, référence CDN restaurée avant le commit) : ouverture du graphique
+d'une valeur (période active 1M par défaut), sélection de la période 1S,
+fermeture puis réouverture du même graphique (période active toujours 1S
+à la réouverture). Compteur porté à 2/5. La prochaine session porte sur
+le prochain point du backlog produit ci-après, à arbitrer avec
 l'utilisateur.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé

@@ -33,6 +33,14 @@ function alignerLargeurAxeY(scale) {
 let graphiqueState = { ticker: null, alertable: false };
 let placementAlerteActif = false;
 
+// Periode du dernier graphique consulte (n'importe quelle valeur ou indice) :
+// reutilisee comme periode par defaut a la prochaine ouverture, plutot que de
+// revenir systematiquement sur '1M' - demande explicite utilisateur. En
+// memoire uniquement (non persistee), reinitialisee a chaque rechargement de
+// l'application, meme convention que l'etat replie/deplie des sections (voir
+// DESIGN.md § Sections repliables).
+let dernierePeriodeGraphique = '1M';
+
 document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
     valeurs: [],
@@ -931,8 +939,8 @@ async function openGraphique(ticker, nom = null, alertable = false) {
   openModal('modalGraphique');
   document.getElementById('graphiqueTitre').textContent = `Graphique - ${nom || ticker}`;
 
-  const periodeBtn = document.querySelector('[data-period="1M"]');
-  await chargerGraphique(ticker, '1M');
+  const periodeBtn = document.querySelector(`[data-period="${dernierePeriodeGraphique}"]`);
+  await chargerGraphique(ticker, dernierePeriodeGraphique);
 
   document.querySelectorAll('.btn-periode').forEach((btn) => btn.classList.remove('active'));
   periodeBtn.classList.add('active');
@@ -941,6 +949,7 @@ async function openGraphique(ticker, nom = null, alertable = false) {
     btn.onclick = async () => {
       document.querySelectorAll('.btn-periode').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
+      dernierePeriodeGraphique = btn.dataset.period;
       await chargerGraphique(ticker, btn.dataset.period);
     };
   });

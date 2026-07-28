@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.10
+
+- Le graphique s'ouvre désormais sur la dernière période consultée (1J/
+  1S/1M/1A/Max) au lieu de revenir systématiquement sur 1 mois. Choix
+  mémorisé pour la session en cours (valeurs suivies et indices
+  confondus), réinitialisé au rechargement de l'application.
+
 ## 1.9.9
 
 - Ajout de l'affichage du cours avant-bourse ("Avant-bourse") sur les

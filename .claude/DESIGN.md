@@ -436,7 +436,16 @@ délibéré antérieur, non remis en cause).
   état actif en `--primary` plein. Le graphique Chart.js lui-même
   (courbe, grille, ticks) adapte ses couleurs au thème actif (calculées
   dans `chargerGraphique()`, `public/app.js`, à partir de l'attribut
-  `data-theme` courant).
+  `data-theme` courant). **Période par défaut à l'ouverture** (session
+  2026-07-28, demande explicite utilisateur : le graphique s'ouvrait
+  toujours sur 1 mois, quelle que soit la période choisie la fois
+  précédente) : `openGraphique()` réutilise `dernierePeriodeGraphique`
+  (`public/app.js`, variable module mise à jour à chaque clic sur un
+  bouton de période, toutes valeurs et indices confondus) plutôt que la
+  valeur fixe `'1M'`. Etat en mémoire uniquement, non persisté côté
+  serveur ni `localStorage` — réinitialisé sur `'1M'` à chaque
+  rechargement de l'application, même convention que l'état replié/
+  déplié des sections (voir § Sections repliables).
 - **Alerte depuis le graphique** (session 2026-07-25, demande explicite
   utilisateur, inspirée du geste de glisser-déposer de TradingView) :
   sur le graphique d'une valeur de ma propre liste "Valeurs suivies"

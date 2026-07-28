@@ -50,7 +50,10 @@ gestion de rôles, pas d'inscription publique protégée par invitation — voir
   1 semaine, 1 mois, 1 an, Max) et rendu en courbe (Chart.js), cours en
   EUR sur l'axe Y et en infobulle, complété d'un graphique en barres du
   volume échangé juste en dessous (voir `DESIGN.md` § Volume échangé sur
-  le graphique).
+  le graphique). La période s'ouvre par défaut sur la dernière période
+  consultée (toutes valeurs/indices confondus), pas systématiquement sur
+  1 mois — mémorisée en mémoire le temps de la session applicative, sans
+  persistance côté serveur.
 - **Rafraîchissement des données** : polling HTTP toutes les 30 secondes
   pour les valeurs et les alertes (pas de mise à jour temps réel poussée
   par le serveur), plus un bouton d'actualisation manuelle immédiate.

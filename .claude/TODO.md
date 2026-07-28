@@ -2071,3 +2071,45 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   `BACKLOG.md` (compteur porte a 1/5, entree "Fonctionnalite en cours").
 - Version : `server/package.json`/`config.yaml` 1.9.8 -> 1.9.9
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-07-28 — Session 41, memoriser la periode du graphique (v1.9.10)
+
+- **Demande** : retour utilisateur direct apres la Session 40 - le
+  graphique s'ouvre toujours sur la periode 1 mois, meme apres avoir
+  choisi une autre periode a la precedente ouverture ; souhait que la
+  prochaine ouverture reprenne la derniere periode selectionnee.
+- **Implemente** (`public/app.js`) : nouvelle variable de module
+  `dernierePeriodeGraphique` (initialisee a `'1M'`, meme defaut
+  qu'avant), mise a jour dans le gestionnaire de clic des boutons de
+  periode (`.btn-periode`) juste avant l'appel a `chargerGraphique()`.
+  `openGraphique()` lit desormais cette variable au lieu de la valeur
+  fixe `'1M'` pour choisir la periode et le bouton actif a l'ouverture.
+  Portee volontairement large : commune a toute valeur suivie ET tout
+  indice de marche (une seule modale de graphique partagee), pas de
+  distinction par ticker demandee. Etat en memoire uniquement (pas de
+  `localStorage`), reinitialise a `'1M'` a chaque rechargement de
+  l'application - coherent avec la demande utilisateur ("le prochain
+  graphique", pas explicitement "apres un rechargement de page").
+- **Verification reelle en navigateur** : Chart.js etant charge depuis un
+  CDN bloque par la politique reseau du bac a sable, installation
+  temporaire du paquet npm `chart.js` (`npm install --no-save chart.js`
+  dans `server/`) et redirection ponctuelle de la balise `<script>` vers
+  la copie locale (`public/chart-test-tmp.js`, non commite) le temps du
+  test Playwright, reference CDN restauree juste apres. Script Playwright
+  jetable (`server/manual-test-period.js`, non commite, supprime apres
+  verification) reutilisant `demarrerServeurDeTest()`
+  (`server/test/support/helpers.js`) : inscription via l'API,
+  ajout d'une valeur (`AAPL`, mock Yahoo Finance existant), ouverture du
+  graphique (periode active `1M` confirmee par defaut), clic sur `1S`
+  (periode active `1W` confirmee), fermeture de la modale puis
+  reouverture du meme graphique (periode active `1W` confirmee - la
+  persistance fonctionne reellement, pas seulement en lecture de code).
+- **Tests automatises** : aucun changement necessaire cote serveur (JS
+  front pur, pas de nouvel etat serveur/API) ; `node --test
+  test/*.test.js` toujours 60/60 verts (non-regression).
+- **Documentation mise a jour** : `DESIGN.md` § Selecteur de periode
+  (graphique), `SPECIFICATION_FONCTIONNELLE.md` (bloc Graphique),
+  `CHANGELOG.md` 1.9.10, `BACKLOG.md` (compteur porte a 2/5, entree
+  "Fonctionnalite en cours").
+- Version : `server/package.json`/`config.yaml` 1.9.9 -> 1.9.10
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).
