@@ -1914,3 +1914,97 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   `BACKLOG.md` : la revue de dette technique doit avoir lieu a la
   prochaine session sans nouvelle exception, sauf motif au moins aussi
   serieux qu'un bug bloquant.**
+
+## 2026-07-28 — Revue de dette technique n°7
+
+- Compteur a 5/5 depuis la Session 35, engagement pris de ne plus
+  reporter le cycle (voir Session 38 ci-dessus) : cette session est donc
+  obligatoirement la revue de dette technique (`METHOD.md` §0.2), pas une
+  nouvelle fonctionnalite.
+- **Portee verifiee par `git log`** (`METHOD.md` §0.2 etape 2) : diff
+  cumule depuis la cloture de la Revue n°6 (`d22e4f8`, "Session 28 -
+  technical debt review n6") jusqu'a `HEAD` (`8451eeb`) - `git diff
+  d22e4f8..HEAD -- server/ public/ ':!public/vendor'`. Contrairement aux
+  Revues n°3/n°4/n°5/n°6, la borne du prompt initial s'est averee exacte
+  des la premiere verification (13 commits touchant server/public sur 15
+  au total dans l'intervalle, Sessions 29 a 38) - aucune correction de
+  portee necessaire cette fois.
+- **Outillage** : `/simplify`, 4 agents de revue en parallele
+  (reutilisation, simplification, efficacite, altitude), lances en
+  arriere-plan sur le diff ci-dessus.
+- **Constat global** : la tres grande majorite du diff (Session 30 en
+  particulier) etait deja la resolution d'une dette anterieure -
+  logiquement peu de nouvelle dette introduite. Les 4 agents ont
+  confirme que les mecanismes generalises en Session 30
+  (`traiterEnParallele()`, `roleSection()` cible, `executerAction()`
+  unifie, mode placement pilote par CSS, endpoint d'ajout fusionne)
+  etaient sains et correctement reutilises partout, sans regression
+  d'altitude ni reimplementation locale.
+- **Correctifs appliques** (risque faible, comportement strictement
+  inchange) :
+  - `executerAction()` (`public/app.js`) propage desormais `return await
+    fn()` au lieu de l'ignorer - signale independamment par les agents
+    altitude et simplification. Seul appelant sur dix a avoir besoin
+    d'une valeur de retour : `creerAlerteAPI()`, qui devait jusqu'ici
+    passer par un `let succes = false` mute depuis l'interieur de la
+    fermeture. Simplifie en `return executerAction(...)`/`return true`.
+  - Pastille `.badge-notif-count` (`public/index.html`, en-tete "Alertes
+    actives") : `$store.portfolio.alertesDeclenchees()` etait appelee
+    deux fois sur le meme noeud (`x-show` et `x-text`), recalculant deux
+    fois le filtrage du tableau `alertes` a chaque evaluation reactive
+    Alpine. Remplace par `x-data="{ n: 0 }" x-effect="n = ...length"`,
+    les deux directives lisant desormais `n`.
+  - `chargerGraphiqueVolume()` (`public/app.js`) recevait `themeSombre`
+    et recalculait `couleurTexte` a partir de ce flag, alors que
+    `chargerGraphique()` (son unique appelant) avait deja calcule cette
+    meme valeur juste avant. `couleurTexte` est desormais passe
+    directement en parametre.
+  - Extraction de `reinitialiserCanvasVolume()` (`public/app.js`),
+    remplace deux occurrences identiques du HTML de reinitialisation du
+    canvas de volume (bloc `catch` de `chargerGraphique()` et debut de
+    `chargerGraphiqueVolume()`).
+- **Verification reelle** : `node --test test/*.test.js`, 53/53 verts
+  (aucun de ces quatre correctifs ne touche le serveur). Parcours
+  Playwright dedie contre un serveur local (Chart.js servi depuis un
+  paquet npm local le temps du test uniquement - CDN `jsdelivr` bloque
+  par la politique reseau du bac a sable, fichier temporaire et
+  reference d'`index.html` retablis avant le commit) : inscription/
+  connexion sans erreur console ; `executerAction()` appele directement
+  avec une fonction resolue (retourne bien `42`) et une fonction en echec
+  (retourne bien `undefined`, meme comportement observable qu'avant) ;
+  `chargerGraphiqueVolume()` appelee directement avec la nouvelle
+  signature (graphique rendu, instance Chart.js creee) ; alertes
+  injectees directement dans `Alpine.store('portfolio').alertes` avec/
+  sans `derniereAlerte` pour verifier que la pastille s'affiche/se
+  masque correctement avec le nouveau mecanisme `x-effect` - aucune
+  erreur console sur l'ensemble du parcours.
+- **Correctif evalue et explicitement ecarte** : `asyncHandler` sur
+  `GET /api/valeurs/recherche` (`server/routes/valeurs.js`) est inutile
+  (`rechercherTickers()` capture deja toute erreur en interne et ne leve
+  jamais), mais retirer l'enveloppe romprait la coherence visuelle avec
+  les routes voisines du meme fichier pour un gain nul - laisse tel quel
+  par choix.
+- **Correctifs reportes** (plus profonds ou risques, session dediee
+  future) :
+  - `roleSection()`/`rolesSection()` (`server/partage.js`) : ~90% de
+    duplication SQL, mais touche le mecanisme central d'autorisation
+    d'acces aux sections.
+  - Migration de suppression de `alertes.valeur_id` (`server/db.js`,
+    Session 33) copie verbatim la recette de recreation de table en 7
+    etapes deja presente pour la migration `valeurs`/Session 27 - risque
+    juge disproportionne pour ce cycle (s'execute directement sur la
+    base reelle de l'utilisateur au demarrage du serveur).
+  - `updatePrices()`/`updateIndices()` (`server/jobs/prices.js`) restent
+    des quasi-doublons structurels malgre l'extraction de
+    `traiterEnParallele()` en Session 30 - meme prudence que celle deja
+    appliquee a ce fichier aux Revues n°1 et n°3 (paralleliser/fusionner
+    ces jobs a un impact direct sur le comportement sous charge face a
+    Yahoo Finance).
+- Pas d'increment de version (`METHOD.md` §5.5) : les quatre correctifs
+  appliques sont strictement internes et sans impact observable, verifie
+  par le parcours Playwright ci-dessus.
+- Compteur remis a **0/5** dans `BACKLOG.md`, revue journalisee dans
+  `CLAUDE.md` § Historique des revues (Revue n°7). Voir `BACKLOG.md` §
+  Backlog produit pour la prochaine session (a arbitrer avec
+  l'utilisateur, aucune fonctionnalite precise n'y est encore
+  priorisee).

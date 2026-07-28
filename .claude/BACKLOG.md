@@ -6,7 +6,37 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 38 (2026-07-27, v1.9.8), **correctif bloquant hors
+**0/5** — Revue de dette technique n°7 effectuée le 2026-07-28 (voir
+`CLAUDE.md` § Historique des revues), portant sur le diff cumulé depuis
+la revue n°6 (Sessions 29 à 38 : factorisation Yahoo Finance, résolution
+complète de la dette n°1-n°6, correctifs FAB/variation du jour, fusion
+des endpoints d'ajout de valeur + retrait de `alertes.valeur_id` +
+graphique de volume, affichage du dernier déclenchement d'alerte,
+correctif largeur axe Y, correctif critique ordre écriture/email de
+`checkAlerts()`, pastilles de notification, correctif scroll recherche
+mobile). Quatre correctifs à risque faible appliqués (`executerAction()`
+propage désormais la valeur résolue par `fn()` au lieu de la faire
+disparaître, simplifiant `creerAlerteAPI()` ; pastille
+`.badge-notif-count` recalculée une seule fois par évaluation réactive
+au lieu de deux ; `chargerGraphiqueVolume()` reçoit `couleurTexte` en
+paramètre au lieu de le re-dériver ; extraction de
+`reinitialiserCanvasVolume()`), un correctif évalué et explicitement
+écarté (enveloppe `asyncHandler` inutile mais inoffensive sur
+`GET /api/valeurs/recherche`, laissée pour la cohérence avec les routes
+voisines), trois correctifs plus profonds documentés et reportés
+(duplication `roleSection()`/`rolesSection()`, duplication de la recette
+de recréation de table entre migrations SQLite, quasi-duplication
+structurelle restante entre `updatePrices()`/`updateIndices()`) — voir
+`CLAUDE.md` pour le détail correctif par correctif. Pas d'incrément de
+version (`METHOD.md` §5.5) : les quatre correctifs appliqués sont
+strictement internes, comportement vérifié identique par un parcours
+Playwright dédié (appel direct de `executerAction()`/
+`chargerGraphiqueVolume()`, injection d'alertes dans le store), aucun
+changement observable par l'utilisateur.
+
+Historique du compteur avant ce reset (conservé pour mémoire) :
+
+5/5 — Session 38 (2026-07-27, v1.9.8), **correctif bloquant hors
 plan** : retour utilisateur (capture d'écran) — impossible de faire
 défiler la liste de résultats de recherche d'une valeur à l'ajout
 (`#rechercheResultats`, Session 26/v1.8.7) sur mobile, empêchant
@@ -460,15 +490,16 @@ réutilisables (`#modalPrompt`/`#modalConfirm`, résolues comme des
 l'architecture complète) : glisser-déposer, sections, badges d'alerte,
 partage RW de section entre utilisateurs. **Plan complet, les quatre
 sessions sont livrées** (voir découpage ci-dessous). Aucune fonctionnalité
-en cours actuellement : la Session 30 vient de traiter l'intégralité de la
-dette technique reportée (voir `CLAUDE.md` § Historique des revues), et le
-compteur/seuil de revue ont été remis à 0/5 juste après (voir ci-dessus).
-La Session 31 (v1.9.1) a traité un correctif ponctuel signalé par
-l'utilisateur (FAB recouvrant le dernier élément scrollé en bas), portant
-le compteur à 1/5. La Session 32 (v1.9.2) a traité un second correctif
-ponctuel (variation du jour bloquée à `+0.00%`), portant le compteur à
-2/5 — la prochaine session porte sur le prochain point du
-backlog produit ci-après, à arbitrer avec l'utilisateur.
+en cours actuellement. Sessions 31 à 38 (v1.9.1 à v1.9.8) ont traité des
+correctifs ponctuels signalés par l'utilisateur (FAB, variation du jour,
+fusion des endpoints d'ajout de valeur, retrait de `alertes.valeur_id`,
+graphique de volume, affichage du dernier déclenchement d'une alerte,
+largeur d'axe Y, ordre écriture/email de `checkAlerts()`, pastilles de
+notification, scroll de la liste de recherche), portant le compteur à
+5/5 (voir ci-dessus) — la Revue de dette technique n°7 vient d'être
+effectuée (2026-07-28, voir `CLAUDE.md` § Historique des revues), compteur
+remis à 0/5 juste après. La prochaine session porte sur le prochain point
+du backlog produit ci-après, à arbitrer avec l'utilisateur.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé
   (`public/vendor/alpine.min.js`), rendu de la liste des valeurs migré sur
@@ -590,6 +621,30 @@ backlog produit ci-après, à arbitrer avec l'utilisateur.
 - [x] **Revue de dette technique n°6** : voir `CLAUDE.md` § Historique
   des revues de dette technique. Compteur remis à 0/3 (voir ci-dessus).
   Fait le 2026-07-26.
+- [x] **Session 29 — factorisation Yahoo Finance (v1.8.10)** : voir
+  ci-dessus. Fait le 2026-07-26.
+- [x] **Session 30 — résolution complète de la dette reportée n°1-n°6
+  (v1.9.0)** : voir ci-dessus. Fait le 2026-07-26.
+- [x] **Session 31 — correctif FAB (v1.9.1)** et **Session 32 — correctif
+  variation du jour (v1.9.2)** : voir `CHANGELOG.md` 1.9.1/1.9.2. Faits
+  le 2026-07-27.
+- [x] **Session 33 — fusion des endpoints d'ajout de valeur, retrait de
+  `alertes.valeur_id`, graphique de volume (v1.9.3)** : voir
+  `CHANGELOG.md` 1.9.3. Fait le 2026-07-27.
+- [x] **Session 34 — affichage du dernier déclenchement d'une alerte
+  (v1.9.4)** : voir `CHANGELOG.md` 1.9.4. Fait le 2026-07-27.
+- [x] **Session 35 — correctif largeur d'axe Y/bouton cloche (v1.9.5)** :
+  voir `CHANGELOG.md` 1.9.5. Fait le 2026-07-27.
+- [x] **Session 36 — correctif critique ordre écriture/email de
+  `checkAlerts()` (v1.9.6)** : voir `CHANGELOG.md` 1.9.6. Fait le
+  2026-07-27.
+- [x] **Session 37 — pastilles de notification (v1.9.7)** : voir
+  `CHANGELOG.md` 1.9.7. Fait le 2026-07-27.
+- [x] **Session 38 — correctif scroll de la liste de recherche sur
+  mobile (v1.9.8)** : voir `CHANGELOG.md` 1.9.8. Fait le 2026-07-27.
+- [x] **Revue de dette technique n°7** : voir `CLAUDE.md` § Historique
+  des revues de dette technique. Compteur remis à 0/5 (voir ci-dessus).
+  Fait le 2026-07-28.
 
 ## Backlog produit
 
@@ -601,13 +656,11 @@ ci-dessus. Ne pas confondre avec les « limites connues » listées dans
 volatilité implicite, parité) : ce sont des limites assumées par le
 README public, pas des éléments déjà priorisés pour une future session —
 à faire arbitrer par l'utilisateur avant de les inscrire ici. Le compteur
-de revue est à 3/5 (voir ci-dessus, seuil porté à 5 sessions) : la
-Session 30 avait déjà traité l'intégralité de la dette technique reportée
-jusqu'alors (voir `CLAUDE.md` § Historique des revues), et les deux seuls
-points qui restaient explicitement hors périmètre à ce moment-là (fusion
-de `POST /api/valeurs`/`POST /api/sections/:id/valeurs` en un seul
-endpoint, migration de schéma pour la colonne `alertes.valeur_id`) ont
-été traités par la Session 33 (voir ci-dessus et `CHANGELOG.md` 1.9.3) —
-plus aucun point de dette technique connu en attente. La prochaine
-session porte donc sur un point de ce backlog produit, à arbitrer avec
-l'utilisateur.
+de revue est à 0/5 (voir ci-dessus) : la Revue n°7 vient d'être effectuée
+et n'a laissé que des correctifs de dette technique jugés plus profonds
+ou risqués, documentés et reportés dans `CLAUDE.md` (duplication
+`roleSection()`/`rolesSection()`, duplication de la recette de
+recréation de table entre migrations SQLite, quasi-duplication
+structurelle entre `updatePrices()`/`updateIndices()`) — aucun d'entre
+eux n'est classé comme fonctionnalité produit. La prochaine session porte
+donc sur un point de ce backlog produit, à arbitrer avec l'utilisateur.

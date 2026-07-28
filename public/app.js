@@ -365,12 +365,13 @@ let sectionCibleAjout = null;
 // des revues, Revue n°2). `fn` porte la logique propre a chaque action (son
 // propre appel reseau, son propre toast de succes, ses propres effets de
 // bord) ; seul l'affichage du loader et le toast d'erreur generique sont
-// factorises ici.
+// factorises ici. La valeur resolue par `fn` est propagee (undefined en cas
+// d'erreur), pour les rares appelants qui en ont besoin (ex. creerAlerteAPI).
 async function executerAction(fn, libelleErreur) {
   showLoader(true);
 
   try {
-    await fn();
+    return await fn();
   } catch (error) {
     console.error(`${libelleErreur}:`, error);
     showToast('Erreur: ' + error.message, 'error');
@@ -863,9 +864,7 @@ async function persisterOrdreSectionPartagee(section, valeurIds) {
 }
 
 async function creerAlerteAPI(ticker, seuilHaut, seuilBas) {
-  let succes = false;
-
-  await executerAction(async () => {
+  return executerAction(async () => {
     const res = await apiFetch('/api/alertes', {
       method: 'POST',
       body: JSON.stringify({ ticker, seuilHaut: seuilHaut || null, seuilBas: seuilBas || null })
@@ -878,10 +877,8 @@ async function creerAlerteAPI(ticker, seuilHaut, seuilBas) {
 
     await chargerAlertes();
     showToast(`Alerte creee pour ${ticker}`, 'success');
-    succes = true;
+    return true;
   }, 'Erreur creation alerte');
-
-  return succes;
 }
 
 async function creerAlerte() {
@@ -1202,7 +1199,7 @@ async function chargerGraphique(ticker, period) {
       }
     });
 
-    chargerGraphiqueVolume(labels, volumes, prices, themeSombre);
+    chargerGraphiqueVolume(labels, volumes, prices, themeSombre, couleurTexte);
 
     // Deuxieme passe de layout sur les DEUX graphiques : la largeur d'axe Y
     // partagee (largeurAxeYGraphique) n'est connue definitivement qu'une fois
@@ -1235,8 +1232,12 @@ async function chargerGraphique(ticker, period) {
       volumeChartInstance.destroy();
       volumeChartInstance = null;
     }
-    document.getElementById('graphiqueVolumeContainer').innerHTML = '<canvas id="volumeCanvas"></canvas>';
+    reinitialiserCanvasVolume();
   }
+}
+
+function reinitialiserCanvasVolume() {
+  document.getElementById('graphiqueVolumeContainer').innerHTML = '<canvas id="volumeCanvas"></canvas>';
 }
 
 // Graphique en barres du volume echange, sous le graphique de cours
@@ -1248,16 +1249,14 @@ async function chargerGraphique(ticker, period) {
 // graphique Chart.js separe (pas un axe secondaire du graphique de cours)
 // pour rester independant de son echelle Y, avec ses propres ticks
 // compacts (formatVolume).
-function chargerGraphiqueVolume(labels, volumes, prices, themeSombre) {
-  const container = document.getElementById('graphiqueVolumeContainer');
-  container.innerHTML = '<canvas id="volumeCanvas"></canvas>';
+function chargerGraphiqueVolume(labels, volumes, prices, themeSombre, couleurTexte) {
+  reinitialiserCanvasVolume();
   const ctx = document.getElementById('volumeCanvas').getContext('2d');
 
   if (volumeChartInstance) {
     volumeChartInstance.destroy();
   }
 
-  const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';
   const couleurNeutre = themeSombre ? 'rgba(154, 160, 166, 0.5)' : 'rgba(95, 99, 104, 0.4)';
   const couleurHausse = themeSombre ? 'rgba(95, 187, 122, 0.6)' : 'rgba(52, 168, 83, 0.6)';
   const couleurBaisse = themeSombre ? 'rgba(242, 104, 92, 0.6)' : 'rgba(234, 67, 53, 0.6)';

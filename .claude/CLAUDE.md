@@ -871,3 +871,129 @@ variables d'environnement, vérification).
     `rolesSection()`, technique de migration SQLite par recréation de
     table de la Session 27) ne sont pas de la dette et restent tels
     quels — voir Revue n°3/n°6 pour le détail de cette conclusion.
+
+### 2026-07-28 — Revue n°7
+
+- **Portée** : diff cumulé depuis la clôture de la Revue n°6 (commit
+  `d22e4f8`, « Session 28 - technical debt review n6 ») jusqu'à `HEAD`
+  (`8451eeb`), soit `git diff d22e4f8..HEAD -- server/ public/
+  ':!public/vendor'` — borne vérifiée par `git log` en début de session
+  (conforme au prompt initial, aucune correction de portée nécessaire
+  cette fois contrairement aux Revues n°3/n°4/n°5/n°6). Couvre les
+  Sessions 29 à 38 : factorisation du squelette réseau Yahoo Finance
+  (29), résolution complète de la dette reportée n°1-n°6 en trois
+  commits (Session 30 — contrat d'API en tableau, middleware d'erreurs,
+  cache de graphique, parallélisation des jobs, `creerValeur()` partagé,
+  `roleSection()` ciblé, `sectionPossedee()`, fusion des modales prompt/
+  confirm, `executerAction()` unifié, mémoïsation de
+  `valeursDeSection()`, `initSortableListeValeurs()`/`envoyerReorder()`,
+  `alertesActivesPour()`, mode placement piloté par CSS, évènement
+  `chart:loaded`, poignée de glisser-déposer des sections, fusions CSS),
+  correctifs FAB et variation du jour (31-32), fusion des endpoints
+  d'ajout de valeur + retrait de `alertes.valeur_id` + graphique de
+  volume (33), affichage du dernier déclenchement d'une alerte (34),
+  correctif de la largeur d'axe Y/chevauchement du bouton cloche (35),
+  correctif critique de l'ordre écriture base/envoi email dans
+  `checkAlerts()` (36), pastilles de notification (37), correctif du
+  scroll de la liste de recherche sur mobile (38). Outillage utilisé :
+  `/simplify` (4 agents de revue en parallèle : réutilisation,
+  simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement strictement
+  inchangé, vérifiés par tests unitaires (`node --test test/*.test.js`,
+  53/53) et un parcours Playwright réel contre un serveur local — Chart.js
+  servi depuis un paquet npm local le temps du test uniquement, le CDN
+  `jsdelivr` étant bloqué par la politique réseau du bac à sable, fichier
+  temporaire retiré et référence CDN restaurée avant le commit final ;
+  inscription/connexion, appel direct de `executerAction()` avec une
+  fonction résolue et une fonction en échec pour vérifier la valeur de
+  retour propagée dans les deux cas, appel direct de
+  `chargerGraphiqueVolume()` avec la nouvelle signature pour vérifier le
+  rendu du graphique de volume, injection directe d'alertes dans
+  `Alpine.store('portfolio').alertes` avec/sans `derniereAlerte` pour
+  vérifier l'affichage/masquage de la pastille de notification — aucune
+  erreur console sur l'ensemble du parcours) :
+  - `executerAction()` (`public/app.js`) propage désormais la valeur
+    résolue par `fn()` (`return await fn()`) au lieu de la faire
+    disparaître systématiquement. Signalé indépendamment par les agents
+    altitude et simplification : `creerAlerteAPI()`, seul appelant sur
+    dix ayant besoin d'un résultat (piloter la fermeture de la modale
+    dans `creerAlerte()`), devait jusqu'ici recourir à un `let succes =
+    false` muté depuis l'intérieur de la fermeture passée à
+    `executerAction()` pour faire remonter artificiellement l'information
+    — désormais un simple `return executerAction(...)`/`return true`.
+  - `$store.portfolio.alertesDeclenchees()` (`public/index.html`, pastille
+    `.badge-notif-count` de l'en-tête « Alertes actives ») était appelée
+    deux fois sur le même nœud (`x-show` et `x-text`), recalculant deux
+    fois le filtrage du tableau `alertes` à chaque évaluation réactive
+    Alpine. Remplacé par `x-data="{ n: 0 }" x-effect="n =
+    $store.portfolio.alertesDeclenchees().length"`, `x-show`/`x-text`
+    lisant désormais `n` : un seul calcul par évaluation, sans toucher au
+    getter du store ni à son mécanisme d'invalidation.
+  - `chargerGraphiqueVolume()` (`public/app.js`) recalculait
+    `couleurTexte` à partir de `themeSombre` alors que `chargerGraphique()`
+    (son unique appelant) avait déjà calculé cette même valeur juste
+    avant ; `couleurTexte` est désormais passé en paramètre plutôt que
+    re-dérivé une seconde fois.
+  - Extraction de `reinitialiserCanvasVolume()` (`public/app.js`),
+    remplace deux occurrences identiques du marquage de réinitialisation
+    du canvas de volume (`container.innerHTML = '<canvas id="volumeCanvas">
+    </canvas>'`), l'une dans le bloc `catch` de `chargerGraphique()`,
+    l'autre en tête de `chargerGraphiqueVolume()`.
+- **Correctifs évalués et explicitement écartés** (vérifiés plutôt que
+  reportés) :
+  - `GET /api/valeurs/recherche` (`server/routes/valeurs.js`) enveloppé
+    dans `asyncHandler(...)` alors que `rechercherTickers()`
+    (`server/valeurs.js`) capture déjà toute erreur en interne et renvoie
+    systématiquement `[]` (jamais de rejet) — ce handler ne peut
+    structurellement jamais lever d'exception, contrairement à
+    `POST /` du même fichier (où `creerValeur()` peut réellement lever).
+    Retirer `asyncHandler` ici ne changerait aucun comportement, mais
+    romprait la cohérence visuelle avec les autres routes du même routeur
+    (toutes enveloppées de la même façon) pour un gain nul — laissé tel
+    quel par choix, pas par prudence générique.
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - `roleSection(db, userId, sectionId)` (`server/partage.js`, Session
+    30) duplique environ 90% de `rolesSection(db, userId)` (mêmes deux
+    requêtes — section possédée, puis jointure `section_shares` —, même
+    forme d'objet retourné, seule différence un `WHERE id = ?`/`.get` au
+    lieu d'un `.all`). Unifiable (`rolesSection(db, userId, { onlyId })`
+    ou générateur de requête paramétré partagé), mais touche le mécanisme
+    central d'autorisation d'accès aux sections utilisé par plusieurs
+    routes sensibles (`GET/POST/DELETE /api/sections/:id/valeurs`) — à
+    traiter avec un test manuel dédié plutôt qu'en correctif à l'aveugle
+    dans ce cycle.
+  - Migration de suppression de `alertes.valeur_id` (`server/db.js`,
+    Session 33) copie intégralement la recette de recréation de table en
+    7 étapes (`pragma OFF` → `db.transaction` → `CREATE TABLE ..._new` →
+    `INSERT...SELECT` → `DROP TABLE` → `RENAME` → `pragma ON`) déjà
+    présente pour la migration `valeurs`/Session 27, seules les listes de
+    colonnes diffèrent. Un helper partagé (`recreerTable(db, table,
+    createSql, colonnesACopier)`) supprimerait cette duplication, mais
+    toute erreur dans une généralisation de ce mécanisme s'exécute
+    directement sur la base de données réelle de l'utilisateur au
+    démarrage du serveur — risque jugé disproportionné pour un correctif
+    de dette technique à ce cycle, à traiter séparément avec sa propre
+    vérification dédiée sur une copie de base « avant migration ».
+  - `updatePrices()`/`updateIndices()` (`server/jobs/prices.js`)
+    restent des quasi-doublons structurels (même log de départ, même
+    préparation d'`UPDATE`, même appel à `traiterEnParallele()` avec un
+    callback de même forme, même log de clôture) malgré l'extraction de
+    `traiterEnParallele()` en Session 30, qui a résorbé la duplication de
+    la boucle réseau/de parallélisation elle-même mais pas celle du
+    squelette autour. Un helper partagé (`mettreAJourEntites(items, fn,
+    libelle)`) supprimerait le reste, mais cette même duplication a déjà
+    été identifiée et volontairement laissée de côté aux Revues n°1 et
+    n°3 par prudence (paralléliser/fusionner ces deux jobs de mise à jour
+    de cours a un impact direct sur le comportement sous charge face à
+    Yahoo Finance) — traité avec la même prudence ici plutôt que corrigé
+    isolément.
+  - Correctifs reportés des revues n°1 à n°6 non explicitement traités
+    par la Session 30 ou les sessions suivantes (format de réponse API en
+    map — traité en Session 30 ; alertes en manipulation DOM directe —
+    partiellement traité, `alertesActivesPour()`/`alertesDeclenchees()`
+    sont désormais des getters de store, mais le rendu des cartes reste
+    de la manipulation DOM directe dans `displayAlertes()`/
+    `createAlerteCard()`) : aucun changement supplémentaire sur ce point
+    précis cette session, en dehors des deux correctifs d'efficacité
+    ci-dessus qui touchent incidemment `alertesDeclenchees()`.

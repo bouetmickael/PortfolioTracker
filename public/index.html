@@ -296,7 +296,7 @@
       <div class="section-header-titre" @click="ouvert = !ouvert">
         <svg class="icon icon-chevron" :class="{ collapsed: !ouvert }"><use href="#icon-chevron-down"></use></svg>
         <h2>Alertes actives</h2>
-        <span class="badge-notif-count" x-show="$store.portfolio.alertesDeclenchees().length > 0" x-text="$store.portfolio.alertesDeclenchees().length" title="Alertes declenchees"></span>
+        <span class="badge-notif-count" x-data="{ n: 0 }" x-effect="n = $store.portfolio.alertesDeclenchees().length" x-show="n > 0" x-text="n" title="Alertes declenchees"></span>
       </div>
     </div>
     <div id="alertesListe" class="alertes-liste" x-show="ouvert" x-transition>
