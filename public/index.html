@@ -129,6 +129,7 @@
         <div class="stat-label" x-text="indice.nom"></div>
         <div class="stat-value" x-text="formatCoursDevise(indice.cours, indice.devise)"></div>
         <div class="stat-variation" :class="(indice.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(indice.variation)"></div>
+        <div class="stat-avant-bourse" x-show="indice.avantBourseCours" :class="(indice.avantBourseVariation || 0) >= 0 ? 'success' : 'danger'" x-text="'Avant-bourse ' + formatCoursDevise(indice.avantBourseCours, indice.devise) + ' (' + formatVariation(indice.avantBourseVariation) + ')'"></div>
       </div>
     </template>
   </section>
@@ -200,6 +201,7 @@
                     <div class="valeur-chiffres">
                       <div class="valeur-cours" x-text="formatCours(valeur.cours)"></div>
                       <div class="valeur-variation" :class="(valeur.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(valeur.variation)"></div>
+                      <div class="valeur-avant-bourse" x-show="valeur.avantBourseCours" :class="(valeur.avantBourseVariation || 0) >= 0 ? 'success' : 'danger'" x-text="'Avant-bourse ' + formatCours(valeur.avantBourseCours) + ' (' + formatVariation(valeur.avantBourseVariation) + ')'"></div>
                     </div>
                     <div class="valeur-actions">
                       <button class="btn-icon-small btn-icon-xs" @click.stop="openAlerteModal(valeur.ticker)" title="Creer alerte" aria-label="Creer alerte">
@@ -274,6 +276,7 @@
                 <div class="valeur-chiffres">
                   <div class="valeur-cours" x-text="formatCours(valeur.cours)"></div>
                   <div class="valeur-variation" :class="(valeur.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(valeur.variation)"></div>
+                  <div class="valeur-avant-bourse" x-show="valeur.avantBourseCours" :class="(valeur.avantBourseVariation || 0) >= 0 ? 'success' : 'danger'" x-text="'Avant-bourse ' + formatCours(valeur.avantBourseCours) + ' (' + formatVariation(valeur.avantBourseVariation) + ')'"></div>
                 </div>
                 <div class="valeur-actions" x-show="section.role === 'ecriture'">
                   <button class="btn-icon-small btn-icon-xs" @click.stop="supprimerValeurSection(section, valeur.ticker)" title="Supprimer" aria-label="Supprimer">

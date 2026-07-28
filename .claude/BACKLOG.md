@@ -6,7 +6,13 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/5** — Revue de dette technique n°7 effectuée le 2026-07-28 (voir
+**1/5** — Session 40 (2026-07-28, v1.9.9) : ajout de l'affichage du
+cours avant-bourse (voir entrée détaillée ci-dessous). Première session
+fonctionnelle depuis la Revue n°7.
+
+Compteur avant cette session :
+
+0/5 — Revue de dette technique n°7 effectuée le 2026-07-28 (voir
 `CLAUDE.md` § Historique des revues), portant sur le diff cumulé depuis
 la revue n°6 (Sessions 29 à 38 : factorisation Yahoo Finance, résolution
 complète de la dette n°1-n°6, correctifs FAB/variation du jour, fusion
@@ -496,10 +502,21 @@ fusion des endpoints d'ajout de valeur, retrait de `alertes.valeur_id`,
 graphique de volume, affichage du dernier déclenchement d'une alerte,
 largeur d'axe Y, ordre écriture/email de `checkAlerts()`, pastilles de
 notification, scroll de la liste de recherche), portant le compteur à
-5/5 (voir ci-dessus) — la Revue de dette technique n°7 vient d'être
+5/5 (voir ci-dessus) — la Revue de dette technique n°7 a ensuite été
 effectuée (2026-07-28, voir `CLAUDE.md` § Historique des revues), compteur
-remis à 0/5 juste après. La prochaine session porte sur le prochain point
-du backlog produit ci-après, à arbitrer avec l'utilisateur.
+remis à 0/5. Session 40 (2026-07-28, v1.9.9), demande explicite
+utilisateur hors backlog : affichage du cours avant-bourse ("Avant-bourse")
+sur les valeurs suivies et les tuiles d'indices (Nasdaq-100/S&P 500),
+visible uniquement lorsque le marché du ticker concerné est effectivement
+en pré-ouverture (`meta.marketState === 'PRE'` sur l'endpoint Yahoo
+Finance déjà utilisé) — voir `DESIGN.md` § Avant-bourse et `CHANGELOG.md`
+1.9.9. Migration DB (`avant_bourse_cours`/`avant_bourse_variation` sur
+`valeurs` et `indices_marche`, nullable, `ALTER TABLE` gardé par
+`columnExists()`) vérifiée sur une base fraîche et sur deux simulations de
+base existante (avec/sans la migration `UNIQUE(user_id, ticker,
+section_id)` déjà appliquée). Compteur porté à 1/5. La prochaine session
+porte sur le prochain point du backlog produit ci-après, à arbitrer avec
+l'utilisateur.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé
   (`public/vendor/alpine.min.js`), rendu de la liste des valeurs migré sur

@@ -29,11 +29,13 @@ gestion de rôles, pas d'inscription publique protégée par invitation — voir
   bouton menu utilisateur (nom, email, déconnexion).
 - **Bloc statistiques** : 3 tuiles de suivi des indices de marché SBF 120,
   Nasdaq-100 et S&P 500 (nom, cours avec sa devise d'origine, variation du
-  jour) — voir `DESIGN.md` § Cartes statistiques et `BUSINESS_RULES.md`
-  § Indices de marché.
+  jour, cours avant-bourse si le marché de l'indice est en pré-ouverture)
+  — voir `DESIGN.md` § Cartes statistiques/Avant-bourse et
+  `BUSINESS_RULES.md` § Indices de marché.
 - **Section « Valeurs suivies »** : une carte par valeur (ticker, type
-  Action/Warrant, nom optionnel, cours, variation en %, heure de dernière
-  mise à jour, volume si disponible). Actions disponibles par carte :
+  Action/Warrant, nom optionnel, cours, variation en %, cours avant-bourse
+  si le marché de la valeur est en pré-ouverture, heure de dernière mise
+  à jour, volume si disponible). Actions disponibles par carte :
   ouvrir le graphique, créer une alerte, supprimer la valeur. État vide
   avec appel à l'action « Ajouter une valeur ».
 - **Section « Alertes actives »** : une carte par alerte active (ticker,

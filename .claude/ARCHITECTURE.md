@@ -155,8 +155,11 @@
    `query1.finance.yahoo.com` (via `server/yahooFinance.js`,
    `fetchYahooFinanceJson()`, squelette fetch/ok/json partagé par tous les
    appels Yahoo Finance du projet) pour chaque ticker distinct en base et
-   met à jour `cours`/`variation`/`volume` (`updatePrices`, valeurs suivies
-   par au moins un utilisateur) ainsi que les 3 indices de marché suivis
+   met à jour `cours`/`variation`/`volume` ainsi que `avant_bourse_cours`/
+   `avant_bourse_variation` (renseignés uniquement lorsque le ticker est en
+   pré-ouverture au moment de l'appel, `NULL` sinon — voir `DESIGN.md` §
+   Avant-bourse) via `updatePrices` (valeurs suivies par au moins un
+   utilisateur) ainsi que les 3 indices de marché suivis
    (`updateIndices`, liste fixe `server/indices.js`, données globales non
    rattachées à un utilisateur) — les deux jobs et `server/jobs/alerts.js`
    traitent leurs items (tickers/alertes) en parallèle via

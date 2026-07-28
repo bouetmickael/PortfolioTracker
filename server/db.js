@@ -39,6 +39,8 @@ db.exec(`
     cours REAL NOT NULL DEFAULT 0,
     variation REAL NOT NULL DEFAULT 0,
     volume INTEGER NOT NULL DEFAULT 0,
+    avant_bourse_cours REAL,
+    avant_bourse_variation REAL,
     derniere_maj INTEGER,
     ajoute_le INTEGER NOT NULL,
     section_id INTEGER REFERENCES sections(id),
@@ -72,6 +74,8 @@ db.exec(`
     nom TEXT NOT NULL,
     cours REAL NOT NULL DEFAULT 0,
     variation REAL NOT NULL DEFAULT 0,
+    avant_bourse_cours REAL,
+    avant_bourse_variation REAL,
     devise TEXT NOT NULL DEFAULT 'EUR',
     derniere_maj INTEGER
   );
@@ -101,6 +105,25 @@ if (!columnExists('valeurs', 'section_id')) {
 }
 if (!columnExists('valeurs', 'ordre')) {
   db.exec('ALTER TABLE valeurs ADD COLUMN ordre INTEGER NOT NULL DEFAULT 0');
+}
+
+// Migration : ajout des cours avant-bourse (valeurs suivies + indices de
+// marche) - voir server/jobs/prices.js § fetchYahooFinance et DESIGN.md §
+// Avant-bourse. NULL par defaut (pas de valeur inventee, voir
+// BUSINESS_RULES.md § Integrite des cours) : le job de mise a jour des
+// cours les renseigne uniquement lorsque le marche du ticker concerne est
+// effectivement en pre-ouverture au moment de l'appel.
+if (!columnExists('valeurs', 'avant_bourse_cours')) {
+  db.exec('ALTER TABLE valeurs ADD COLUMN avant_bourse_cours REAL');
+}
+if (!columnExists('valeurs', 'avant_bourse_variation')) {
+  db.exec('ALTER TABLE valeurs ADD COLUMN avant_bourse_variation REAL');
+}
+if (!columnExists('indices_marche', 'avant_bourse_cours')) {
+  db.exec('ALTER TABLE indices_marche ADD COLUMN avant_bourse_cours REAL');
+}
+if (!columnExists('indices_marche', 'avant_bourse_variation')) {
+  db.exec('ALTER TABLE indices_marche ADD COLUMN avant_bourse_variation REAL');
 }
 
 const backfillSectionsParDefaut = db.transaction(() => {
@@ -165,14 +188,16 @@ if (valeursSchemaSql.includes('UNIQUE(user_id, ticker)')) {
         cours REAL NOT NULL DEFAULT 0,
         variation REAL NOT NULL DEFAULT 0,
         volume INTEGER NOT NULL DEFAULT 0,
+        avant_bourse_cours REAL,
+        avant_bourse_variation REAL,
         derniere_maj INTEGER,
         ajoute_le INTEGER NOT NULL,
         section_id INTEGER REFERENCES sections(id),
         ordre INTEGER NOT NULL DEFAULT 0,
         UNIQUE(user_id, ticker, section_id)
       );
-      INSERT INTO valeurs_new (id, user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
-        SELECT id, user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre FROM valeurs;
+      INSERT INTO valeurs_new (id, user_id, ticker, type, nom, cours, variation, volume, avant_bourse_cours, avant_bourse_variation, derniere_maj, ajoute_le, section_id, ordre)
+        SELECT id, user_id, ticker, type, nom, cours, variation, volume, avant_bourse_cours, avant_bourse_variation, derniere_maj, ajoute_le, section_id, ordre FROM valeurs;
       DROP TABLE valeurs;
       ALTER TABLE valeurs_new RENAME TO valeurs;
     `);

@@ -138,7 +138,9 @@ délibéré antérieur, non remis en cause).
   (`.stat-value`, 13px/500 sans retour à la ligne, ex. « 5 432.10 EUR »),
   variation du jour en dessous (`.stat-variation`, 9px/500, coloré
   `--success`/`--danger` selon le signe, même convention que
-  `.valeur-variation` sur la liste des valeurs). La bordure supérieure
+  `.valeur-variation` sur la liste des valeurs), suivie le cas échéant
+  d'une ligne `.stat-avant-bourse` (voir § Avant-bourse ci-dessous). La
+  bordure supérieure
   suit également le signe de la variation de chaque indice
   (`--success`/`--danger`/`--header-bg` si nul). Chaque tuile est
   cliquable (`cursor: pointer`, survol `--bg-secondary` comme
@@ -225,7 +227,10 @@ délibéré antérieur, non remis en cause).
     tronqué au milieu par un retour à la ligne intempestif (correction
     explicite demandée cette session, l'ancien format `MAJ: hh:mm · Vol:
     xxx` sur une seule ligne pouvait wrapper au milieu de la valeur) ;
-  - cours et variation empilés à droite ;
+  - cours et variation empilés à droite, complétés d'une troisième ligne
+    `.valeur-avant-bourse` (voir § Avant-bourse ci-dessous) lorsque le
+    marché de la valeur est en pré-ouverture au moment de la dernière
+    mise à jour des cours ;
   - actions `icon-bell` (créer alerte) / `icon-trash` (supprimer) tout à
     droite (avec `stopPropagation` pour ne pas déclencher l'ouverture du
     graphique).
@@ -490,6 +495,33 @@ délibéré antérieur, non remis en cause).
   (`public/app.js`), pas de plugin d'annotation Chart.js supplémentaire
   (mêmes API publiques d'échelle `getPixelForValue`/`min`/`max` que le
   composant « Alerte depuis le graphique »).
+- **Avant-bourse** (session 2026-07-28, demande explicite utilisateur :
+  pouvoir consulter le cours avant-bourse d'une valeur suivie ou d'un
+  indice de marché). Concerne toute valeur suivie ("Valeurs suivies" et
+  "Partagé avec moi") et les tuiles d'indices — pas de restriction de
+  périmètre contrairement aux composants « Alerte depuis le graphique »/
+  « Alertes existantes » (le cours avant-bourse n'a aucun lien avec les
+  alertes). Une troisième ligne discrète apparaît sous le cours/la
+  variation habituels (`.valeur-avant-bourse` dans `.valeur-chiffres`,
+  `.stat-avant-bourse` dans `.stat-card`, respectivement 9px et 8px,
+  `line-height: 1.2`/`1.25`, coloré `--success`/`--danger` selon le signe
+  de la variation avant-bourse — même convention que
+  `.valeur-variation`/`.stat-variation`), texte "Avant-bourse &lt;cours&gt;
+  (&lt;variation&gt;)". N'apparaît (`x-show`) que lorsque le marché du
+  ticker concerné est **effectivement** en pré-ouverture au moment de la
+  dernière mise à jour des cours (`meta.marketState === 'PRE'` sur
+  l'endpoint Yahoo Finance déjà utilisé par `fetchYahooFinance()`,
+  `server/jobs/prices.js`) : Yahoo Finance peut laisser `preMarketPrice`
+  renseigné dans sa réponse même une fois le marché ouvert (dernière
+  valeur avant-bourse connue, désormais périmée) - s'y fier sans
+  vérifier `marketState` afficherait une donnée obsolète comme si elle
+  était actuelle (voir `BUSINESS_RULES.md` § Intégrité des cours). Ne
+  s'affiche donc jamais pour un marché sans session avant-bourse au sens
+  de Yahoo Finance (ex. Euronext Paris, la plupart des valeurs du
+  portefeuille), ni en dehors des horaires de pré-ouverture des marchés
+  qui en ont une (ex. Nasdaq-100/S&P 500, tuiles d'indices). Recalculé au
+  même rythme que le cours normal (tâche planifiée toutes les 2 minutes,
+  `server/index.js`), pas de mécanisme de rafraîchissement dédié.
 - **Volume échangé sur le graphique** (session 2026-07-27, demande
   explicite utilisateur) : sous le graphique de cours (`#graphiqueContainer`,
   300px), un second graphique Chart.js compact en barres

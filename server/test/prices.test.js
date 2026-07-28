@@ -54,3 +54,59 @@ test('aucune cloture precedente disponible : variation a 0 plutot qu une erreur'
 
   assert.equal(priceData.changePct, 0);
 });
+
+test('marketState PRE avec preMarketPrice : cours et variation avant-bourse renseignes', async () => {
+  mockMeta({
+    regularMarketPrice: 100,
+    previousClose: 98,
+    regularMarketVolume: 1000,
+    currency: 'USD',
+    marketState: 'PRE',
+    preMarketPrice: 99
+  });
+
+  const priceData = await fetchYahooFinance('TEST');
+
+  assert.equal(priceData.avantBourseCours, 99);
+  assert.equal(priceData.avantBourseVariation, ((99 - 98) / 98) * 100);
+});
+
+test('marketState REGULAR : avant-bourse absent meme si preMarketPrice encore present (donnee perimee)', async () => {
+  mockMeta({
+    regularMarketPrice: 100,
+    previousClose: 98,
+    regularMarketVolume: 1000,
+    currency: 'USD',
+    marketState: 'REGULAR',
+    preMarketPrice: 99
+  });
+
+  const priceData = await fetchYahooFinance('TEST');
+
+  assert.equal(priceData.avantBourseCours, null);
+  assert.equal(priceData.avantBourseVariation, null);
+});
+
+test('marketState PRE sans preMarketPrice : avant-bourse absent', async () => {
+  mockMeta({
+    regularMarketPrice: 100,
+    previousClose: 98,
+    regularMarketVolume: 1000,
+    currency: 'USD',
+    marketState: 'PRE'
+  });
+
+  const priceData = await fetchYahooFinance('TEST');
+
+  assert.equal(priceData.avantBourseCours, null);
+  assert.equal(priceData.avantBourseVariation, null);
+});
+
+test('marche sans session avant-bourse (ex. Euronext Paris) : marketState absent, avant-bourse absent', async () => {
+  mockMeta({ regularMarketPrice: 101.5, previousClose: 100, regularMarketVolume: 1000, currency: 'EUR' });
+
+  const priceData = await fetchYahooFinance('TEST.PA');
+
+  assert.equal(priceData.avantBourseCours, null);
+  assert.equal(priceData.avantBourseVariation, null);
+});

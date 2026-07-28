@@ -15,6 +15,8 @@ router.get('/', (req, res) => {
       nom: row.nom,
       cours: row.cours,
       variation: row.variation,
+      avantBourseCours: row.avant_bourse_cours,
+      avantBourseVariation: row.avant_bourse_variation,
       devise: row.devise,
       derniereMaj: row.derniere_maj
     }))

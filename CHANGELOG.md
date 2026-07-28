@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.9
+
+- Ajout de l'affichage du cours avant-bourse ("Avant-bourse") sur les
+  valeurs suivies et les indices de marché (Nasdaq-100, S&P 500) : une
+  ligne supplémentaire discrète, visible uniquement lorsque le marché du
+  ticker concerné est effectivement en pré-ouverture au moment de la
+  dernière mise à jour des cours (Yahoo Finance `marketState === 'PRE'`).
+  Sans effet sur les marchés sans session avant-bourse (ex. Euronext
+  Paris) ni en dehors des horaires de pré-ouverture.
+
 ## 1.9.8
 
 - Correctif : impossible de faire défiler la liste de résultats lors de

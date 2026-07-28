@@ -26,6 +26,8 @@ function toValeurJson(row) {
     cours: row.cours,
     variation: row.variation,
     volume: row.volume,
+    avantBourseCours: row.avant_bourse_cours,
+    avantBourseVariation: row.avant_bourse_variation,
     derniereMaj: row.derniere_maj,
     ajouteLe: row.ajoute_le,
     sectionId: row.section_id,
@@ -114,8 +116,8 @@ function creerValeur(db, { proprietaireId, sectionId, ticker, type, nom, priceDa
   const ordre = nextOrdre(db, 'valeurs', 'user_id = ? AND section_id = ?', [proprietaireId, sectionId]);
 
   db.prepare(
-    `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, derniere_maj, ajoute_le, section_id, ordre)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO valeurs (user_id, ticker, type, nom, cours, variation, volume, avant_bourse_cours, avant_bourse_variation, derniere_maj, ajoute_le, section_id, ordre)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     proprietaireId,
     ticker,
@@ -124,6 +126,8 @@ function creerValeur(db, { proprietaireId, sectionId, ticker, type, nom, priceDa
     priceData.price,
     priceData.changePct,
     priceData.volume,
+    priceData.avantBourseCours,
+    priceData.avantBourseVariation,
     Date.now(),
     Date.now(),
     sectionId,

@@ -2008,3 +2008,66 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   Backlog produit pour la prochaine session (a arbitrer avec
   l'utilisateur, aucune fonctionnalite precise n'y est encore
   priorisee).
+
+## 2026-07-28 — Session 40, affichage du cours avant-bourse (v1.9.9)
+
+- **Demande** : question directe de l'utilisateur ("Serais-tu capable
+  d'afficher les valeurs d'avant marche ?"), traitee comme une demande
+  d'implementation plutot qu'une simple question de faisabilite (voir
+  `BACKLOG.md` § Fonctionnalite en cours, session hors backlog produit).
+- **Faisabilite** : l'endpoint Yahoo Finance deja utilise par
+  `fetchYahooFinance()` (`server/jobs/prices.js`, `/v8/finance/chart`)
+  expose `meta.marketState`/`meta.preMarketPrice` quand le marche du
+  ticker est en pre-ouverture, sans appel supplementaire ni deuxieme
+  source de donnees.
+- **Implemente** :
+  - `fetchYahooFinance()` extrait `avantBourseCours`/
+    `avantBourseVariation`, uniquement quand `meta.marketState === 'PRE'`
+    ET `meta.preMarketPrice` est present — `meta.preMarketPrice` peut
+    rester renseigne (derniere valeur connue) une fois le marche ouvert,
+    verifie via `marketState` pour ne jamais presenter une donnee perimee
+    comme actuelle (voir `BUSINESS_RULES.md` § Integrite des cours).
+  - Migration DB (`server/db.js`) : colonnes nullables
+    `avant_bourse_cours`/`avant_bourse_variation` sur `valeurs` et
+    `indices_marche`, ajoutees via `ALTER TABLE` garde par
+    `columnExists()` (meme pattern que les migrations existantes) ; la
+    migration de recreation de table `UNIQUE(user_id, ticker,
+    section_id)` (Session 27) mise a jour pour copier ces deux colonnes
+    si elle se declenche sur une base tres ancienne.
+  - `updatePrices()`/`updateIndices()` (`server/jobs/prices.js`) ecrivent
+    ces colonnes a chaque cycle (toutes les 2 minutes), y compris a
+    `NULL` explicitement des que le marche n'est plus en pre-ouverture —
+    sans cet effacement explicite, une valeur avant-bourse resterait
+    affichee apres l'ouverture du marche (donnee perimee).
+  - `toValeurJson()` (`server/valeurs.js`) et `GET /api/indices`
+    (`server/routes/indices.js`) exposent `avantBourseCours`/
+    `avantBourseVariation` en JSON ; `creerValeur()` les renseigne des
+    l'ajout d'une valeur si son marche est deja en pre-ouverture.
+  - UI (`public/index.html`/`styles.css`) : troisieme ligne discrete
+    (`.valeur-avant-bourse` sur les deux gabarits de ligne de valeur —
+    "Valeurs suivies" et "Partage avec moi" —, `.stat-avant-bourse` sur
+    les tuiles d'indices), `x-show` conditionnel, coloree
+    `--success`/`--danger` selon le signe — voir `DESIGN.md` §
+    Avant-bourse pour le detail visuel complet.
+- **Tests** : `server/test/prices.test.js` etendu (4 nouveaux cas —
+  `marketState` PRE avec/sans `preMarketPrice`, `marketState` REGULAR
+  avec `preMarketPrice` encore present, marche sans session avant-bourse)
+  et nouveau fichier `server/test/prices-job.test.js` (3 cas, niveau
+  integration via un serveur de test reel : `updatePrices()` renseigne
+  puis efface le cours avant-bourse au passage PRE -> REGULAR,
+  `updateIndices()` sur un indice US). `node --test test/*.test.js`,
+  60/60 verts (53 existants inchanges + 4 nouveaux cas dans
+  `prices.test.js` + 3 dans le nouveau fichier `prices-job.test.js`).
+- **Verification migration** : demarrage reel du serveur sur une base
+  fraiche (`GET /`/`GET /login.html` -> 200, aucune erreur), plus deux
+  simulations manuelles d'une base existante sans les nouvelles colonnes
+  (avec puis sans la contrainte `UNIQUE(user_id, ticker, section_id)`
+  deja appliquee) : dans les deux cas la migration s'execute sans erreur
+  et les nouvelles colonnes valent `NULL`.
+- **Documentation mise a jour** : `DESIGN.md` (nouvelle sous-section
+  Avant-bourse + mentions dans Cartes statistiques/Liste des valeurs
+  suivies), `ARCHITECTURE.md` §3 point 4, `SPECIFICATION_FONCTIONNELLE.md`
+  (bloc statistiques + section Valeurs suivies), `CHANGELOG.md` 1.9.9,
+  `BACKLOG.md` (compteur porte a 1/5, entree "Fonctionnalite en cours").
+- Version : `server/package.json`/`config.yaml` 1.9.8 -> 1.9.9
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).
