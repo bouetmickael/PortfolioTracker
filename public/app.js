@@ -1131,6 +1131,7 @@ async function chargerGraphique(ticker, period) {
     const labels = data.map((d) => formatGraphiqueLabel(d.date, period));
     const prices = data.map((d) => d.close);
     const volumes = data.map((d) => d.volume || 0);
+    const previousClose = result.previousClose;
 
     container.innerHTML = '<canvas id="chartCanvas"></canvas>';
     const canvas = document.getElementById('chartCanvas');
@@ -1149,23 +1150,47 @@ async function chargerGraphique(ticker, period) {
     const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';
     const couleurGrille = themeSombre ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
 
+    const datasets = [
+      {
+        label: ticker,
+        data: prices,
+        borderColor: '#c9a227',
+        backgroundColor: 'rgba(201, 162, 39, 0.12)',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        fill: true,
+        tension: 0.1
+      }
+    ];
+
+    // Ligne de reference "cloture veille" (session 2026-07-28, demande
+    // explicite utilisateur) : simple dataset Chart.js horizontal plutot
+    // qu'un overlay DOM positionne manuellement (comme .alerte-existante-ligne)
+    // - une valeur constante sur toute la periode n'a pas besoin de gestion de
+    // hors-limite, Chart.js elargit deja l'echelle Y pour l'inclure. Absente
+    // (previousClose null) si Yahoo Finance ne fournit aucune cloture
+    // precedente (ex. valeur recemment cotee) - pas de valeur inventee, voir
+    // BUSINESS_RULES.md § Integrite des cours.
+    if (previousClose) {
+      datasets.push({
+        label: 'Cloture veille',
+        data: prices.map(() => previousClose),
+        borderColor: couleurTexte,
+        borderWidth: 1,
+        borderDash: [4, 4],
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        fill: false,
+        tension: 0
+      });
+    }
+
     chartInstance = new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
-        datasets: [
-          {
-            label: ticker,
-            data: prices,
-            borderColor: '#c9a227',
-            backgroundColor: 'rgba(201, 162, 39, 0.12)',
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: true,
-            tension: 0.1
-          }
-        ]
+        datasets
       },
       options: {
         responsive: true,
@@ -1177,7 +1202,8 @@ async function chargerGraphique(ticker, period) {
             intersect: false,
             callbacks: {
               label(context) {
-                return `${context.parsed.y.toFixed(2)} EUR`;
+                const valeur = `${context.parsed.y.toFixed(2)} EUR`;
+                return context.dataset.label === 'Cloture veille' ? `Cloture veille: ${valeur}` : valeur;
               }
             }
           }

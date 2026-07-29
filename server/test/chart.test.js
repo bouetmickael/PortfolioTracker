@@ -44,3 +44,14 @@ test('GET /api/chart/:ticker met en cache les appels identiques (ticker+periode)
     global.fetch = fetchOriginal;
   }
 });
+
+test('GET /api/chart/:ticker renvoie la cloture de la veille (previousClose)', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'chart-previousclose@test.local');
+
+  const res = await fetch(`${baseUrl}/api/chart/AAPL?period=1M`, { headers: { Cookie: cookie } });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+
+  // Mock Yahoo Finance (server/test/support/helpers.js) : meta.previousClose = 100.
+  assert.equal(body.previousClose, 100);
+});

@@ -168,7 +168,10 @@
    `server/routes/chart.js` interroge le même endpoint pour l'historique
    par période (1J/1S/1M/1A/Max), avec un cache mémoire de 60 secondes par
    ticker+période pour éviter un appel identique à chaque réouverture du
-   graphique.
+   graphique ; la réponse inclut aussi `previousClose` (clôture de la
+   dernière séance précédente, `meta.previousClose`/`chartPreviousClose`),
+   utilisé côté client pour la ligne de référence du graphique (voir
+   `DESIGN.md` § Clôture de la veille sur le graphique).
 5. `server/jobs/alerts.js` relit les alertes actives jointes aux valeurs et
    déclenche un email (`mailer.js`) quand un seuil est franchi (logique
    anti-répétition, voir `BUSINESS_RULES.md`).

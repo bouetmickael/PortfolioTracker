@@ -2153,3 +2153,58 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   "Fonctionnalite en cours").
 - Version : `server/package.json`/`config.yaml` 1.9.10 -> 1.9.11
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-07-28 — Session 43, cloture de la veille sur le graphique (v1.9.12)
+
+- **Demande** : ajouter sur les graphiques une ligne montrant le prix a
+  la fermeture de la veille.
+- **Faisabilite** : le champ Yahoo Finance `meta.previousClose`/
+  `chartPreviousClose` est deja recupere par `fetchYahooFinance()`
+  (`server/jobs/prices.js`) pour calculer la variation du jour des
+  valeurs/indices, mais `GET /api/chart/:ticker` (`server/routes/
+  chart.js`, endpoint historique utilise par le graphique) ne l'exposait
+  pas - aucun nouvel appel reseau necessaire, simple extraction d'un
+  champ deja present dans la reponse Yahoo Finance existante.
+- **Implemente** :
+  - `server/routes/chart.js` : extraction de `previousClose` depuis
+    `result.meta` (meme fallback `previousClose || chartPreviousClose`
+    que `fetchYahooFinance()`), ajoute au payload JSON existant
+    (`{ success, ticker, period, data, previousClose }`).
+  - `chargerGraphique()` (`public/app.js`) : second dataset Chart.js
+    ajoute au graphique de cours quand `previousClose` est present -
+    valeur constante sur toute la periode (`prices.map(() =>
+    previousClose)`), ligne pointillee fine (`borderDash: [4, 4]`),
+    couleur `couleurTexte` (deja calculee pour les ticks du graphique,
+    adapte au theme actif), sans remplissage ni points. Choix d'un
+    dataset Chart.js natif plutot qu'un overlay DOM positionne
+    manuellement (comme `.alerte-existante-ligne`) : une valeur
+    constante n'a besoin d'aucune gestion de hors-limite, l'echelle Y
+    est automatiquement elargie par Chart.js pour l'inclure. Absente si
+    `previousClose` est `null` (valeur recemment cotee, aucune cloture
+    precedente disponible) - pas de valeur inventee.
+  - Infobulle (`tooltip.callbacks.label`) : distingue le dataset "Cloture
+    veille" du prix courant par un prefixe explicite, plutot que
+    d'afficher deux fois "X.XX EUR" sans contexte.
+- **Tests automatises** : nouveau cas dans `server/test/chart.test.js`
+  verifiant que `GET /api/chart/:ticker` renvoie bien `previousClose`
+  (valeur mockee 100, voir `server/test/support/helpers.js`). `node
+  --test test/*.test.js` : 61/61 verts (60 existants + 1 nouveau).
+- **Verification reelle en navigateur** : meme protocole que les
+  Sessions 41/42 (Chart.js charge temporairement depuis un paquet npm
+  local, CDN bloque par la politique reseau du bac a sable, reference
+  CDN restauree avant le commit). Script Playwright jetable (non
+  commite, supprime apres verification) : ouverture du graphique d'une
+  valeur suivie, introspection directe de `Chart.instances` (le graphique
+  de cours n'expose pas son instance en variable globale) confirmant 2
+  datasets - le prix (`AAPL`) et "Cloture veille" a la valeur mockee
+  (100) sur toute la periode - et une capture d'ecran confirmant le rendu
+  visuel (ligne pointillee grise horizontale, distincte de la courbe
+  pleine doree).
+- **Documentation mise a jour** : `DESIGN.md` (nouvelle sous-section
+  Cloture de la veille sur le graphique), `ARCHITECTURE.md` §3 point 4,
+  `SPECIFICATION_FONCTIONNELLE.md` (bloc Graphique), `CHANGELOG.md`
+  1.9.12, `BACKLOG.md` (compteur porte a 4/5 - la prochaine session
+  fonctionnelle declenchera le cycle de revue de dette technique
+  obligatoire, `METHOD.md` §0.2).
+- Version : `server/package.json`/`config.yaml` 1.9.11 -> 1.9.12
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).

@@ -50,7 +50,9 @@ gestion de rôles, pas d'inscription publique protégée par invitation — voir
   1 semaine, 1 mois, 1 an, Max) et rendu en courbe (Chart.js), cours en
   EUR sur l'axe Y et en infobulle, complété d'un graphique en barres du
   volume échangé juste en dessous (voir `DESIGN.md` § Volume échangé sur
-  le graphique). La période s'ouvre par défaut sur la dernière période
+  le graphique) et d'une ligne pointillée de référence sur le cours de
+  clôture de la veille (voir `DESIGN.md` § Clôture de la veille sur le
+  graphique). La période s'ouvre par défaut sur la dernière période
   consultée (toutes valeurs/indices confondus), pas systématiquement sur
   1 mois — persistée dans `localStorage` (survit à un rafraîchissement de
   la page et à une fermeture/réouverture de la PWA), sans persistance

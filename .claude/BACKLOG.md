@@ -6,7 +6,16 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/5** — Session 42 (2026-07-28, v1.9.11) : correctif same-day de la
+**4/5** — Session 43 (2026-07-28, v1.9.12) : ajout d'une ligne de
+reference sur le graphique indiquant le cours de cloture de la veille
+(voir entree detaillee ci-dessous). **Compteur a 4/5 : la prochaine
+session fonctionnelle atteindra 5/5, declenchant obligatoirement le
+cycle de revue de dette technique (METHOD.md §0.2) plutot qu'une
+nouvelle fonctionnalite.**
+
+Compteur avant cette session :
+
+3/5 — Session 42 (2026-07-28, v1.9.11) : correctif same-day de la
 Session 41 - la periode de graphique retenue est desormais persistee
 dans `localStorage` (survit a un rafraichissement de page et a une
 fermeture/reouverture de la PWA), plutot que seulement memorisee en
@@ -553,9 +562,28 @@ corrompue. Voir `DESIGN.md` § Sélecteur de période (graphique) et
 un `page.reload()` complet (équivalent fermeture/réouverture de la PWA) :
 période par défaut 1M sans historique, sélection de 1A, valeur `1Y`
 confirmée en `localStorage`, période active toujours 1A après rechargement
-complet de la page. Compteur porté à 3/5. La prochaine session porte sur
-le prochain point du backlog produit ci-après, à arbitrer avec
-l'utilisateur.
+complet de la page. Compteur porté à 3/5. Session 43 (2026-07-28,
+v1.9.12), demande explicite utilisateur hors backlog : ajout d'une ligne
+de référence pointillée sur le graphique indiquant le cours de clôture
+de la veille (`previousClose`), quelle que soit la période et pour toute
+valeur/indice ouvert. `GET /api/chart/:ticker` (`server/routes/chart.js`)
+expose désormais ce champ (déjà calculé côté job de mise à jour des
+cours pour la variation du jour, jamais exposé jusqu'ici) ;
+`chargerGraphique()` (`public/app.js`) ajoute un second dataset Chart.js
+constant plutôt qu'un overlay DOM positionné en pixels (comme les seuils
+d'alerte) — Chart.js élargit nativement l'échelle Y pour l'inclure, sans
+logique de hors-limite à gérer. Voir `DESIGN.md` § Clôture de la veille
+sur le graphique et `CHANGELOG.md` 1.9.12. Vérifié par tests unitaires
+(`chart.test.js`, nouveau cas sur `previousClose`) et par un parcours
+Playwright réel (Chart.js servi depuis un paquet npm local le temps du
+test, référence CDN restaurée avant le commit) : introspection directe de
+`Chart.instances` confirmant la présence des 2 datasets attendus (prix +
+« Cloture veille » à la valeur mockée), capture d'écran confirmant le
+rendu visuel de la ligne pointillée grise distincte de la courbe dorée.
+Compteur porté à 4/5. **La prochaine session fonctionnelle atteindra
+5/5 : le cycle de revue de dette technique (`METHOD.md` §0.2) devient
+obligatoire à la session suivante**, avant toute nouvelle fonctionnalité
+du backlog ci-après.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé
   (`public/vendor/alpine.min.js`), rendu de la liste des valeurs migré sur

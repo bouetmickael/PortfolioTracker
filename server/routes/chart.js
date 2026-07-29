@@ -97,7 +97,13 @@ router.get('/:ticker', async (req, res) => {
       }))
       .filter((point) => point.close !== null && point.close !== undefined);
 
-    const payload = { success: true, ticker, period, data: chartData };
+    // Cloture de la veille (derniere seance precedente), pour la ligne de
+    // reference affichee sur le graphique (voir DESIGN.md § Cloture de la
+    // veille sur le graphique) - meme champ meta que fetchYahooFinance()
+    // (server/jobs/prices.js) pour le calcul de la variation du jour.
+    const previousClose = result.meta.previousClose || result.meta.chartPreviousClose || null;
+
+    const payload = { success: true, ticker, period, data: chartData, previousClose };
     ecrireCache(cacheKey, payload);
     res.json(payload);
   } catch (error) {

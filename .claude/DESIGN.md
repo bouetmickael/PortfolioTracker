@@ -538,6 +538,28 @@ délibéré antérieur, non remis en cause).
   qui en ont une (ex. Nasdaq-100/S&P 500, tuiles d'indices). Recalculé au
   même rythme que le cours normal (tâche planifiée toutes les 2 minutes,
   `server/index.js`), pas de mécanisme de rafraîchissement dédié.
+- **Clôture de la veille sur le graphique** (session 2026-07-28, demande
+  explicite utilisateur) : ligne pointillée fine grise (couleur des
+  ticks/texte du graphique, `--text-secondary` selon le thème actif) sur
+  le cours de clôture de la dernière séance précédente
+  (`previousClose`, exposé par `GET /api/chart/:ticker` — même champ meta
+  Yahoo Finance que `fetchYahooFinance()`, `server/jobs/prices.js`),
+  quelle que soit la période sélectionnée — sans restriction contrairement
+  aux composants « Alerte depuis le graphique »/« Alertes existantes »
+  (le champ n'a pas de lien avec les alertes ni de restriction de
+  propriété : présent pour une valeur suivie, une valeur d'une section
+  partagée, ou un indice de marché). Contrairement aux composants
+  « Alertes existantes »/« Alerte depuis le graphique » (overlay DOM
+  positionné manuellement en pixels via `getPixelForValue`), implémentée
+  comme un second **dataset Chart.js natif** (`chargerGraphique()`,
+  `public/app.js`) — une valeur constante sur toute la période n'a besoin
+  d'aucune logique de hors-limite : Chart.js élargit déjà lui-même
+  l'échelle Y pour l'inclure, contrairement à un seuil d'alerte qui peut
+  tomber loin de la plage affichée. Absente si Yahoo Finance ne fournit
+  aucune clôture précédente (`previousClose` `null`, ex. valeur récemment
+  cotée) — pas de valeur inventée, voir `BUSINESS_RULES.md` § Intégrité
+  des cours. Identifiée dans l'infobulle au survol par le libellé
+  « Cloture veille: X.XX EUR », pour la distinguer du prix courant.
 - **Volume échangé sur le graphique** (session 2026-07-27, demande
   explicite utilisateur) : sous le graphique de cours (`#graphiqueContainer`,
   300px), un second graphique Chart.js compact en barres

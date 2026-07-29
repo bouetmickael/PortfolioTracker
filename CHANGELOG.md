@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.12
+
+- Ajout d'une ligne de référence pointillée sur le graphique (valeurs
+  suivies et indices de marché) indiquant le cours de clôture de la
+  veille, quelle que soit la période sélectionnée.
+
 ## 1.9.11
 
 - La période de graphique retenue depuis la 1.9.10 est désormais
