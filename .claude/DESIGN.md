@@ -469,8 +469,8 @@ délibéré antérieur, non remis en cause).
   cours actuel de la valeur, accompagnée d'une pastille sombre
   (`.alerte-drag-badge`, fond `--toast-neutral`, texte blanc) affichant
   le prix courant. Glisser n'importe où sur le graphique (souris ou
-  tactile, `Pointer Events`, `touch-action: none` le temps du mode
-  placement) déplace la ligne et met à jour la pastille en direct, en
+  tactile, `Pointer Events`) déplace la ligne et met à jour la pastille
+  en direct, en
   s'appuyant sur les API publiques de l'échelle Chart.js
   (`getValueForPixel`/`getPixelForValue`, pas de plugin d'annotation
   supplémentaire). Le bouton `icon-bell` est remplacé par un bouton
@@ -592,6 +592,22 @@ délibéré antérieur, non remis en cause).
   layout (`chartInstance.update('none')`/`volumeChartInstance.update('none')`)
   une fois les deux graphiques construits, le plus large des deux
   imposant sa largeur à l'autre.
+- **Sélection de texte désactivée sur le graphique** (session 2026-07-28,
+  retour utilisateur explicite : sur iPhone, un appui prolongé sur la
+  courbe — pour lire l'infobulle à un point donné ou pour glisser la
+  ligne du mode placement d'une alerte — déclenchait le mode sélection de
+  texte natif de Safari, surlignant tout le graphique et proposant un
+  menu Copier, rendant le geste de positionnement inutilisable).
+  `#graphiqueContainer`/`#graphiqueVolumeContainer` (`public/styles.css`)
+  portent désormais `touch-action: none` en permanence (pas seulement
+  pendant le mode placement d'alerte comme auparavant, voir composant
+  « Alerte depuis le graphique » ci-dessus) ainsi que
+  `-webkit-touch-callout: none`/`-webkit-user-select: none`/
+  `user-select: none` — `touch-action: none` seul empêche le scroll/zoom
+  natif mais pas le menu de sélection, géré séparément par ces trois
+  dernières propriétés. Sans effet sur les boutons du mode placement
+  (`.alerte-drag-*`), qui restent des frères de `#graphiqueContainer`
+  dans `#graphiquePriceZone`, pas des descendants.
 
 ## Responsive
 

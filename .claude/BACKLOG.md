@@ -6,12 +6,18 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**4/5** — Session 43 (2026-07-28, v1.9.12) : ajout d'une ligne de
+**5/5** — Session 44 (2026-07-28, v1.9.13), **correctif hors plan** :
+retour utilisateur direct (iPhone, mode selection de texte natif
+declenche par un appui prolonge sur la courbe du graphique) - voir
+entree detaillee ci-dessous. **Compteur a 5/5 : la prochaine session
+DOIT etre le cycle de revue de dette technique (`METHOD.md` §0.2),
+sans exception, avant toute nouvelle fonctionnalite du backlog.**
+
+Compteur avant cette session :
+
+4/5 — Session 43 (2026-07-28, v1.9.12) : ajout d'une ligne de
 reference sur le graphique indiquant le cours de cloture de la veille
-(voir entree detaillee ci-dessous). **Compteur a 4/5 : la prochaine
-session fonctionnelle atteindra 5/5, declenchant obligatoirement le
-cycle de revue de dette technique (METHOD.md §0.2) plutot qu'une
-nouvelle fonctionnalite.**
+(voir entree detaillee ci-dessous).
 
 Compteur avant cette session :
 
@@ -580,9 +586,29 @@ test, référence CDN restaurée avant le commit) : introspection directe de
 `Chart.instances` confirmant la présence des 2 datasets attendus (prix +
 « Cloture veille » à la valeur mockée), capture d'écran confirmant le
 rendu visuel de la ligne pointillée grise distincte de la courbe dorée.
-Compteur porté à 4/5. **La prochaine session fonctionnelle atteindra
-5/5 : le cycle de revue de dette technique (`METHOD.md` §0.2) devient
-obligatoire à la session suivante**, avant toute nouvelle fonctionnalité
+Compteur porté à 4/5. Session 44 (2026-07-28, v1.9.13), **correctif
+critique hors plan** : retour utilisateur direct — sur iPhone, un appui
+prolongé sur la courbe (pour lire l'infobulle à un point donné ou pour
+glisser la ligne du mode placement d'une alerte) déclenchait le mode
+sélection de texte natif de Safari (surlignage puis menu Copier),
+rendant le geste de positionnement complètement inutilisable.
+`#graphiqueContainer`/`#graphiqueVolumeContainer` (`public/styles.css`)
+portent désormais `touch-action: none` en permanence (au lieu de
+seulement pendant le mode placement) ainsi que
+`-webkit-touch-callout: none`/`-webkit-user-select: none`/
+`user-select: none`, qui gèrent spécifiquement le menu de sélection
+(`touch-action: none` seul n'empêche que le scroll/zoom natif). Voir
+`DESIGN.md` § Sélection de texte désactivée sur le graphique et
+`CHANGELOG.md` 1.9.13. Vérifié par un parcours Playwright réel en
+contexte tactile (`hasTouch`/`isMobile`) : propriétés CSS calculées
+confirmées (`touch-action: none`, `user-select: none`) sur
+`#graphiqueContainer` **hors** mode placement (le scénario du rapport
+utilisateur, jusqu'ici non couvert par `touch-action: none`), puis geste
+de glisser-déposer complet du mode placement rejoué avec succès
+(pastille affichant un prix cohérent) pour confirmer l'absence de
+régression sur la fonctionnalité existante. **Compteur porté à 5/5 : la
+prochaine session DOIT être le cycle de revue de dette technique
+(`METHOD.md` §0.2), sans exception**, avant toute nouvelle fonctionnalité
 du backlog ci-après.
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé

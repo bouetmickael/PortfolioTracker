@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.13
+
+- **Correctif** : sur iPhone, un appui prolongé sur la courbe du
+  graphique (pour lire l'infobulle à un point donné ou pour glisser la
+  ligne de placement d'une alerte) déclenchait le mode sélection de
+  texte natif de Safari (surlignage puis menu Copier), rendant le geste
+  inutilisable. Désactivé sur la zone du graphique (cours et volume).
+
 ## 1.9.12
 
 - Ajout d'une ligne de référence pointillée sur le graphique (valeurs

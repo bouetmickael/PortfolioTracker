@@ -1035,7 +1035,6 @@ body {
 
 #graphiqueWrapper.placement-actif #graphiqueContainer {
   cursor: ns-resize;
-  touch-action: none;
 }
 
 /* Visibilite des 5 elements du mode placement pilotee uniquement par les
@@ -1066,15 +1065,33 @@ body {
   display: block;
 }
 
+/* touch-action: none + user-select/touch-callout none (retour utilisateur
+   explicite, iPhone) : sans ces trois proprietes, un appui prolonge sur la
+   courbe (Chart.js) - aussi bien pour lire l'infobulle a un point donne que
+   pour glisser la ligne de placement d'une alerte - declenche le mode
+   selection de texte natif de Safari iOS (surlignage + menu Copier),
+   rendant le geste de positionnement inutilisable. touch-action: none seul
+   empeche le scroll/zoom natif mais pas ce menu de selection, gere
+   separement par -webkit-touch-callout/-webkit-user-select. Applique en
+   permanence (pas seulement en mode placement, contrairement au
+   cursor: ns-resize ci-dessus) : le probleme se produit aussi hors mode
+   placement, en consultant simplement l'infobulle du graphique. */
+#graphiqueContainer,
+#graphiqueVolumeContainer {
+  position: relative;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 #graphiqueContainer {
   height: 300px;
-  position: relative;
 }
 
 #graphiqueVolumeContainer {
   height: 70px;
   margin-top: 4px;
-  position: relative;
 }
 
 /* Base commune : proprietes strictement identiques entre les deux lignes

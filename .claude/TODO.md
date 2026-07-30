@@ -2208,3 +2208,53 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   obligatoire, `METHOD.md` §0.2).
 - Version : `server/package.json`/`config.yaml` 1.9.11 -> 1.9.12
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-07-28 — Session 44, empecher la selection de texte sur le graphique (v1.9.13)
+
+- **Demande** : retour utilisateur direct (iPhone) - un appui prolonge
+  sur la courbe du graphique (pour glisser la ligne de placement d'une
+  alerte, ou simplement pour lire l'infobulle a un point donne) fait
+  passer Safari en mode selection de texte natif (surlignage puis menu
+  Copier), rendant le geste de positionnement du curseur impossible.
+- **Cause** : `#graphiqueContainer` n'avait `touch-action: none` que
+  pendant le mode placement d'une alerte
+  (`#graphiqueWrapper.placement-actif #graphiqueContainer`), jamais en
+  consultation normale du graphique - et `touch-action: none` seul
+  n'empeche de toute facon pas le menu de selection natif iOS (controle
+  par `-webkit-touch-callout`/`-webkit-user-select`, des proprietes
+  distinctes de `touch-action` qui gere plutot le scroll/zoom).
+- **Implemente** (`public/styles.css`) : `#graphiqueContainer` et
+  `#graphiqueVolumeContainer` portent desormais `touch-action: none` en
+  permanence (regle fusionnee, plus seulement conditionnee par
+  `.placement-actif`) ainsi que `-webkit-touch-callout: none`,
+  `-webkit-user-select: none` et `user-select: none`. La regle
+  `#graphiqueWrapper.placement-actif #graphiqueContainer` ne porte plus
+  que `cursor: ns-resize` (le `touch-action: none` qu'elle dupliquait
+  desormais retire, devenu redondant). Sans impact sur les boutons du
+  mode placement (`.alerte-drag-*`) : ce sont des freres de
+  `#graphiqueContainer` dans `#graphiquePriceZone`, pas des descendants,
+  donc non concernes par ces regles.
+- **Verification reelle en navigateur** : aucun changement JS (CSS
+  seulement), donc `node --test test/*.test.js` non concerne (61/61
+  toujours verts par construction). Verification cible via Playwright en
+  contexte tactile reel (`hasTouch: true`, `isMobile: true`, viewport
+  iPhone 390x844, Chart.js servi depuis un paquet npm local le temps du
+  test, reference CDN restauree avant le commit) : `getComputedStyle()`
+  sur `#graphiqueContainer` **hors** mode placement confirmant
+  `touch-action: none`/`user-select: none` (le scenario exact du rapport
+  utilisateur, non couvert avant ce correctif) ; ouverture du mode
+  placement (`icon-bell`) puis geste de glisser-depose complet
+  (`mouse.down`/`move`/`up`) rejoue avec succes, badge de placement
+  affichant un prix coherent - confirme l'absence de regression sur la
+  fonctionnalite existante de creation d'alerte par glisser-depose.
+  `webkitTouchCallout` non rapporte par Chromium (propriete
+  WebKit/Safari non standard, absente de son moteur) - attendu, la regle
+  CSS reste bien presente dans la feuille de style pour Safari iOS reel.
+- **Documentation mise a jour** : `DESIGN.md` (composant « Alerte depuis
+  le graphique » corrige - le `touch-action: none` n'est plus limite au
+  mode placement -, nouveau composant « Selection de texte desactivee
+  sur le graphique »), `CHANGELOG.md` 1.9.13, `BACKLOG.md` (compteur
+  porte a 5/5 - **cycle de revue de dette technique obligatoire a la
+  prochaine session**, `METHOD.md` §0.2).
+- Version : `server/package.json`/`config.yaml` 1.9.12 -> 1.9.13
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).
