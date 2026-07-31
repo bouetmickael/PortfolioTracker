@@ -3,6 +3,34 @@ const { INDICES } = require('../indices');
 const { fetchYahooFinanceJson } = require('../yahooFinance');
 const { traiterEnParallele } = require('./parallel');
 
+// Vrai si l'instant present tombe dans la fenetre de pre-ouverture du jour
+// (meta.currentTradingPeriod.pre, timestamps Unix en secondes).
+function estDansFenetre(fenetre) {
+  const maintenant = Math.floor(Date.now() / 1000);
+  return maintenant >= fenetre.start && maintenant < fenetre.end;
+}
+
+// Dernier prix connu pendant la session avant-bourse : contrairement au
+// cours quotidien (interval=1d, une seule bougie), les bougies a la minute
+// (interval=1m) incluent les transactions avant-bourse quand
+// includePrePost=true - le dernier point valide de la serie est donc le
+// dernier prix reellement echange avant l'ouverture. Meme endpoint que
+// fetchYahooFinance() (aucun jeton de session requis), simple appel
+// supplementaire, uniquement declenche quand la fenetre avant-bourse est
+// active (voir appelant).
+async function fetchDernierPrixPreMarket(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1m&range=1d&includePrePost=true`;
+
+  const data = await fetchYahooFinanceJson(url);
+  if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+    return null;
+  }
+
+  const quotes = data.chart.result[0].indicators.quote[0];
+  const closesValides = (quotes.close || []).filter((c) => c !== null && c !== undefined);
+  return closesValides.length > 0 ? closesValides[closesValides.length - 1] : null;
+}
+
 async function fetchYahooFinance(ticker) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
 
@@ -22,20 +50,35 @@ async function fetchYahooFinance(ticker) {
   const previousClose = meta.previousClose || meta.chartPreviousClose || 0;
   const changePct = previousClose ? ((price - previousClose) / previousClose) * 100 : 0;
 
-  // Cours avant-bourse : uniquement lorsque Yahoo Finance rapporte le
-  // marche du ticker comme effectivement en pre-ouverture (marketState ===
-  // 'PRE'). meta.preMarketPrice peut rester present et fige apres
-  // l'ouverture du marche (derniere valeur connue), donc ne pas se fier a
-  // sa seule presence - l'afficher hors pre-ouverture serait une donnee
-  // perimee presentee comme actuelle (voir BUSINESS_RULES.md § Integrite
-  // des cours). Absent pour les marches sans session avant-bourse (ex.
-  // Euronext Paris) : Yahoo Finance ne renvoie alors jamais marketState
-  // 'PRE' pour ces tickers.
+  // Cours avant-bourse : correctif suite a un retour utilisateur (NVDA
+  // n'affichait jamais de cours avant-bourse alors que le marche etait bien
+  // en pre-ouverture au moment constate). L'implementation initiale se
+  // fiait a meta.marketState === 'PRE' et meta.preMarketPrice, mais ces deux
+  // champs n'existent PAS sur l'endpoint /v8/finance/chart utilise ici -
+  // verifie via le schema ChartMeta de la bibliotheque yahoo-finance2 (voir
+  // TODO.md pour la source) : ils appartiennent a un endpoint different
+  // (/v7/finance/quote), qui necessite un jeton de session ("crumb") que ce
+  // projet n'implemente pas (voir ARCHITECTURE.md § Points de vigilance,
+  // deja identifie comme un risque). meta.currentTradingPeriod.pre en
+  // revanche EST bien present sur /v8/finance/chart (horaires de la session
+  // avant-bourse du jour, en timestamp Unix) : utilise pour determiner si
+  // le marche est actuellement en pre-ouverture, sans jeton de session.
   let avantBourseCours = null;
   let avantBourseVariation = null;
-  if (meta.marketState === 'PRE' && meta.preMarketPrice) {
-    avantBourseCours = meta.preMarketPrice;
-    avantBourseVariation = previousClose ? ((avantBourseCours - previousClose) / previousClose) * 100 : 0;
+  const fenetrePreMarket = meta.currentTradingPeriod && meta.currentTradingPeriod.pre;
+  if (fenetrePreMarket && estDansFenetre(fenetrePreMarket)) {
+    try {
+      const dernierPrix = await fetchDernierPrixPreMarket(ticker);
+      if (dernierPrix) {
+        avantBourseCours = dernierPrix;
+        avantBourseVariation = previousClose ? ((dernierPrix - previousClose) / previousClose) * 100 : 0;
+      }
+    } catch (error) {
+      // Best-effort : l'absence de cours avant-bourse ne doit jamais faire
+      // echouer la mise a jour du cours normal (voir BUSINESS_RULES.md §
+      // Integrite des cours - pas de valeur inventee en cas d'echec).
+      console.log(`Avant-bourse indisponible pour ${ticker}: ${error.message}`);
+    }
   }
 
   return {

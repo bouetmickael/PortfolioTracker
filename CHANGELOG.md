@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.9.14
+
+- **Correctif critique** : le cours avant-bourse (ajouté en 1.9.9) ne
+  s'affichait en réalité jamais, y compris pour des valeurs américaines
+  effectivement en pré-ouverture (ex. NVIDIA) — les champs Yahoo Finance
+  utilisés (`marketState`, `preMarketPrice`) n'existent pas sur l'endpoint
+  réellement interrogé par le job de mise à jour des cours. Le mécanisme
+  de détection a été entièrement revu pour utiliser des champs
+  effectivement présents sur cet endpoint.
+- **Correctif** : la pastille de prix d'une alerte existante sur le
+  graphique (ligne pointillée rouge) était totalement opaque et pouvait
+  masquer la courbe de cours lorsque le seuil se trouvait proche du prix
+  affiché. Fond légèrement translucide.
+
 ## 1.9.13
 
 - **Correctif** : sur iPhone, un appui prolongé sur la courbe du

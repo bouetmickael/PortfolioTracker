@@ -6,7 +6,22 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 44 (2026-07-28, v1.9.13), **correctif hors plan** :
+**5/5** — Session 45 (2026-07-28, v1.9.14), **deuxieme correctif hors
+plan consecutif** : retour utilisateur direct sur deux bugs distincts
+(cours avant-bourse jamais affiche malgre une fenetre de pre-ouverture
+reelle ; pastille d'alerte existante masquant completement la courbe en
+arriere-plan) - voir entree detaillee ci-dessous. Compteur deja a 5/5
+avant cette session (Session 44) ; reste a 5/5 (un correctif hors plan
+ne l'incremente pas au-dela du plafond). **La revue de dette technique
+(`METHOD.md` §0.2) est desormais due sans exception a la prochaine
+session — deux sessions hors plan consecutives (44 et 45) l'ont deja
+repoussee, aucune nouvelle deviation ne doit etre acceptee sans un motif
+au moins aussi serieux (meme mise en garde deja formulee lors d'un
+episode similaire, Sessions 36/37).**
+
+Compteur avant cette session :
+
+5/5 — Session 44 (2026-07-28, v1.9.13), **correctif hors plan** :
 retour utilisateur direct (iPhone, mode selection de texte natif
 declenche par un appui prolonge sur la courbe du graphique) - voir
 entree detaillee ci-dessous. **Compteur a 5/5 : la prochaine session
@@ -606,10 +621,49 @@ confirmées (`touch-action: none`, `user-select: none`) sur
 utilisateur, jusqu'ici non couvert par `touch-action: none`), puis geste
 de glisser-déposer complet du mode placement rejoué avec succès
 (pastille affichant un prix cohérent) pour confirmer l'absence de
-régression sur la fonctionnalité existante. **Compteur porté à 5/5 : la
-prochaine session DOIT être le cycle de revue de dette technique
-(`METHOD.md` §0.2), sans exception**, avant toute nouvelle fonctionnalité
-du backlog ci-après.
+régression sur la fonctionnalité existante. Compteur porté à 5/5. Session
+45 (2026-07-28, v1.9.14), **deuxième correctif hors plan consécutif** :
+retour utilisateur direct sur deux bugs distincts constatés en usage réel
+(captures d'écran) :
+  - Le cours avant-bourse (Session 40, v1.9.9) ne s'affichait en réalité
+    **jamais**, y compris pour NVIDIA en pré-ouverture réelle constatée
+    par l'utilisateur. Root cause identifiée : `meta.marketState`/
+    `meta.preMarketPrice`, utilisés par l'implémentation initiale,
+    n'existent pas sur `/v8/finance/chart` (vérifié via le schéma
+    `ChartMeta` de la bibliothèque `yahoo-finance2`, qui documente les
+    champs réels de cet endpoint — ces champs appartiennent à
+    `/v7/finance/quote`, un endpoint nécessitant un jeton de session non
+    implémenté par ce projet). `fetchYahooFinance()` (`server/jobs/
+    prices.js`) utilise désormais `meta.currentTradingPeriod.pre`
+    (horaires Unix de la séance avant-bourse, bien présent sur
+    `/v8/finance/chart`) pour détecter la fenêtre avant-bourse, puis un
+    second appel ciblé (`interval=1m&includePrePost=true`, même endpoint,
+    déclenché uniquement quand la fenêtre est active) pour lire le
+    dernier prix réellement échangé. Voir `DESIGN.md` § Avant-bourse et
+    `CHANGELOG.md` 1.9.14.
+  - La pastille de prix d'une alerte existante sur le graphique
+    (`.alerte-existante-badge`/`.alerte-hors-limite`) était entièrement
+    opaque et pouvait masquer complètement la courbe de cours en
+    arrière-plan lorsque le seuil se trouvait proche du prix affiché
+    (position X fixe ancrée à droite, qui chevauche alors la partie la
+    plus récente de la courbe). Fond translucide (`color-mix(in srgb,
+    var(--bg) 85%, transparent)`). Voir `DESIGN.md` § Alertes existantes
+    sur le graphique.
+
+  Vérifié par tests unitaires réécrits (`server/test/prices.test.js`,
+  `server/test/prices-job.test.js` — l'ancien mécanisme testé était
+  auto-cohérent avec un mock reproduisant la même hypothèse erronée que
+  l'implémentation, donc silencieusement faux ; les nouveaux tests
+  simulent `currentTradingPeriod`/le second appel `interval=1m`) et par
+  un parcours Playwright réel : capture d'écran confirmant la translucidité
+  du badge (courbe visible en transparence), `getComputedStyle()`
+  confirmant un canal alpha < 1. `node --test test/*.test.js`, 62/62
+  verts. **Compteur reste à 5/5 (plafond) : la revue de dette technique
+  (`METHOD.md` §0.2) est due sans exception à la prochaine session — deux
+  sessions hors plan consécutives (44 et 45) l'ont déjà repoussée, aucune
+  nouvelle déviation ne doit être acceptée sans un motif au moins aussi
+  sérieux (même mise en garde déjà formulée lors d'un épisode similaire,
+  Sessions 36/37).**
 
 - [x] **Session A — socle Alpine.js** : Alpine.js vendorisé
   (`public/vendor/alpine.min.js`), rendu de la liste des valeurs migré sur

@@ -496,10 +496,19 @@ délibéré antérieur, non remis en cause).
   du pointillé or `--primary` du mode placement d'une nouvelle alerte,
   pour ne pas confondre un seuil déjà posé avec celui en cours de
   glissement) et une pastille de prix (`.alerte-existante-badge`, fond
-  `--bg`, bordure et texte `--danger`, ancrée à droite du graphique —
-  côté opposé à la pastille dorée `.alerte-drag-badge` du mode placement,
-  ancrée à gauche, pour qu'elles ne se chevauchent jamais si les deux
-  sont visibles en même temps). Un seuil qui tombe hors de la plage
+  `--bg` **légèrement translucide** (`color-mix(in srgb, var(--bg) 85%,
+  transparent)`, correctif session 44, retour utilisateur explicite : un
+  fond entièrement opaque masquait complètement la courbe de cours en
+  arrière-plan lorsque le seuil se trouvait proche du prix affiché,
+  puisque la pastille est ancrée à une position X fixe qui peut tomber
+  exactement sur la partie la plus récente — et donc la plus proche du
+  prix courant — de la courbe), bordure et texte `--danger`, ancrée à
+  droite du graphique — côté opposé à la pastille dorée
+  `.alerte-drag-badge` du mode placement, ancrée à gauche, pour qu'elles
+  ne se chevauchent jamais si les deux sont visibles en même temps).
+  `.alerte-hors-limite` (repère hors-limite, voir ci-dessous) partage
+  cette même translucidité, les deux sélecteurs restant fusionnés sur
+  leurs propriétés communes. Un seuil qui tombe hors de la plage
   `min`/`max` de l'échelle Y affichée pour la période courante (trop haut
   ou trop bas par rapport aux cours du graphique) n'est **pas** tracé en
   ligne : un simple repère compact (`.alerte-hors-limite`, même habillage
@@ -525,17 +534,29 @@ délibéré antérieur, non remis en cause).
   `.valeur-variation`/`.stat-variation`), texte "Avant-bourse &lt;cours&gt;
   (&lt;variation&gt;)". N'apparaît (`x-show`) que lorsque le marché du
   ticker concerné est **effectivement** en pré-ouverture au moment de la
-  dernière mise à jour des cours (`meta.marketState === 'PRE'` sur
-  l'endpoint Yahoo Finance déjà utilisé par `fetchYahooFinance()`,
-  `server/jobs/prices.js`) : Yahoo Finance peut laisser `preMarketPrice`
-  renseigné dans sa réponse même une fois le marché ouvert (dernière
-  valeur avant-bourse connue, désormais périmée) - s'y fier sans
-  vérifier `marketState` afficherait une donnée obsolète comme si elle
-  était actuelle (voir `BUSINESS_RULES.md` § Intégrité des cours). Ne
-  s'affiche donc jamais pour un marché sans session avant-bourse au sens
-  de Yahoo Finance (ex. Euronext Paris, la plupart des valeurs du
-  portefeuille), ni en dehors des horaires de pré-ouverture des marchés
-  qui en ont une (ex. Nasdaq-100/S&P 500, tuiles d'indices). Recalculé au
+  dernière mise à jour des cours. **Mécanisme de détection corrigé en
+  session 44** (retour utilisateur explicite : NVIDIA, bien en
+  pré-ouverture réelle au moment constaté, n'affichait jamais rien) :
+  l'implémentation initiale se fiait à `meta.marketState === 'PRE'` et
+  `meta.preMarketPrice`, deux champs qui **n'existent en réalité pas**
+  sur `/v8/finance/chart` (l'endpoint réellement interrogé par
+  `fetchYahooFinance()`, `server/jobs/prices.js`) — vérifié via le schéma
+  `ChartMeta` de la bibliothèque `yahoo-finance2`, qui documente
+  précisément les champs réels de cet endpoint (ces deux champs
+  appartiennent à `/v7/finance/quote`, un endpoint différent nécessitant
+  un jeton de session que ce projet n'implémente pas, voir
+  `ARCHITECTURE.md` § Points de vigilance). Le mécanisme correct repose
+  sur `meta.currentTradingPeriod.pre` (horaires Unix de la séance
+  avant-bourse du jour, bien présent sur `/v8/finance/chart`) pour
+  déterminer si le marché est actuellement en pré-ouverture, puis un
+  second appel ciblé (`interval=1m&includePrePost=true`, même endpoint,
+  aucun jeton requis) pour lire le dernier prix réellement échangé —
+  uniquement déclenché quand la fenêtre avant-bourse est active (aucun
+  appel supplémentaire le reste de la journée). Ne s'affiche donc jamais
+  pour un marché sans session avant-bourse au sens de Yahoo Finance (ex.
+  Euronext Paris, la plupart des valeurs du portefeuille), ni en dehors
+  des horaires de pré-ouverture des marchés qui en ont une (ex.
+  Nasdaq-100/S&P 500, tuiles d'indices). Recalculé au
   même rythme que le cours normal (tâche planifiée toutes les 2 minutes,
   `server/index.js`), pas de mécanisme de rafraîchissement dédié.
 - **Clôture de la veille sur le graphique** (session 2026-07-28, demande

@@ -1137,7 +1137,11 @@ body {
 .alerte-hors-limite {
   position: absolute;
   right: 8px;
-  background: var(--bg);
+  /* Legerement translucide (retour utilisateur explicite) : cette pastille
+     est ancree a une position fixe (droite du graphique, hauteur du seuil)
+     qui peut tomber exactement sur la courbe de cours - un fond opaque
+     masquait alors completement les donnees en arriere-plan a cet endroit. */
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
   border: 1px solid var(--danger);
   color: var(--danger);
   font-weight: 500;

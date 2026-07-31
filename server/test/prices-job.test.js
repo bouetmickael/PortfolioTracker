@@ -23,17 +23,46 @@ function parTicker(valeurs, ticker) {
   return valeurs.find((v) => v.ticker === ticker);
 }
 
-// Simule un marche en pre-ouverture pour un ticker donne, en plus du mock
-// Yahoo Finance standard installe par demarrerServeurDeTest() (qui ne porte
-// jamais marketState/preMarketPrice - voir server/test/support/helpers.js).
-function mockPreMarketPour(tickerCible, meta) {
+// Simule un marche en pre-ouverture (ou non) pour un ticker donne, en plus
+// du mock Yahoo Finance standard installe par demarrerServeurDeTest() (voir
+// server/test/support/helpers.js). meta.currentTradingPeriod.pre pilote la
+// fenetre avant-bourse (voir server/jobs/prices.js § estDansFenetre) ; si
+// `dernierPrixPreMarket` est fourni, le second appel (interval=1m) le
+// renvoie comme dernier point de la serie.
+function mockPreMarketPour(tickerCible, { previousClose, regularMarketPrice, currency, enPreMarket, dernierPrixPreMarket }) {
   const fetchAvant = global.fetch;
+  const maintenant = Math.floor(Date.now() / 1000);
+  const currentTradingPeriod = enPreMarket
+    ? { pre: { start: maintenant - 60, end: maintenant + 3600 } }
+    : { pre: { start: maintenant - 7200, end: maintenant - 3600 } };
+
   global.fetch = (url, options) => {
+    if (typeof url === 'string' && url.includes(`/chart/${tickerCible}?`) && url.includes('interval=1m')) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ chart: { result: [{ indicators: { quote: [{ close: [null, dernierPrixPreMarket] }] } }] } })
+      });
+    }
     if (typeof url === 'string' && url.includes(`/chart/${tickerCible}?`)) {
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: async () => ({ chart: { result: [{ meta }] } })
+        json: async () => ({
+          chart: {
+            result: [
+              {
+                meta: {
+                  regularMarketPrice,
+                  previousClose,
+                  regularMarketVolume: 1000,
+                  currency,
+                  currentTradingPeriod
+                }
+              }
+            ]
+          }
+        })
       });
     }
     return fetchAvant(url, options);
@@ -55,10 +84,9 @@ test('updatePrices() renseigne le cours avant-bourse quand le marche du ticker e
   const restaurerFetch = mockPreMarketPour('AAPL', {
     regularMarketPrice: 100,
     previousClose: 98,
-    regularMarketVolume: 1000,
     currency: 'USD',
-    marketState: 'PRE',
-    preMarketPrice: 99
+    enPreMarket: true,
+    dernierPrixPreMarket: 99
   });
   try {
     await updatePrices();
@@ -85,10 +113,9 @@ test('updatePrices() efface le cours avant-bourse des que le marche repasse en s
   const restaurerPre = mockPreMarketPour('MSFT', {
     regularMarketPrice: 100,
     previousClose: 98,
-    regularMarketVolume: 1000,
     currency: 'USD',
-    marketState: 'PRE',
-    preMarketPrice: 99
+    enPreMarket: true,
+    dernierPrixPreMarket: 99
   });
   try {
     await updatePrices();
@@ -102,10 +129,8 @@ test('updatePrices() efface le cours avant-bourse des que le marche repasse en s
   const restaurerRegular = mockPreMarketPour('MSFT', {
     regularMarketPrice: 101,
     previousClose: 98,
-    regularMarketVolume: 1000,
     currency: 'USD',
-    marketState: 'REGULAR',
-    preMarketPrice: 99
+    enPreMarket: false
   });
   try {
     await updatePrices();
@@ -122,10 +147,9 @@ test('updateIndices() renseigne le cours avant-bourse des indices US (ex. Nasdaq
   const restaurerFetch = mockPreMarketPour('^NDX', {
     regularMarketPrice: 20000,
     previousClose: 19800,
-    regularMarketVolume: 0,
     currency: 'USD',
-    marketState: 'PRE',
-    preMarketPrice: 19900
+    enPreMarket: true,
+    dernierPrixPreMarket: 19900
   });
   try {
     await updateIndices();

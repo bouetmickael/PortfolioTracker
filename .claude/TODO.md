@@ -2258,3 +2258,90 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   prochaine session**, `METHOD.md` §0.2).
 - Version : `server/package.json`/`config.yaml` 1.9.12 -> 1.9.13
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-07-28 — Session 45, corriger l'avant-bourse et la pastille d'alerte opaque (v1.9.14)
+
+- **Demande** : deux retours utilisateur avec captures d'ecran. (1) NVDA
+  n'affiche aucune valeur avant-bourse alors que le marche est bien en
+  pre-ouverture au moment constate (14:30 heure francaise un vendredi -
+  verifie : correspond a 8:30 EDT, dans la fenetre pre-market NASDAQ
+  4:00-9:30 ET). (2) La pastille de prix d'une alerte existante sur le
+  graphique masque completement la courbe en arriere-plan.
+- **Bug 1 - root cause** : le reseau vers query1.finance.yahoo.com est
+  bloque dans ce bac a sable (403 systematique, `curl`/`WebFetch`
+  echouent tous les deux) - impossible de verifier la reponse reelle de
+  l'API au moment de l'implementation initiale (Session 40). Recherche
+  via `WebSearch`/`WebFetch` sur des sources tierces documentant le
+  schema reel de `/v8/finance/chart` :
+  - Le schema `ChartMeta` de la bibliotheque `yahoo-finance2` (bien
+    maintenue, activement testee contre l'API reelle) liste les champs
+    reels de cet endpoint : `currency`, `symbol`, `regularMarketPrice`,
+    `previousClose`, `chartPreviousClose`, `hasPrePostMarketData`,
+    `currentTradingPeriod`, `tradingPeriods`, etc. **`marketState` et
+    `preMarketPrice` n'y figurent pas.**
+  - Confirmation independante (recherches multiples) : `preMarketPrice`
+    est documente comme disponible via `stock.info`/`get_quote_endpoint()`
+    de `yfinance`, qui interroge `/v7/finance/quote`
+    (quoteSummary/quote), **pas** `/v8/finance/chart`.
+  - `/v7/finance/quote` necessite desormais un jeton de session
+    ("crumb") obtenu via un handshake cookie + `/v1/test/getcrumb` -
+    documente comme source frequente d'erreurs "Invalid Crumb"/401 sur
+    plusieurs bibliotheques (yfinance, yahoo-finance2, quantmod).
+    Implementer ce handshake aurait ajoute une gestion de cookies/session
+    non triviale, exactement le type de fragilite que
+    `ARCHITECTURE.md` § Points de vigilance identifie deja comme un
+    risque delibrement non pris pour ce projet.
+  - Solution retenue, sans jeton de session : `meta.currentTradingPeriod.pre`
+    (horaires Unix de la seance avant-bourse du jour) EST bien present
+    sur `/v8/finance/chart` (confirme par le meme schema ChartMeta) - il
+    permet de determiner si le marche est actuellement en pre-ouverture.
+    Un second appel au MEME endpoint avec `interval=1m&range=1d&
+    includePrePost=true` (candles a la minute incluant les transactions
+    avant-bourse quand `includePrePost=true`, comportement bien etabli
+    et largement utilise, ex. `yfinance` `history(interval='1m',
+    prepost=True)`) fournit le dernier prix reellement echange.
+- **Implemente** (`server/jobs/prices.js`) :
+  - `estDansFenetre(fenetre)` : compare l'instant present aux
+    timestamps Unix `start`/`end` de `meta.currentTradingPeriod.pre`.
+  - `fetchDernierPrixPreMarket(ticker)` : nouvel appel
+    `interval=1m&range=1d&includePrePost=true`, lit le dernier point
+    valide de `indicators.quote[0].close`.
+  - `fetchYahooFinance()` : declenche `fetchDernierPrixPreMarket()`
+    uniquement si `estDansFenetre(currentTradingPeriod.pre)` - aucun
+    appel supplementaire en dehors des fenetres avant-bourse reelles (le
+    reste de la journee, comportement/cout reseau inchange). Erreur du
+    second appel capturee localement (`try/catch`) : ne fait jamais
+    echouer la mise a jour du cours normal (voir BUSINESS_RULES.md §
+    Integrite des cours).
+- **Tests reecrits** : l'ancien mecanisme teste (`marketState`/
+  `preMarketPrice`) etait auto-coherent avec un mock ecrit sur la meme
+  hypothese erronee que l'implementation - les tests passaient sans
+  jamais avoir verifie le comportement reel. `server/test/prices.test.js`
+  (7 cas avant-bourse : fenetre active + prix dispo, hors fenetre + zero
+  appel supplementaire verifie, fenetre active mais aucune bougie valide,
+  appel avant-bourse en echec sans impact sur le cours normal, marche
+  sans session avant-bourse) et `server/test/prices-job.test.js` (3 cas
+  d'integration, mock etendu pour repondre differemment selon `interval=
+  1d` vs `interval=1m`) entierement reecrits. `node --test
+  test/*.test.js` : 62/62 verts.
+- **Bug 2** : `.alerte-existante-badge`/`.alerte-hors-limite`
+  (`public/styles.css`) passent de `background: var(--bg)` (opaque) a
+  `background: color-mix(in srgb, var(--bg) 85%, transparent)`
+  (legerement translucide) - la pastille reste lisible mais ne masque
+  plus completement la courbe quand elle chevauche visuellement le
+  seuil affiche pres du prix courant.
+- **Verification reelle en navigateur** : Chart.js charge temporairement
+  depuis un paquet npm local (CDN bloque par la politique reseau du bac
+  a sable), reference CDN restauree avant le commit. Script Playwright
+  jetable (non commite) : creation d'une alerte au seuil 99.5 sur une
+  valeur dont le graphique mocke varie entre 99 et 100 (chevauchement
+  garanti), capture d'ecran confirmant la courbe doree visible en
+  transparence sous la pastille, `getComputedStyle()` confirmant
+  `color(srgb 1 1 1 / 0.85)` (alpha 0.85 < 1).
+- **Documentation mise a jour** : `DESIGN.md` (§ Avant-bourse - mecanisme
+  de detection corrige -, § Alertes existantes sur le graphique -
+  translucidite -), `CHANGELOG.md` 1.9.14, `BACKLOG.md` (compteur reste a
+  5/5 - plafond -, deuxieme deviation hors plan consecutive signalee).
+- Version : `server/package.json`/`config.yaml` 1.9.13 -> 1.9.14
+  (`METHOD.md` §5.5, changement observable par l'utilisateur - le premier
+  bug corrigeait une fonctionnalite qui n'avait en realite jamais marche).

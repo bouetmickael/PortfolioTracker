@@ -55,15 +55,44 @@ test('aucune cloture precedente disponible : variation a 0 plutot qu une erreur'
   assert.equal(priceData.changePct, 0);
 });
 
-test('marketState PRE avec preMarketPrice : cours et variation avant-bourse renseignes', async () => {
-  mockMeta({
-    regularMarketPrice: 100,
-    previousClose: 98,
-    regularMarketVolume: 1000,
-    currency: 'USD',
-    marketState: 'PRE',
-    preMarketPrice: 99
-  });
+// Cours avant-bourse : correctif suite a un retour utilisateur (NVDA
+// n'affichait jamais de cours avant-bourse malgre une fenetre de
+// pre-ouverture reelle). meta.marketState/meta.preMarketPrice, utilises par
+// l'implementation initiale, n'existent PAS sur /v8/finance/chart (verifie
+// via le schema ChartMeta de yahoo-finance2, voir server/jobs/prices.js et
+// TODO.md) : le mecanisme correct repose sur meta.currentTradingPeriod.pre
+// (horaires Unix de la session avant-bourse du jour, bien present sur cet
+// endpoint) et un second appel a interval=1m&includePrePost=true pour lire
+// le dernier prix reellement echange.
+function mockMetaEtPreMarket(meta, closesPreMarket) {
+  global.fetch = (url) => {
+    if (typeof url === 'string' && url.includes('interval=1m')) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ chart: { result: [{ indicators: { quote: [{ close: closesPreMarket }] } }] } })
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({ chart: { result: [{ meta }] } })
+    });
+  };
+}
+
+test('fenetre avant-bourse active et dernier prix disponible : cours et variation avant-bourse renseignes', async () => {
+  const maintenant = Math.floor(Date.now() / 1000);
+  mockMetaEtPreMarket(
+    {
+      regularMarketPrice: 100,
+      previousClose: 98,
+      regularMarketVolume: 1000,
+      currency: 'USD',
+      currentTradingPeriod: { pre: { start: maintenant - 60, end: maintenant + 3600 } }
+    },
+    [null, 99]
+  );
 
   const priceData = await fetchYahooFinance('TEST');
 
@@ -71,15 +100,52 @@ test('marketState PRE avec preMarketPrice : cours et variation avant-bourse rens
   assert.equal(priceData.avantBourseVariation, ((99 - 98) / 98) * 100);
 });
 
-test('marketState REGULAR : avant-bourse absent meme si preMarketPrice encore present (donnee perimee)', async () => {
-  mockMeta({
-    regularMarketPrice: 100,
-    previousClose: 98,
-    regularMarketVolume: 1000,
-    currency: 'USD',
-    marketState: 'REGULAR',
-    preMarketPrice: 99
-  });
+test('en dehors de la fenetre avant-bourse : avant-bourse absent, aucun appel supplementaire', async () => {
+  const maintenant = Math.floor(Date.now() / 1000);
+  let appelsInterval1m = 0;
+  global.fetch = (url) => {
+    if (typeof url === 'string' && url.includes('interval=1m')) appelsInterval1m += 1;
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        chart: {
+          result: [
+            {
+              meta: {
+                regularMarketPrice: 100,
+                previousClose: 98,
+                regularMarketVolume: 1000,
+                currency: 'USD',
+                // Fenetre avant-bourse deja terminee il y a une heure.
+                currentTradingPeriod: { pre: { start: maintenant - 7200, end: maintenant - 3600 } }
+              }
+            }
+          ]
+        }
+      })
+    });
+  };
+
+  const priceData = await fetchYahooFinance('TEST');
+
+  assert.equal(priceData.avantBourseCours, null);
+  assert.equal(priceData.avantBourseVariation, null);
+  assert.equal(appelsInterval1m, 0);
+});
+
+test('fenetre avant-bourse active mais aucune bougie valide : avant-bourse absent', async () => {
+  const maintenant = Math.floor(Date.now() / 1000);
+  mockMetaEtPreMarket(
+    {
+      regularMarketPrice: 100,
+      previousClose: 98,
+      regularMarketVolume: 1000,
+      currency: 'USD',
+      currentTradingPeriod: { pre: { start: maintenant - 60, end: maintenant + 3600 } }
+    },
+    [null, null]
+  );
 
   const priceData = await fetchYahooFinance('TEST');
 
@@ -87,22 +153,41 @@ test('marketState REGULAR : avant-bourse absent meme si preMarketPrice encore pr
   assert.equal(priceData.avantBourseVariation, null);
 });
 
-test('marketState PRE sans preMarketPrice : avant-bourse absent', async () => {
-  mockMeta({
-    regularMarketPrice: 100,
-    previousClose: 98,
-    regularMarketVolume: 1000,
-    currency: 'USD',
-    marketState: 'PRE'
-  });
+test("l'appel avant-bourse echoue : le cours normal reste renseigne, avant-bourse absent sans lever d'erreur", async () => {
+  const maintenant = Math.floor(Date.now() / 1000);
+  global.fetch = (url) => {
+    if (typeof url === 'string' && url.includes('interval=1m')) {
+      return Promise.resolve({ ok: false, status: 500 });
+    }
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        chart: {
+          result: [
+            {
+              meta: {
+                regularMarketPrice: 100,
+                previousClose: 98,
+                regularMarketVolume: 1000,
+                currency: 'USD',
+                currentTradingPeriod: { pre: { start: maintenant - 60, end: maintenant + 3600 } }
+              }
+            }
+          ]
+        }
+      })
+    });
+  };
 
   const priceData = await fetchYahooFinance('TEST');
 
+  assert.equal(priceData.price, 100);
   assert.equal(priceData.avantBourseCours, null);
   assert.equal(priceData.avantBourseVariation, null);
 });
 
-test('marche sans session avant-bourse (ex. Euronext Paris) : marketState absent, avant-bourse absent', async () => {
+test('marche sans session avant-bourse (ex. Euronext Paris) : currentTradingPeriod absent, avant-bourse absent', async () => {
   mockMeta({ regularMarketPrice: 101.5, previousClose: 100, regularMarketVolume: 1000, currency: 'EUR' });
 
   const priceData = await fetchYahooFinance('TEST.PA');
