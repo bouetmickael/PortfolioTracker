@@ -6,7 +6,31 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 45 (2026-07-28, v1.9.14), **deuxieme correctif hors
+**0/5** — Session 46 (2026-08-04), cycle de revue de dette technique
+obligatoire (`METHOD.md` §0.2, Revue n°8, voir `CLAUDE.md` §
+Historique des revues pour le detail complet). Portee couverte : diff
+cumule depuis la cloture de la Revue n°7 (`767a2cd`) jusqu'a `HEAD`
+(`d15c6a3`), Sessions 40 a 45 (v1.9.9 a v1.9.14). Correctifs a risque
+faible/comportement inchange appliques (extraction de `pctChange()`/
+`extraireResultatChart()` dans `server/jobs/prices.js`, boucle de
+migration `avant_bourse_*` dans `server/db.js`, discriminant explicite
+`reference: true` remplacant une comparaison de texte d'infobulle dans
+`public/app.js`, fusion de regles CSS identiques `.stat-variation`/
+`.stat-avant-bourse` et `.valeur-variation`/`.valeur-avant-bourse` dans
+`public/styles.css`) ; correctifs plus profonds documentes et reportes
+(fuite du calcul avant-bourse dans le chemin synchrone d'ajout de
+valeur, refetch de la serie 1 minute complete a chaque cycle du job,
+duplication `previousClose` aggravant la dette Yahoo Finance deja
+suivie, duplication du ternaire de classe de signe dans
+`public/index.html`, duplication de mocks de test). Aucun changement de
+comportement observable par l'utilisateur : version applicative non
+incrementee (`METHOD.md` §5.5), reste `1.9.14`. Pas de nouvelle
+fonctionnalite du backlog produit traitee cette session, conformement a
+l'obligation du cycle de revue.
+
+Compteur avant cette session :
+
+5/5 — Session 45 (2026-07-28, v1.9.14), **deuxieme correctif hors
 plan consecutif** : retour utilisateur direct sur deux bugs distincts
 (cours avant-bourse jamais affiche malgre une fenetre de pre-ouverture
 reelle ; pastille d'alerte existante masquant completement la courbe en

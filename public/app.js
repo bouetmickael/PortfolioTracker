@@ -1175,6 +1175,7 @@ async function chargerGraphique(ticker, period) {
     if (previousClose) {
       datasets.push({
         label: 'Cloture veille',
+        reference: true,
         data: prices.map(() => previousClose),
         borderColor: couleurTexte,
         borderWidth: 1,
@@ -1203,7 +1204,7 @@ async function chargerGraphique(ticker, period) {
             callbacks: {
               label(context) {
                 const valeur = `${context.parsed.y.toFixed(2)} EUR`;
-                return context.dataset.label === 'Cloture veille' ? `Cloture veille: ${valeur}` : valeur;
+                return context.dataset.reference ? `Cloture veille: ${valeur}` : valeur;
               }
             }
           }

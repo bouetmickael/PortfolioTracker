@@ -997,3 +997,144 @@ variables d'environnement, vérification).
     `createAlerteCard()`) : aucun changement supplémentaire sur ce point
     précis cette session, en dehors des deux correctifs d'efficacité
     ci-dessus qui touchent incidemment `alertesDeclenchees()`.
+
+### 2026-08-04 — Revue n°8
+
+- **Portée** : diff cumulé depuis la clôture de la Revue n°7 (commit
+  `767a2cd`, « Session 39 - technical debt review n7... ») jusqu'à
+  `HEAD` (`d15c6a3`), soit `git diff 767a2cd..HEAD -- server/ public/
+  ':!public/vendor'` — borne vérifiée par `git log` en début de session
+  (conforme au prompt initial, aucune correction de portée nécessaire,
+  comme pour la Revue n°7). Couvre les Sessions 40 à 45 (v1.9.9 à
+  v1.9.14) : affichage du cours avant-bourse pour les valeurs suivies et
+  les indices de marché (40), persistance de la dernière période de
+  graphique sélectionnée dans `localStorage` (41-42), ligne de référence
+  « clôture veille » sur le graphique (43), correctif de sélection de
+  texte iOS sur le graphique (44), correctif du mécanisme de détection
+  avant-bourse (`meta.currentTradingPeriod.pre` remplaçant
+  `meta.marketState`/`meta.preMarketPrice`, absents de l'endpoint
+  réellement utilisé) et correctif de la pastille d'alerte translucide
+  (45). Outillage utilisé : `/simplify` (4 agents de revue en parallèle :
+  réutilisation, simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement strictement
+  inchangé, vérifiés par tests unitaires (`node --test test/*.test.js`,
+  62/62), un démarrage réel du serveur (`GET /`/`GET /login.html` → 200)
+  et une exécution ciblée de la migration `avant_bourse_*` sur une base
+  au schéma pré-Session 40 reconstituée à la main pour vérifier que les
+  quatre colonnes sont bien ajoutées par la boucle qui remplace les
+  quatre blocs `if` d'origine) :
+  - Extraction de `pctChange(price, ref)` et `extraireResultatChart(data)`
+    (`server/jobs/prices.js`), remplace respectivement deux occurrences
+    identiques de la formule de variation en pourcentage (cours normal et
+    cours avant-bourse, `fetchYahooFinance()`) et deux occurrences
+    identiques de la garde « réponse `/v8/finance/chart` exploitable ? »
+    (`fetchYahooFinance()` et `fetchDernierPrixPreMarket()`, cette
+    dernière ajoutée en Session 40) — signalé indépendamment par les
+    agents réutilisation, simplification et efficacité.
+  - Boucle de migration `avant_bourse_cours`/`avant_bourse_variation`
+    (`server/db.js`), remplace quatre blocs `if (!columnExists(...))
+    db.exec('ALTER TABLE ... ADD COLUMN ...')` quasi identiques
+    (Session 40) par une double boucle sur les deux tables
+    (`valeurs`/`indices_marche`) et les deux colonnes — même garde
+    `columnExists()`, même ordre d'exécution, même instruction SQL par
+    itération.
+  - `context.dataset.reference` (`public/app.js`, tooltip du graphique)
+    remplace `context.dataset.label === 'Cloture veille'` : le dataset de
+    la ligne de clôture de la veille (Session 43) portait un discriminant
+    implicite via son texte d'affichage (`label`, alors que la légende du
+    graphique est masquée) plutôt qu'un indicateur dédié — un futur
+    changement du libellé aurait silencieusement cassé le format de
+    l'infobulle. `reference: true` ajouté sur le dataset, même sortie de
+    tooltip vérifiée avant/après.
+  - Fusion CSS `.stat-variation.success/.stat-avant-bourse.success` et
+    `.stat-variation.danger/.stat-avant-bourse.danger` (idem pour
+    `.valeur-variation`/`.valeur-avant-bourse`), `public/styles.css` :
+    quatre paires de règles ajoutées par la fonctionnalité avant-bourse
+    (Session 40) redéclaraient chacune `color: var(--success))`/
+    `color: var(--danger)` à l'identique des règles `.stat-variation`/
+    `.valeur-variation` juste au-dessus — même technique de fusion par
+    liste de sélecteurs déjà appliquée en Revue n°5 pour
+    `.alerte-existante-badge`/`.alerte-hors-limite` (propriétés
+    strictement identiques entre les sélecteurs fusionnés, CSS calculé
+    inchangé).
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - `fetchYahooFinance()` (`server/jobs/prices.js`) est appelée à la fois
+    par le job périodique (`updatePrices()`/`updateIndices()`, où
+    l'enrichissement avant-bourse est la fonctionnalité recherchée) et
+    par `verifierTickerExiste()` (`server/valeurs.js`), invoquée de façon
+    synchrone dans `POST /api/valeurs`/`POST /api/sections/:id/valeurs`
+    pour la seule vérification qu'un ticker existe avant insertion.
+    L'enrichissement avant-bourse ajouté en Session 40/45 (fenêtre de
+    pré-ouverture + second appel réseau conditionnel) est codé
+    directement dans `fetchYahooFinance()`, donc toute requête d'ajout
+    d'une valeur US pendant sa fenêtre avant-bourse paie désormais cet
+    appel réseau supplémentaire de façon synchrone — alors que
+    `creerValeur()` stocke bien ce cours avant-bourse initial, il sera de
+    toute façon écrasé par le prochain cycle du job (~2 minutes plus
+    tard). Signalé indépendamment par les agents efficacité et altitude
+    comme un cas particulier greffé sur une fonction partagée par un
+    appelant qui n'en a pas besoin. Correctif plus profond envisageable
+    (scinder `fetchYahooFinance()` en un cœur léger et une variante
+    enrichie réservée aux appelants du job), mais change un comportement
+    observable (le cours avant-bourse resterait vide jusqu'au prochain
+    cycle du job pour une valeur tout juste ajoutée) — à traiter avec un
+    test manuel dédié plutôt qu'en correctif à risque faible ce cycle.
+  - `fetchDernierPrixPreMarket()` (`server/jobs/prices.js`, Session 40)
+    interroge `interval=1m&range=1d&includePrePost=true` (la série
+    complète des bougies à la minute du jour) à chaque cycle du job
+    (~2 minutes) pour chaque ticker/indice encore dans sa fenêtre
+    avant-bourse, alors que seul le tout dernier point valide est
+    effectivement lu — le chevauchement entre appels consécutifs croît
+    au fil de la fenêtre. Une requête bornée à la fenêtre avant-bourse
+    elle-même (`period1`/`period2` plutôt que `range=1d`) réduirait la
+    charge, mais change les paramètres de requête envoyés à Yahoo
+    Finance — à vérifier contre le comportement réel de l'API avant
+    d'appliquer, pas un correctif à l'aveugle.
+  - `server/routes/chart.js` (`GET /api/chart/:ticker`, Session 43) lit
+    désormais `result.meta.previousClose || result.meta.chartPreviousClose
+    || null` pour exposer `previousClose` au client — une troisième
+    occurrence de la même règle de repli déjà présente dans
+    `fetchYahooFinance()` (`server/jobs/prices.js`, défaut `0` plutôt que
+    `null`). Aggrave la dette déjà suivie depuis la Revue n°1 (« logique
+    Yahoo Finance dupliquée entre `prices.js`/`chart.js` ») plutôt que
+    d'introduire une nouvelle catégorie de duplication — signalé par
+    l'agent réutilisation. Les deux occurrences ayant des valeurs de
+    repli différentes (`0` vs `null`), une factorisation à l'aveugle
+    changerait le comportement de l'un des deux appelants selon le choix
+    du défaut commun — à traiter avec la même prudence que le reste de
+    cette dette déjà reportée quatre fois, pas comme un correctif isolé
+    ce cycle.
+  - `public/index.html` : l'expression Alpine inline
+    `:class="(x || 0) >= 0 ? 'success' : 'danger'"` (déjà répétée 3 fois
+    avant ce diff pour `indice.variation`/`valeur.variation`) est
+    désormais répétée 5 fois avec les deux nouvelles occurrences pour
+    `avantBourseVariation` (Session 40). Signalé par l'agent
+    réutilisation comme un prolongement d'un motif déjà toléré par le
+    projet plutôt qu'une nouvelle catégorie de dette — un helper
+    `signeClasse(x)` réduirait la duplication sur 5 sites au lieu de 3,
+    mais n'a pas été jugé prioritaire par l'agent lui-même ; laissé
+    tel quel.
+  - `server/test/prices.test.js` (`mockMetaEtPreMarket`) et
+    `server/test/prices-job.test.js` (`mockPreMarketPour`, nouveau
+    fichier) construisent chacun leur propre simulation de
+    `global.fetch` distinguant l'appel de cours normal de l'appel
+    avant-bourse (`url.includes('interval=1m')`), plutôt que de partager
+    un unique constructeur de mock paramétré. Code de test uniquement,
+    priorité basse — signalé par l'agent simplification.
+  - `updatePrices()`/`updateIndices()` (`server/jobs/prices.js`) ont
+    chacune reçu deux colonnes/paramètres supplémentaires quasi
+    identiques (`avant_bourse_cours`/`avant_bourse_variation`) pour la
+    fonctionnalité avant-bourse (Session 40) : la duplication structurelle
+    déjà suivie depuis la Revue n°3/n°7 s'alourdit donc légèrement, sans
+    nouveau motif de duplication — confirmé par les agents efficacité et
+    altitude comme une aggravation mineure de la dette déjà connue plutôt
+    qu'un nouveau problème, traité avec la même prudence que les cycles
+    précédents (paralléliser/fusionner ces deux jobs reste hors périmètre
+    d'un correctif à risque faible).
+  - Les trois points déjà exclus du périmètre de ce cycle
+    (`roleSection()`/`rolesSection()` dans `server/partage.js`, la
+    recette de migration SQLite par recréation de table dupliquée dans
+    `server/db.js`, la quasi-duplication structurelle
+    `updatePrices()`/`updateIndices()` — voir ci-dessus pour cette
+    dernière) restent non traités, conformément à la consigne de session.

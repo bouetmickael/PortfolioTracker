@@ -113,17 +113,12 @@ if (!columnExists('valeurs', 'ordre')) {
 // BUSINESS_RULES.md § Integrite des cours) : le job de mise a jour des
 // cours les renseigne uniquement lorsque le marche du ticker concerne est
 // effectivement en pre-ouverture au moment de l'appel.
-if (!columnExists('valeurs', 'avant_bourse_cours')) {
-  db.exec('ALTER TABLE valeurs ADD COLUMN avant_bourse_cours REAL');
-}
-if (!columnExists('valeurs', 'avant_bourse_variation')) {
-  db.exec('ALTER TABLE valeurs ADD COLUMN avant_bourse_variation REAL');
-}
-if (!columnExists('indices_marche', 'avant_bourse_cours')) {
-  db.exec('ALTER TABLE indices_marche ADD COLUMN avant_bourse_cours REAL');
-}
-if (!columnExists('indices_marche', 'avant_bourse_variation')) {
-  db.exec('ALTER TABLE indices_marche ADD COLUMN avant_bourse_variation REAL');
+for (const table of ['valeurs', 'indices_marche']) {
+  for (const column of ['avant_bourse_cours', 'avant_bourse_variation']) {
+    if (!columnExists(table, column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} REAL`);
+    }
+  }
 }
 
 const backfillSectionsParDefaut = db.transaction(() => {

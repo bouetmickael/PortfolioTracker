@@ -357,11 +357,13 @@ body {
   margin-top: 1px;
 }
 
-.stat-variation.success {
+.stat-variation.success,
+.stat-avant-bourse.success {
   color: var(--success);
 }
 
-.stat-variation.danger {
+.stat-variation.danger,
+.stat-avant-bourse.danger {
   color: var(--danger);
 }
 
@@ -371,14 +373,6 @@ body {
   font-weight: 500;
   margin-top: 1px;
   white-space: nowrap;
-}
-
-.stat-avant-bourse.success {
-  color: var(--success);
-}
-
-.stat-avant-bourse.danger {
-  color: var(--danger);
 }
 
 /* SECTIONS */
@@ -699,11 +693,13 @@ body {
   line-height: 1.25;
 }
 
-.valeur-variation.success {
+.valeur-variation.success,
+.valeur-avant-bourse.success {
   color: var(--success);
 }
 
-.valeur-variation.danger {
+.valeur-variation.danger,
+.valeur-avant-bourse.danger {
   color: var(--danger);
 }
 
@@ -712,14 +708,6 @@ body {
   line-height: 1.25;
   font-weight: 500;
   white-space: nowrap;
-}
-
-.valeur-avant-bourse.success {
-  color: var(--success);
-}
-
-.valeur-avant-bourse.danger {
-  color: var(--danger);
 }
 
 .valeur-actions {

@@ -10,6 +10,20 @@ function estDansFenetre(fenetre) {
   return maintenant >= fenetre.start && maintenant < fenetre.end;
 }
 
+// Variation en pourcentage par rapport a une reference (cloture precedente),
+// 0 si la reference est absente/nulle - partage entre le cours normal et le
+// cours avant-bourse, tous deux calcules par rapport a la meme cloture.
+function pctChange(price, ref) {
+  return ref ? ((price - ref) / ref) * 100 : 0;
+}
+
+// Extrait le premier resultat d'une reponse /v8/finance/chart, ou null si la
+// reponse ne porte aucun resultat exploitable - partage entre le cours
+// normal et le cours avant-bourse, qui interrogent le meme endpoint.
+function extraireResultatChart(data) {
+  return data.chart && data.chart.result && data.chart.result.length > 0 ? data.chart.result[0] : null;
+}
+
 // Dernier prix connu pendant la session avant-bourse : contrairement au
 // cours quotidien (interval=1d, une seule bougie), les bougies a la minute
 // (interval=1m) incluent les transactions avant-bourse quand
@@ -22,11 +36,12 @@ async function fetchDernierPrixPreMarket(ticker) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1m&range=1d&includePrePost=true`;
 
   const data = await fetchYahooFinanceJson(url);
-  if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+  const result = extraireResultatChart(data);
+  if (!result) {
     return null;
   }
 
-  const quotes = data.chart.result[0].indicators.quote[0];
+  const quotes = result.indicators.quote[0];
   const closesValides = (quotes.close || []).filter((c) => c !== null && c !== undefined);
   return closesValides.length > 0 ? closesValides[closesValides.length - 1] : null;
 }
@@ -36,11 +51,11 @@ async function fetchYahooFinance(ticker) {
 
   const data = await fetchYahooFinanceJson(url);
 
-  if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+  const result = extraireResultatChart(data);
+  if (!result) {
     throw new Error('Donnees invalides Yahoo Finance');
   }
 
-  const result = data.chart.result[0];
   const meta = result.meta;
 
   // meta ne porte pas de pourcentage de variation pre-calcule (ce champ
@@ -48,7 +63,7 @@ async function fetchYahooFinance(ticker) {
   // utilise ici) : recalcule a partir du cours et de la cloture precedente.
   const price = meta.regularMarketPrice || 0;
   const previousClose = meta.previousClose || meta.chartPreviousClose || 0;
-  const changePct = previousClose ? ((price - previousClose) / previousClose) * 100 : 0;
+  const changePct = pctChange(price, previousClose);
 
   // Cours avant-bourse : correctif suite a un retour utilisateur (NVDA
   // n'affichait jamais de cours avant-bourse alors que le marche etait bien
@@ -71,7 +86,7 @@ async function fetchYahooFinance(ticker) {
       const dernierPrix = await fetchDernierPrixPreMarket(ticker);
       if (dernierPrix) {
         avantBourseCours = dernierPrix;
-        avantBourseVariation = previousClose ? ((dernierPrix - previousClose) / previousClose) * 100 : 0;
+        avantBourseVariation = pctChange(dernierPrix, previousClose);
       }
     } catch (error) {
       // Best-effort : l'absence de cours avant-bourse ne doit jamais faire
