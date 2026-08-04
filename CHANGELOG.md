@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.15
+
+- Ajout d'un canal de régression (droite de tendance + bandes à ±1 et ±2
+  écarts-types) sur le graphique lorsque l'écran passe en orientation
+  paysage, pour visualiser le positionnement d'une valeur par rapport à
+  son historique complet. Bascule automatiquement sur la période Max en
+  entrant en paysage, restaure la période précédente en sortant.
+- Retrait du verrouillage d'orientation portrait du manifeste PWA (sans
+  quoi une installation sur l'écran d'accueil Android ne pouvait jamais
+  pivoter en paysage, rendant la fonctionnalité ci-dessus inatteignable).
+
 ## 1.9.14
 
 - **Correctif critique** : le cours avant-bourse (ajouté en 1.9.9) ne

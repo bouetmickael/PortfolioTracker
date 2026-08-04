@@ -2345,3 +2345,71 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - Version : `server/package.json`/`config.yaml` 1.9.13 -> 1.9.14
   (`METHOD.md` §5.5, changement observable par l'utilisateur - le premier
   bug corrigeait une fonctionnalite qui n'avait en realite jamais marche).
+
+## 2026-08-04 — Session 47, canal de regression en orientation paysage (v1.9.15)
+
+- **Demande** : demande explicite utilisateur, avec une capture d'ecran
+  d'exemple (courbe de cours AIR LIQUIDE avec une droite de tendance
+  blanche et des bandes vertes au-dessus/orange en dessous) - vouloir
+  qu'en orientation paysage, le graphique d'une valeur affiche sa
+  « courbe de positionnement par rapport a son historique » (moyenne,
+  +/-1 sigma, +/-2 sigma).
+- **Implemente** (`public/app.js`) :
+  - `calculerCanalRegression(prices)` : droite de regression lineaire
+    (moindres carres, axe X = index du point) plus 4 bandes a +/-1 et
+    +/-2 ecarts-types de population des residus (descriptif/visuel, pas
+    n-2).
+  - `chargerGraphique()` ajoute 5 datasets Chart.js supplementaires
+    (memes principe que la ligne « Cloture veille » deja existante :
+    Chart.js etend deja l'echelle Y, pas de logique de hors-limite a
+    gerer) quand `mqPaysage.matches` (`window.matchMedia('(orientation:
+    landscape)')`) - ligne moyenne pleine `--text-secondary`, bandes
+    pointillees `--success` au-dessus/`--danger` en dessous (meme
+    convention hausse/baisse que le reste de l'app, pas de nouvelle
+    paire de couleurs vert/orange absente de la palette).
+  - Bascule automatique sur la periode Max en entrant en paysage,
+    restauration de la periode precedente en sortant
+    (`selectionnerPeriode(ticker, period, persister)`, refactorisation
+    du code de changement de periode qui dupliquait deja la logique
+    entre l'ouverture et le clic manuel ; `onOrientationChange()` abonne
+    a `mqPaysage.addEventListener('change', ...)`). Le parametre
+    `persister` garantit que ce basculement automatique n'ecrase jamais
+    `dernierePeriodeGraphique`/`localStorage` - seul un clic manuel sur
+    un bouton de periode reste memorise comme preference par defaut, y
+    compris si ce clic a lieu pendant que l'ecran est en paysage.
+- **Prerequis PWA decouvert en cours d'implementation** :
+  `public/manifest.json` fixait `orientation: "portrait-primary"`, qui
+  verrouille l'orientation d'une PWA installee (`display: standalone`)
+  sur Android/Chrome - l'ecran ne pivote alors jamais en paysage, quel
+  que soit le geste de l'utilisateur, rendant ce composant totalement
+  inatteignable depuis l'ecran d'accueil (le mode d'usage principal de
+  l'application, voir `CLAUDE.md` § Presentation du projet). Champ
+  retire.
+- **Verification reelle en navigateur** : Chart.js charge temporairement
+  depuis un paquet npm local (CDN bloque par la politique reseau du bac
+  a sable), reference CDN restauree avant le commit (meme technique que
+  les Sessions 30/39/46). Serveur de test avec `global.fetch` mocke (une
+  serie de ~1500 points en tendance haussiere avec bruit, pour un canal
+  visuellement significatif), scripts Playwright jetables (non
+  commites) :
+  - portrait -> paysage -> portrait : verification directe de
+    `chartInstance.data.datasets` (labels des 5 datasets du canal
+    presents uniquement en paysage), de la classe active du bouton de
+    periode (bascule Max puis retour a la periode precedente), captures
+    d'ecran confirmant le rendu visuel (droite grise, bandes vertes/
+    rouges pointillees) en theme clair et sombre ;
+  - ouverture du graphique directement en paysage (viewport large avant
+    le clic) : demarre bien sur Max avec le canal, sans etape
+    intermediaire ;
+  - clic manuel sur un bouton de periode (1A) pendant que l'ecran est en
+    paysage : `localStorage.graphique_periode` mis a jour, canal
+    toujours present pour la nouvelle periode.
+  - Aucune erreur console sur l'ensemble du parcours.
+- `node --test test/*.test.js` : 62/62 verts (aucun changement cote
+  serveur autre que la version).
+- **Documentation mise a jour** : `DESIGN.md` (nouveau composant «
+  Canal de regression en orientation paysage », note d'exception dans §
+  Responsive pour le `matchMedia` d'orientation), `CHANGELOG.md` 1.9.15,
+  `BACKLOG.md` (compteur porte a 1/5).
+- Version : `server/package.json`/`config.yaml` 1.9.14 -> 1.9.15
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).

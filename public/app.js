@@ -44,6 +44,12 @@ const PERIODES_GRAPHIQUE_VALIDES = ['1D', '1W', '1M', '1Y', 'MAX'];
 const periodeStockee = localStorage.getItem('graphique_periode');
 let dernierePeriodeGraphique = PERIODES_GRAPHIQUE_VALIDES.includes(periodeStockee) ? periodeStockee : '1M';
 
+// Canal de regression en orientation paysage (voir DESIGN.md § Canal de
+// regression en orientation paysage) : mql plutot qu'un resize/orientation
+// event classique, pour un evenement fiable independant des dimensions
+// exactes du viewport (ex. barre d'adresse qui apparait/disparait).
+const mqPaysage = window.matchMedia('(orientation: landscape)');
+
 document.addEventListener('alpine:init', () => {
   Alpine.store('portfolio', {
     valeurs: [],
@@ -942,21 +948,41 @@ async function openGraphique(ticker, nom = null, alertable = false) {
   openModal('modalGraphique');
   document.getElementById('graphiqueTitre').textContent = `Graphique - ${nom || ticker}`;
 
-  const periodeBtn = document.querySelector(`[data-period="${dernierePeriodeGraphique}"]`);
-  await chargerGraphique(ticker, dernierePeriodeGraphique);
-
-  document.querySelectorAll('.btn-periode').forEach((btn) => btn.classList.remove('active'));
-  periodeBtn.classList.add('active');
+  // Ouverture directement en paysage (telephone deja tourne avant le tap) :
+  // demarrer sur Max comme un basculement d'orientation classique plutot
+  // que sur la periode memorisee (voir onOrientationChange/DESIGN.md §
+  // Canal de regression en orientation paysage).
+  const periodeInitiale = mqPaysage.matches ? 'MAX' : dernierePeriodeGraphique;
+  await selectionnerPeriode(ticker, periodeInitiale, false);
 
   document.querySelectorAll('.btn-periode').forEach((btn) => {
-    btn.onclick = async () => {
-      document.querySelectorAll('.btn-periode').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      dernierePeriodeGraphique = btn.dataset.period;
-      localStorage.setItem('graphique_periode', dernierePeriodeGraphique);
-      await chargerGraphique(ticker, btn.dataset.period);
-    };
+    btn.onclick = () => selectionnerPeriode(ticker, btn.dataset.period, true);
   });
+}
+
+// `persister` controle si ce choix devient la nouvelle periode par defaut a
+// la prochaine ouverture (clic manuel sur un bouton) ou reste un affichage
+// ponctuel qui ne doit pas ecraser la preference memorisee dans
+// localStorage (bascule automatique Max en entrant en paysage, restauration
+// en sortant - voir onOrientationChange).
+async function selectionnerPeriode(ticker, period, persister) {
+  document.querySelectorAll('.btn-periode').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.period === period);
+  });
+  if (persister) {
+    dernierePeriodeGraphique = period;
+    localStorage.setItem('graphique_periode', period);
+  }
+  await chargerGraphique(ticker, period);
+}
+
+// Bascule Max/periode memorisee en entrant/sortant du mode paysage (voir
+// DESIGN.md § Canal de regression en orientation paysage) : ne s'applique
+// que si le graphique est actuellement ouvert, sinon la prochaine ouverture
+// gere deja elle-meme l'orientation courante (periodeInitiale ci-dessus).
+function onOrientationChange(e) {
+  if (!graphiqueState.ticker || !document.getElementById('modalGraphique').classList.contains('active')) return;
+  selectionnerPeriode(graphiqueState.ticker, e.matches ? 'MAX' : dernierePeriodeGraphique, false);
 }
 
 // ========================================
@@ -1113,6 +1139,44 @@ function formatGraphiqueLabel(dateStr, period) {
   return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
 }
 
+// Canal de regression lineaire (droite des moindres carres + bandes a 1 et
+// 2 ecarts-types de ses residus), voir DESIGN.md § Canal de regression en
+// orientation paysage. `prices` indexes servent d'axe X (espacement
+// temporel irregulier ignore, comme le reste du graphique qui affiche deja
+// des points a intervalle regulier sur l'axe des labels) - ecart-type de
+// population (division par n, pas n-2) : usage descriptif/visuel, pas une
+// inference statistique necessitant un correctif de degres de liberte.
+function calculerCanalRegression(prices) {
+  const n = prices.length;
+  if (n < 2) return null;
+
+  let sommeX = 0;
+  let sommeY = 0;
+  let sommeXY = 0;
+  let sommeXX = 0;
+  for (let i = 0; i < n; i++) {
+    sommeX += i;
+    sommeY += prices[i];
+    sommeXY += i * prices[i];
+    sommeXX += i * i;
+  }
+
+  const pente = (n * sommeXY - sommeX * sommeY) / (n * sommeXX - sommeX * sommeX);
+  const origine = (sommeY - pente * sommeX) / n;
+
+  const moyenne = prices.map((_, i) => pente * i + origine);
+  const variance = prices.reduce((acc, prix, i) => acc + (prix - moyenne[i]) ** 2, 0) / n;
+  const ecartType = Math.sqrt(variance);
+
+  return {
+    moyenne,
+    plus1: moyenne.map((v) => v + ecartType),
+    plus2: moyenne.map((v) => v + 2 * ecartType),
+    moins1: moyenne.map((v) => v - ecartType),
+    moins2: moyenne.map((v) => v - 2 * ecartType)
+  };
+}
+
 async function chargerGraphique(ticker, period) {
   const container = document.getElementById('graphiqueContainer');
   container.innerHTML = '<div class="loader-inline"><div class="spinner-small"></div></div>';
@@ -1187,6 +1251,40 @@ async function chargerGraphique(ticker, period) {
       });
     }
 
+    // Canal de regression en orientation paysage (session 2026-08-04,
+    // demande explicite utilisateur, voir DESIGN.md § Canal de regression
+    // en orientation paysage). mqPaysage.matches plutot qu'un parametre
+    // dedie : chargerGraphique() est deja le point d'entree unique de tout
+    // (re)chargement du graphique (ouverture, changement de periode,
+    // basculement d'orientation via selectionnerPeriode), une seule
+    // lecture directe de l'etat d'orientation ici suffit.
+    if (mqPaysage.matches) {
+      const canal = calculerCanalRegression(prices);
+      if (canal) {
+        const couleurHaute = themeSombre ? '#5fbb7a' : '#34a853';
+        const couleurBasse = themeSombre ? '#f2685c' : '#ea4335';
+        const datasetCanal = (valeurs, libelle, couleur, pointille) => ({
+          label: libelle,
+          canalLibelle: libelle,
+          data: valeurs,
+          borderColor: couleur,
+          borderWidth: pointille ? 1 : 1.5,
+          borderDash: pointille ? [6, 3] : [],
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          fill: false,
+          tension: 0
+        });
+        datasets.push(
+          datasetCanal(canal.plus2, '+2 ecarts-type', couleurHaute, true),
+          datasetCanal(canal.plus1, '+1 ecart-type', couleurHaute, true),
+          datasetCanal(canal.moyenne, 'Moyenne', couleurTexte, false),
+          datasetCanal(canal.moins1, '-1 ecart-type', couleurBasse, true),
+          datasetCanal(canal.moins2, '-2 ecarts-type', couleurBasse, true)
+        );
+      }
+    }
+
     chartInstance = new Chart(ctx, {
       type: 'line',
       data: {
@@ -1204,7 +1302,9 @@ async function chargerGraphique(ticker, period) {
             callbacks: {
               label(context) {
                 const valeur = `${context.parsed.y.toFixed(2)} EUR`;
-                return context.dataset.reference ? `Cloture veille: ${valeur}` : valeur;
+                if (context.dataset.reference) return `Cloture veille: ${valeur}`;
+                if (context.dataset.canalLibelle) return `${context.dataset.canalLibelle}: ${valeur}`;
+                return valeur;
               }
             }
           }
@@ -1408,6 +1508,8 @@ function setupEventListeners() {
   // innerHTML est remplace), un abonnement unique ici suffit pour tous les
   // chargements a venir (ouverture, changement de periode).
   document.getElementById('graphiqueContainer').addEventListener('chart:loaded', repositionnerPlacementApresChargement);
+
+  mqPaysage.addEventListener('change', onOrientationChange);
 }
 
 // Re-clampe valeurPlacement aux nouveaux min/max de l'echelle avant de

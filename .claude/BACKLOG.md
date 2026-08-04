@@ -6,7 +6,19 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/5** — Session 46 (2026-08-04), cycle de revue de dette technique
+**1/5** — Session 47 (2026-08-04, v1.9.15) : ajout du canal de
+régression (droite de tendance + bandes ±1/±2 écarts-types) affiché sur
+le graphique en orientation paysage, calculé sur la période Max de
+l'historique de la valeur (voir `DESIGN.md` § Canal de régression en
+orientation paysage). Retrait du verrouillage `orientation:
+"portrait-primary"` du manifeste PWA (prérequis : sans ce retrait, une
+PWA installée sur Android ne pivote jamais en paysage, rendant la
+fonctionnalité inatteignable dans le mode d'usage principal de
+l'application).
+
+Compteur avant cette session :
+
+0/5 — Session 46 (2026-08-04), cycle de revue de dette technique
 obligatoire (`METHOD.md` §0.2, Revue n°8, voir `CLAUDE.md` §
 Historique des revues pour le detail complet). Portee couverte : diff
 cumule depuis la cloture de la Revue n°7 (`767a2cd`) jusqu'a `HEAD`

@@ -629,6 +629,55 @@ délibéré antérieur, non remis en cause).
   dernières propriétés. Sans effet sur les boutons du mode placement
   (`.alerte-drag-*`), qui restent des frères de `#graphiqueContainer`
   dans `#graphiquePriceZone`, pas des descendants.
+- **Canal de régression en orientation paysage** (session 2026-08-04,
+  demande explicite utilisateur, exemple fourni sur une valeur réelle
+  — droite de tendance blanche entourée de bandes vertes au-dessus/
+  orange en dessous). Présent pour toute ouverture du graphique (valeur
+  suivie, valeur d'une section partagée, indice de marché), sans
+  restriction — même périmètre que « Volume échangé »/« Clôture de la
+  veille » ci-dessus, pas celui, plus restreint, des composants
+  « Alerte depuis le graphique ». Détecté via
+  `window.matchMedia('(orientation: landscape)')` (`mqPaysage`,
+  `public/app.js`) plutôt qu'un `resize`/`orientationchange` classique,
+  pour un évènement fiable indépendant des variations de dimensions du
+  viewport (ex. barre d'adresse qui apparaît/disparaît sans changement
+  d'orientation réel). En passant en paysage pendant que le graphique
+  est ouvert, la période bascule automatiquement sur Max (« positionner
+  la valeur par rapport à **son historique** » n'a pas de sens sur 1
+  jour ou 1 semaine) ; en repassant en portrait, la période affichée
+  avant le basculement est restaurée. Ce basculement automatique
+  (`selectionnerPeriode(ticker, period, persister)`, `public/app.js`)
+  n'écrase jamais `dernierePeriodeGraphique`/`localStorage` (paramètre
+  `persister: false`) — seul un clic manuel sur un bouton de période
+  reste mémorisé comme préférence par défaut à la prochaine ouverture,
+  y compris si ce clic a lieu pendant que l'écran est en paysage.
+  Implémenté comme 5 datasets Chart.js supplémentaires
+  (`calculerCanalRegression()`, `public/app.js`) plutôt qu'un overlay
+  DOM positionné en pixels (comme les composants « Alerte(s) » ci-dessus)
+  — même raisonnement que « Clôture de la veille » : Chart.js élargit
+  déjà l'échelle Y pour inclure n'importe quel dataset, pas de logique
+  de hors-limite à gérer. Droite de régression linéaire (moindres
+  carrés) sur les prix de la période affichée, plus 4 bandes à ±1 et ±2
+  écarts-types de population des résidus (pas ±n-2, usage descriptif/
+  visuel plutôt qu'une inférence statistique) : ligne moyenne pleine
+  (`--text-secondary`, même couleur que la ligne « Clôture de la veille »
+  mais trait continu plutôt que pointillé, pour la distinguer), bandes
+  pointillées `--success` au-dessus de la moyenne/`--danger` en dessous
+  — même convention hausse/baisse que `.valeur-variation`/les barres de
+  volume, plutôt que d'introduire une nouvelle paire de couleurs
+  (vert/orange) absente de la palette du projet pour ce seul composant.
+  Infobulle identifiée par le libellé du dataset (« Moyenne »/« +1
+  écart-type »/etc., `context.dataset.canalLibelle`, même mécanisme que
+  `context.dataset.reference` pour « Clôture veille »).
+  **Prérequis PWA** : `manifest.json` fixait `orientation:
+  "portrait-primary"`, qui verrouille l'orientation d'une PWA installée
+  (`display: standalone`) sur Android/Chrome — l'écran ne pivote alors
+  jamais en paysage, quel que soit le geste de l'utilisateur, rendant ce
+  composant totalement inatteignable depuis l'écran d'accueil (le mode
+  d'usage principal de l'application, voir `CLAUDE.md` § Présentation du
+  projet). Champ retiré : l'orientation suit désormais le verrouillage
+  de rotation du système d'exploitation, comme n'importe quelle page web
+  ordinaire.
 
 ## Responsive
 
@@ -645,7 +694,11 @@ surchargé par un point de rupture mobile) : ne pas réintroduire de
 `@media` pour un affichage large écran sans nouvelle demande explicite de
 l'utilisateur. Seul le `@supports (padding: max(0px))` des zones sûres
 iOS (safe-area, voir § PWA) subsiste, car il ne dépend pas de la largeur
-d'écran.
+d'écran. Le `matchMedia('(orientation: landscape)')` du composant « Canal
+de régression en orientation paysage » (voir ci-dessus) n'est pas non
+plus un breakpoint de largeur : c'est un basculement de contenu explicite
+demandé par l'utilisateur pour cette seule fonctionnalité, pas une mise
+en page desktop à préserver.
 
 ## PWA
 
