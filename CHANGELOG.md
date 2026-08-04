@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.17
+
+- **Correctif** : la pastille de prix d'un seuil d'alerte existant sur le
+  graphique, déplacée à gauche en 1.9.16, restait encore trop opaque une
+  fois positionnée sur la courbe. Opacité réduite (85% -> 65%).
+
 ## 1.9.16
 
 - **Correctif** : la pastille de prix d'un seuil d'alerte existant sur le

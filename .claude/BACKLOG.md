@@ -6,7 +6,18 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/5** — Session 48 (2026-08-04, v1.9.16), **correctif hors plan** :
+**3/5** — Session 49 (2026-08-04, v1.9.17), **correctif hors plan** :
+retour utilisateur direct sur la pastille de prix d'un seuil d'alerte
+existant (`.alerte-existante-badge`/`.alerte-hors-limite`,
+`public/styles.css`), déplacée à gauche Session 48 mais encore jugée
+trop opaque une fois positionnée sur la courbe. Opacité réduite
+(`color-mix(in srgb, var(--bg) 85%, transparent)` → `65%`). Correctif
+d'une seule valeur CSS, vérifié visuellement (Playwright, captures
+d'écran clair/sombre) en portrait et en paysage.
+
+Compteur avant cette session :
+
+2/5 — Session 48 (2026-08-04, v1.9.16), **correctif hors plan** :
 retour utilisateur direct avec capture d'écran sur la pastille de prix
 d'un seuil d'alerte existant (`.alerte-existante-badge`/
 `.alerte-hors-limite`, `public/styles.css`), ancrée à droite depuis sa

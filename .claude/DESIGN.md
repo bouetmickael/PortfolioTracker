@@ -496,13 +496,16 @@ délibéré antérieur, non remis en cause).
   du pointillé or `--primary` du mode placement d'une nouvelle alerte,
   pour ne pas confondre un seuil déjà posé avec celui en cours de
   glissement) et une pastille de prix (`.alerte-existante-badge`, fond
-  `--bg` **légèrement translucide** (`color-mix(in srgb, var(--bg) 85%,
+  `--bg` **translucide** (`color-mix(in srgb, var(--bg) 65%,
   transparent)`, correctif session 44, retour utilisateur explicite : un
   fond entièrement opaque masquait complètement la courbe de cours en
   arrière-plan lorsque le seuil se trouvait proche du prix affiché,
   puisque la pastille est ancrée à une position X fixe qui peut tomber
   exactement sur la partie la plus récente — et donc la plus proche du
-  prix courant — de la courbe), bordure et texte `--danger`. **Ancrée à
+  prix courant — de la courbe ; opacité réduite une seconde fois, 85% ->
+  65%, session 2026-08-04, retour utilisateur explicite : encore trop
+  opaque une fois déplacée à gauche du graphique, voir ci-dessous),
+  bordure et texte `--danger`. **Ancrée à
   gauche du graphique** (correctif session 2026-08-04, retour
   utilisateur explicite, capture d'écran à l'appui : ancrée à droite
   auparavant — pour ne jamais chevaucher la pastille dorée

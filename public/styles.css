@@ -1137,11 +1137,13 @@ body {
      non traite, edge case transitoire pendant un geste actif de
      l'utilisateur. */
   left: 8px;
-  /* Legerement translucide (retour utilisateur explicite) : cette pastille
-     est ancree a une position fixe (hauteur du seuil) qui peut tomber
-     exactement sur la courbe de cours - un fond opaque masquait alors
-     completement les donnees en arriere-plan a cet endroit. */
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  /* Translucide (retour utilisateur explicite) : cette pastille est ancree
+     a une position fixe (hauteur du seuil) qui peut tomber exactement sur
+     la courbe de cours - un fond opaque masquait alors completement les
+     donnees en arriere-plan a cet endroit. Opacite reduite une seconde
+     fois (85% -> 65%, session 2026-08-04, retour utilisateur explicite :
+     encore trop opaque une fois deplacee a gauche du graphique). */
+  background: color-mix(in srgb, var(--bg) 65%, transparent);
   border: 1px solid var(--danger);
   color: var(--danger);
   font-weight: 500;

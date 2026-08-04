@@ -2460,3 +2460,26 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   2/5, deviation hors plan).
 - Version : `server/package.json`/`config.yaml` 1.9.15 -> 1.9.16
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-08-04 — Session 49, augmenter la transparence de la pastille de seuil (v1.9.17)
+
+- **Demande** : retour utilisateur direct, court - « un peu plus de
+  transparence sur l'etiquette s'il te plait », suite au deplacement a
+  gauche de la Session 48.
+- **Correctif** : `.alerte-existante-badge`/`.alerte-hors-limite`
+  (`public/styles.css`) - `color-mix(in srgb, var(--bg) 85%,
+  transparent)` -> `65%`. Une seule valeur, aucun changement de
+  mecanisme.
+- **Verification reelle en navigateur** : Chart.js charge temporairement
+  depuis un paquet npm local (CDN bloque, meme technique que les
+  sessions precedentes), reference CDN restauree avant le commit. Script
+  Playwright jetable (non commite) : captures d'ecran en portrait et en
+  paysage, theme clair et sombre, confirmant le texte toujours lisible
+  et davantage de la courbe/grille visible au travers.
+- `node --test test/*.test.js` : 62/62 verts (aucun changement cote
+  serveur).
+- **Documentation mise a jour** : `DESIGN.md` (§ Alertes existantes sur
+  le graphique), `CHANGELOG.md` 1.9.17, `BACKLOG.md` (compteur porte a
+  3/5, deviation hors plan).
+- Version : `server/package.json`/`config.yaml` 1.9.16 -> 1.9.17
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).
