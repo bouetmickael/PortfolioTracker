@@ -2547,3 +2547,96 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   4/5).
 - Version : `server/package.json`/`config.yaml` 1.9.17 -> 1.9.18
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-08-04 — Session 51, correctif same-day : zoom continu (et non plus par periode preetablie) sur le graphique en orientation paysage (v1.9.19)
+
+- **Demande** : retour utilisateur direct, tres court apres la Session
+  50 - "je me suis mal exprime". La Session 50 faisait sauter le
+  pincement d'une periode preetablie a l'autre (1J/1S/1M/1A/Max), pas ce
+  qui etait demande : pouvoir, en zoomant, definir une plage de temps
+  precise (ex. "aujourd'hui a 17 jours en arriere" a l'interieur d'un
+  mois affiche), sans alignement sur un prereglage. Attention explicite
+  redemandee a ne pas casser la selection de date/infobulle existante.
+- **Refonte** (`public/app.js`) : remplace entierement le mecanisme de
+  la Session 50 (`SEUIL_PINCEMENT_PX`, saut d'index dans
+  `PERIODES_GRAPHIQUE_VALIDES`) par un decoupage continu de la periode
+  deja chargee :
+  - `graphiqueDonneesCompletes` : nouvel etat module, l'integralite de
+    la reponse de `GET /api/chart/:ticker` pour la periode courante
+    (labels/prix/volumes/couleurs de volume/cloture veille/canal de
+    regression), calculee une seule fois par `chargerGraphique()`.
+  - `plageVisible` : paire d'indices `{ debut, fin }` dans ces tableaux,
+    reinitialisee a l'integralite de la periode a chaque
+    `chargerGraphique()` (ouverture, changement de periode,
+    basculement d'orientation) - jamais mutee autrement que par le
+    pincement.
+  - `trancheGraphique()` : decoupe `graphiqueDonneesCompletes` a
+    `plageVisible`, utilisee a la fois par `construireGraphiques()`
+    (reconstruction complete Chart.js - chargement initial/changement de
+    periode) et `redessinerPlageVisible()` (pincement - mutation des
+    datasets Chart.js existants + `update('none')`, sans destroy/new
+    Chart a chaque frame). `construireDatasetsPrix()` factorise la
+    construction des datasets du graphique de cours (prix, cloture
+    veille optionnelle, canal optionnel) entre ces deux chemins, pour ne
+    jamais desynchroniser leur ordre.
+  - `appliquerPincement(centreClientX, ratio)` : calcule la nouvelle
+    `plageVisible` en gardant stable, sous le centre du pincement, le
+    point du graphique qui s'y trouvait avant le geste (comme un
+    pincement sur une carte/image) - `ratio` calcule de facon
+    incrementale entre deux `pointermove` consecutifs (mathematiquement
+    equivalent a un ratio cumule depuis le debut du geste, quelle que
+    soit la frequence d'echantillonnage). Bornee par `MIN_POINTS_VISIBLE`
+    (5, jamais moins) et par la taille totale de la periode chargee
+    (jamais plus - voir une plage plus large necessite un bouton de
+    periode, pas un zoom arriere, aucun nouvel appel reseau pendant le
+    geste).
+  - `demanderRedessinZoom()` : throttle par `requestAnimationFrame`, une
+    seule mise a jour Chart.js par frame quel que soit le nombre
+    d'evenements `pointermove` recus entretemps.
+  - `calculerCouleursVolume(prices, themeSombre)` : extrait de
+    `chargerGraphiqueVolume()`, calcule desormais une seule fois sur
+    l'integralite des prix de la periode chargee (jamais recalcule sur
+    la seule plage visible) - sinon, le premier point visible d'une
+    fenetre obtenue par pincement redeviendrait a tort gris neutre
+    (comme le tout premier point de la periode) a chaque zoom, alors
+    qu'il a un vrai point precedent hors de la fenetre affichee.
+  - Canal de regression (`calculerCanalRegression()`) : toujours calcule
+    une seule fois sur l'integralite de la periode chargee (inchange
+    depuis la Session 47), simplement fenetre par
+    `trancheGraphique()` au lieu d'etre recalcule sur la plage visible -
+    la droite/les bandes restent donc stables pendant le geste de zoom.
+  - Boutons de periode (1J/1S/1M/1A/Max) : comportement inchange,
+    toujours le seul moyen de reinitialiser `plageVisible` a
+    l'integralite d'une periode precise (deja vrai depuis la Session 50,
+    confirme par cette session).
+- **Verification reelle en navigateur** : Chart.js charge temporairement
+  depuis un paquet npm local (CDN bloque par la politique reseau du bac
+  a sable), reference CDN restauree avant le commit. Serveur de test
+  avec une valeur inseree directement en base et `GET /api/chart/*`
+  intercepte par Playwright (`page.route`, 30 points quotidiens
+  simules). Script Playwright jetable (non commite) : ouverture du
+  graphique en paysage (30 points affiches, periode Max), pincement
+  ecarte modere centre sur un point precis du graphique (fenetre reduite
+  a 11 points - ni un des anciens prereglages ni la totalite, confirmant
+  le caractere continu/arbitraire de la fenetre, plage de dates "19
+  juil. ... 29 juil." lisible sur capture d'ecran), pincement ecarte
+  supplementaire (fenetre reduite a 5 points, la borne minimale
+  `MIN_POINTS_VISIBLE`, capture d'ecran confirmant une fenetre resserree
+  proche de la fin recente des donnees), pincement resserre (fenetre
+  elargie a 23 points), tentative de zoom arriere au-dela de la periode
+  chargee (bornee a 30 sans erreur), clic manuel sur le bouton 1M
+  (reinitialisation confirmee a une periode fraichement rechargee, 30
+  points), puis simulation d'un survol a un seul pointeur sur le canvas
+  (l'infobulle Chart.js se declenche normalement, `activeElementsCount`
+  non nul) pour confirmer l'absence de regression. Meme geste de
+  pincement rejoue apres passage en portrait : fenetre inchangee (30
+  points), confirmant que le mecanisme reste scope a l'orientation
+  paysage.
+- `node --test test/*.test.js` : 62/62 verts (aucun changement cote
+  serveur).
+- **Documentation mise a jour** : `DESIGN.md` (§ Selecteur de periode
+  (graphique) - paragraphe "Zoom par pincement" entierement reecrit),
+  `CHANGELOG.md` 1.9.19, `BACKLOG.md` (compteur porte a 4/5, Session 50
+  et son correctif documentes comme un seul point d'avancement).
+- Version : `server/package.json`/`config.yaml` 1.9.18 -> 1.9.19
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).

@@ -6,25 +6,45 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**4/5** — Session 50 (2026-08-04, v1.9.18) : zoom par pincement à deux
-doigts sur le graphique en orientation paysage, modifiant la période
-affichée (1J/1S/1M/1A/Max) par pas d'un cran plutôt qu'en continu. Les
-boutons de période existants restent le moyen de réinitialiser une
-période choisie par pincement à un choix précis (demande explicite
-utilisateur). N'interfère ni avec le mode placement d'une alerte
-(glisser-déposer à un seul doigt) ni avec l'infobulle native du
-graphique (tap/glisser à un seul doigt, Chart.js) — le pincement ne se
-déclenche que sur un geste à deux pointeurs simultanés. Voir
+**4/5** — Session 51 (2026-08-04, v1.9.19), **correctif same-day de la
+Session 50** : retour utilisateur direct — la Session 50 n'avait fait que
+sauter d'une période préétablie à l'autre (1J/1S/1M/1A/Max) au pincement,
+alors que la demande était de pouvoir zoomer sur une fenêtre continue et
+arbitraire à l'intérieur de la période chargée (exemple donné : « du
+jour même à 17 jours en arrière » à l'intérieur d'un mois affiché, sans
+alignement sur aucun préréglage). Remplace le mécanisme de la Session 50
+par un découpage continu (`graphiqueDonneesCompletes`/`plageVisible`,
+`public/app.js`) : le pincement fait varier une fenêtre d'indices à
+l'intérieur des points déjà chargés pour la période courante, jamais de
+nouvel appel réseau pendant le geste, point sous le centre du pincement
+gardé stable, mises à jour limitées à une par frame
+(`requestAnimationFrame`) en mutant les datasets Chart.js existants
+plutôt qu'en reconstruisant les graphiques à chaque `pointermove`. Le
+canal de régression et les couleurs des barres de volume restent calculés
+une seule fois sur l'intégralité de la période chargée puis simplement
+fenêtrés par le zoom (jamais recalculés sur la seule plage visible). Les
+boutons de période restent le moyen de réinitialiser une fenêtre obtenue
+par zoom à un choix précis (inchangé depuis la Session 50). Voir
 `DESIGN.md` § Sélecteur de période (graphique) pour le détail. Vérifié
 par un parcours Playwright réel (Chart.js servi depuis un paquet npm
-local le temps du test uniquement, comme les sessions précédentes) :
-ouverture du graphique en paysage (période initiale Max), pincement
-écarté simulé par évènements `Pointer Events` à deux `pointerId`
-distincts (période descend jusqu'à 1J), pincement resserré (retour à
-Max), clic manuel sur un bouton de période (réinitialisation confirmée),
-et vérification que le survol/tap à un seul pointeur continue de
-déclencher l'infobulle Chart.js normalement après ces gestes ; geste
-identique en portrait vérifié sans aucun effet (période inchangée).
+local le temps du test uniquement, comme les sessions précédentes, 30
+points quotidiens simulés) : ouverture du graphique en paysage (30
+points affichés), pincement écarté modéré (fenêtre réduite à 11 points,
+ni un préréglage ni un artefact — confirmant le caractère continu/
+arbitraire), pincement écarté supplémentaire (fenêtre réduite à 5, la
+borne minimale `MIN_POINTS_VISIBLE`), pincement resserré (fenêtre
+élargie à 23 points), tentative de zoom arrière au-delà de la période
+chargée (bornée à 30 sans erreur), clic manuel sur le bouton 1M
+(réinitialisation à la période fraîchement rechargée, 30 points), et
+vérification que le survol/tap à un seul pointeur continue de déclencher
+l'infobulle Chart.js normalement après ces gestes ; geste identique en
+portrait vérifié sans aucun effet (fenêtre inchangée).
+
+Compteur avant cette session :
+
+4/5 — Session 50 (2026-08-04, v1.9.18) : première implémentation (pas à
+la hauteur de la demande, voir correctif Session 51 ci-dessus) du zoom
+par pincement à deux doigts sur le graphique en orientation paysage.
 
 Compteur avant cette session :
 

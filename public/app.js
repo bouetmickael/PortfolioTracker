@@ -944,7 +944,11 @@ async function openGraphique(ticker, nom = null, alertable = false) {
   graphiqueState = { ticker, alertable };
   fermerPlacementAlerte();
   pincementPointers.clear();
-  pincementDistanceRef = null;
+  pincementDistancePrecedente = null;
+  if (pincementRafId !== null) {
+    cancelAnimationFrame(pincementRafId);
+    pincementRafId = null;
+  }
   document.getElementById('graphiqueWrapper').classList.toggle('alertable', alertable);
 
   openModal('modalGraphique');
@@ -971,7 +975,6 @@ async function selectionnerPeriode(ticker, period, persister) {
   document.querySelectorAll('.btn-periode').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.period === period);
   });
-  graphiqueState.period = period;
   if (persister) {
     dernierePeriodeGraphique = period;
     localStorage.setItem('graphique_periode', period);
@@ -1088,34 +1091,44 @@ async function confirmerPlacementAlerte() {
 }
 
 // ========================================
-// ZOOM DE LA PERIODE DU GRAPHIQUE (pincement, mode paysage)
+// ZOOM PAR PINCEMENT SUR LE GRAPHIQUE (mode paysage)
 // ========================================
 
 // Pincement a deux doigts sur le graphique, uniquement en orientation
-// paysage (demande explicite utilisateur) : ecarter les doigts raccourcit
-// la periode affichee (zoom "avant", plus de detail), les rapprocher
-// l'allonge (zoom "arriere", plus de recul) - toujours l'une des 5
-// periodes du selecteur de boutons (PERIODES_GRAPHIQUE_VALIDES), jamais
-// une valeur intermediaire. Persister: false (comme le basculement
-// automatique Max de onOrientationChange) - le pincement ne modifie que
-// l'affichage courant, jamais la preference par defaut memorisee dans
-// localStorage ; seul un clic manuel sur un bouton de periode reste le
-// moyen de "reinitialiser" une periode choisie par pincement (demande
-// explicite utilisateur), boutons qui restent visibles et fonctionnels en
-// paysage comme en portrait. N'intervient jamais pendant le mode
-// placement d'une alerte (glisser-deposer a un seul doigt deja actif sur
-// le meme conteneur) ni pendant un tap/glisser a un seul doigt normal
-// (infobulle du graphique, geree nativement par Chart.js) - seul le
-// passage a deux doigts simultanes declenche ce mecanisme.
-const SEUIL_PINCEMENT_PX = 60;
+// paysage (demande explicite utilisateur) : contrairement a un premier
+// essai qui ne faisait que sauter d'une periode preetablie a l'autre
+// (1J/1S/1M/1A/Max), ce mecanisme decoupe la periode actuellement
+// chargee (`graphiqueDonneesCompletes`) a une fenetre continue et
+// arbitraire de points (`plageVisible`) - ex. "aujourd'hui a 17 jours en
+// arriere" a l'interieur d'un mois charge, sans alignement sur un preset
+// (demande explicite utilisateur, correctif suite a une premiere
+// interpretation erronee). Le zoom reste borne aux points deja recuperes
+// pour la periode courante (jamais de nouvel appel reseau pendant le
+// geste) : voir un point plus loin dans le temps que la periode chargee
+// necessite de choisir un bouton de periode plus large, qui est aussi le
+// seul moyen de "reinitialiser" une plage obtenue par pincement (demande
+// explicite utilisateur) - un clic sur un bouton de periode recharge
+// toujours l'integralite de cette periode (`chargerGraphique()`) et
+// reinitialise `plageVisible` en consequence. N'intervient jamais
+// pendant le mode placement d'une alerte (glisser-deposer a un seul
+// doigt deja actif sur le meme conteneur) ni pendant un tap/glisser a un
+// seul doigt normal (infobulle du graphique, geree nativement par
+// Chart.js) - seul un geste a deux pointeurs simultanes declenche ce
+// mecanisme.
+const MIN_POINTS_VISIBLE = 5;
 
 let pincementPointers = new Map();
-let pincementDistanceRef = null;
-let pincementEnCours = false;
+let pincementDistancePrecedente = null;
+let pincementRafId = null;
 
 function distancePincement() {
   const [p1, p2] = [...pincementPointers.values()];
   return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+function centreXPincement() {
+  const [p1, p2] = [...pincementPointers.values()];
+  return (p1.x + p2.x) / 2;
 }
 
 function pincementOnPointerDown(e) {
@@ -1123,7 +1136,7 @@ function pincementOnPointerDown(e) {
 
   pincementPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pincementPointers.size === 2) {
-    pincementDistanceRef = distancePincement();
+    pincementDistancePrecedente = distancePincement();
   }
 }
 
@@ -1131,27 +1144,67 @@ function pincementOnPointerMove(e) {
   if (!pincementPointers.has(e.pointerId)) return;
   pincementPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-  if (pincementPointers.size !== 2 || pincementDistanceRef === null || pincementEnCours) return;
+  if (pincementPointers.size !== 2 || !pincementDistancePrecedente) return;
 
   const distance = distancePincement();
-  const delta = distance - pincementDistanceRef;
-  if (Math.abs(delta) < SEUIL_PINCEMENT_PX) return;
+  const ratio = distance / pincementDistancePrecedente;
+  pincementDistancePrecedente = distance;
 
-  pincementDistanceRef = distance;
-
-  const indexActuel = PERIODES_GRAPHIQUE_VALIDES.indexOf(graphiqueState.period);
-  const nouvelIndex = indexActuel - Math.sign(delta);
-  if (indexActuel === -1 || nouvelIndex < 0 || nouvelIndex >= PERIODES_GRAPHIQUE_VALIDES.length) return;
-
-  pincementEnCours = true;
-  selectionnerPeriode(graphiqueState.ticker, PERIODES_GRAPHIQUE_VALIDES[nouvelIndex], false).finally(() => {
-    pincementEnCours = false;
-  });
+  appliquerPincement(centreXPincement(), ratio);
 }
 
 function pincementOnPointerFin(e) {
   pincementPointers.delete(e.pointerId);
-  if (pincementPointers.size < 2) pincementDistanceRef = null;
+  if (pincementPointers.size < 2) pincementDistancePrecedente = null;
+}
+
+// Deplace/retrecit-elargit `plageVisible` (indices dans
+// `graphiqueDonneesCompletes`) autour du point du graphique situe sous le
+// centre du pincement, pour que ce point reste visuellement stable
+// pendant le geste (meme principe qu'un pincement sur une carte/image).
+// `ratio` > 1 (doigts qui s'ecartent) = zoom avant = moins de points
+// visibles ; `ratio` < 1 (doigts qui se rapprochent) = zoom arriere =
+// plus de points visibles, jusqu'a la totalite de la periode chargee.
+function appliquerPincement(centreClientX, ratio) {
+  if (!graphiqueDonneesCompletes || !chartInstance || !chartInstance.chartArea) return;
+  if (!Number.isFinite(ratio) || ratio <= 0) return;
+
+  const total = graphiqueDonneesCompletes.labels.length;
+  const { debut, fin } = plageVisible;
+  const nombreVisibleActuel = fin - debut + 1;
+
+  const canvas = document.getElementById('chartCanvas');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const { left, right } = chartInstance.chartArea;
+  const positionRelative = Math.max(0, Math.min(1, (centreClientX - rect.left - left) / (right - left)));
+
+  const ancre = debut + positionRelative * (nombreVisibleActuel - 1);
+
+  let nouveauNombreVisible = Math.round(nombreVisibleActuel / ratio);
+  nouveauNombreVisible = Math.max(MIN_POINTS_VISIBLE, Math.min(total, nouveauNombreVisible));
+
+  let nouveauDebut = Math.round(ancre - positionRelative * (nouveauNombreVisible - 1));
+  nouveauDebut = Math.max(0, Math.min(total - nouveauNombreVisible, nouveauDebut));
+  const nouveauFin = nouveauDebut + nouveauNombreVisible - 1;
+
+  if (nouveauDebut === debut && nouveauFin === fin) return;
+
+  plageVisible = { debut: nouveauDebut, fin: nouveauFin };
+  demanderRedessinZoom();
+}
+
+// requestAnimationFrame plutot qu'un redessin synchrone a chaque
+// pointermove : un pincement peut declencher plus d'evenements que de
+// frames rendues, `redessinerPlageVisible()` ne prend donc en compte que
+// la derniere `plageVisible` calculee par frame plutot que de redessiner
+// (destroy/update Chart.js) une fois par evenement.
+function demanderRedessinZoom() {
+  if (pincementRafId !== null) return;
+  pincementRafId = requestAnimationFrame(() => {
+    pincementRafId = null;
+    redessinerPlageVisible();
+  });
 }
 
 function afficherAlertesGraphique(ticker) {
@@ -1247,6 +1300,16 @@ function calculerCanalRegression(prices) {
   };
 }
 
+// Donnees completes de la periode actuellement chargee (toute la reponse
+// de GET /api/chart/:ticker, avant tout pincement) et fenetre actuellement
+// affichee (indices dans ces tableaux) - voir la section ZOOM PAR
+// PINCEMENT ci-dessus. Reinitialisees a chaque chargerGraphique() (donc a
+// chaque clic sur un bouton de periode, chaque ouverture, chaque
+// basculement d'orientation), jamais mutees par le pincement lui-meme (qui
+// ne fait que faire varier `plageVisible`).
+let graphiqueDonneesCompletes = null;
+let plageVisible = { debut: 0, fin: 0 };
+
 async function chargerGraphique(ticker, period) {
   const container = document.getElementById('graphiqueContainer');
   container.innerHTML = '<div class="loader-inline"><div class="spinner-small"></div></div>';
@@ -1267,171 +1330,39 @@ async function chargerGraphique(ticker, period) {
     const volumes = data.map((d) => d.volume || 0);
     const previousClose = result.previousClose;
 
-    container.innerHTML = '<canvas id="chartCanvas"></canvas>';
-    const canvas = document.getElementById('chartCanvas');
-    const ctx = canvas.getContext('2d');
-
-    if (chartInstance) {
-      chartInstance.destroy();
-    }
-
-    // Remise a zero avant chaque chargement : une valeur a 4 chiffres ne doit
-    // pas laisser une largeur d'axe surdimensionnee a la prochaine ouverture
-    // d'une valeur a 2 chiffres (voir alignerLargeurAxeY).
-    largeurAxeYGraphique = 0;
-
     const themeSombre = getTheme() === 'dark';
     const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';
     const couleurGrille = themeSombre ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
 
-    const datasets = [
-      {
-        label: ticker,
-        data: prices,
-        borderColor: '#c9a227',
-        backgroundColor: 'rgba(201, 162, 39, 0.12)',
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        fill: true,
-        tension: 0.1
-      }
-    ];
-
-    // Ligne de reference "cloture veille" (session 2026-07-28, demande
-    // explicite utilisateur) : simple dataset Chart.js horizontal plutot
-    // qu'un overlay DOM positionne manuellement (comme .alerte-existante-ligne)
-    // - une valeur constante sur toute la periode n'a pas besoin de gestion de
-    // hors-limite, Chart.js elargit deja l'echelle Y pour l'inclure. Absente
-    // (previousClose null) si Yahoo Finance ne fournit aucune cloture
-    // precedente (ex. valeur recemment cotee) - pas de valeur inventee, voir
-    // BUSINESS_RULES.md § Integrite des cours.
-    if (previousClose) {
-      datasets.push({
-        label: 'Cloture veille',
-        reference: true,
-        data: prices.map(() => previousClose),
-        borderColor: couleurTexte,
-        borderWidth: 1,
-        borderDash: [4, 4],
-        pointRadius: 0,
-        pointHoverRadius: 0,
-        fill: false,
-        tension: 0
-      });
-    }
-
     // Canal de regression en orientation paysage (session 2026-08-04,
     // demande explicite utilisateur, voir DESIGN.md § Canal de regression
-    // en orientation paysage). mqPaysage.matches plutot qu'un parametre
-    // dedie : chargerGraphique() est deja le point d'entree unique de tout
-    // (re)chargement du graphique (ouverture, changement de periode,
-    // basculement d'orientation via selectionnerPeriode), une seule
-    // lecture directe de l'etat d'orientation ici suffit.
-    if (mqPaysage.matches) {
-      const canal = calculerCanalRegression(prices);
-      if (canal) {
-        const couleurHaute = themeSombre ? '#5fbb7a' : '#34a853';
-        const couleurBasse = themeSombre ? '#f2685c' : '#ea4335';
-        const datasetCanal = (valeurs, libelle, couleur, pointille) => ({
-          label: libelle,
-          canalLibelle: libelle,
-          data: valeurs,
-          borderColor: couleur,
-          borderWidth: pointille ? 1 : 1.5,
-          borderDash: pointille ? [6, 3] : [],
-          pointRadius: 0,
-          pointHoverRadius: 0,
-          fill: false,
-          tension: 0
-        });
-        datasets.push(
-          datasetCanal(canal.plus2, '+2 ecarts-type', couleurHaute, true),
-          datasetCanal(canal.plus1, '+1 ecart-type', couleurHaute, true),
-          datasetCanal(canal.moyenne, 'Moyenne', couleurTexte, false),
-          datasetCanal(canal.moins1, '-1 ecart-type', couleurBasse, true),
-          datasetCanal(canal.moins2, '-2 ecarts-type', couleurBasse, true)
-        );
-      }
-    }
+    // en orientation paysage). Calcule une seule fois sur l'integralite de
+    // la periode chargee : un pincement ne fait ensuite que fenetrer
+    // (`trancheGraphique()`) ce resultat deja calcule, jamais le
+    // recalculer sur la seule plage visible - la droite/les bandes
+    // restent donc stables pendant le geste de zoom, comme sur un
+    // graphique TradingView.
+    const canal = mqPaysage.matches ? calculerCanalRegression(prices) : null;
 
-    chartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-            callbacks: {
-              label(context) {
-                const valeur = `${context.parsed.y.toFixed(2)} EUR`;
-                if (context.dataset.reference) return `Cloture veille: ${valeur}`;
-                if (context.dataset.canalLibelle) return `${context.dataset.canalLibelle}: ${valeur}`;
-                return valeur;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            display: true,
-            grid: { display: false },
-            ticks: { color: couleurTexte }
-          },
-          y: {
-            display: true,
-            grid: { color: couleurGrille },
-            ticks: {
-              color: couleurTexte,
-              callback(value) {
-                return value.toFixed(2) + ' EUR';
-              }
-            },
-            // Largeur partagee avec le graphique de volume (chargerGraphiqueVolume,
-            // Chart.js separe avec ses propres libelles) plutot que la largeur
-            // auto-calculee a partir des seuls libelles de CET axe, sinon les deux
-            // graphiques desalignent leurs barres/courbe (voir alignerLargeurAxeY).
-            afterFit: alignerLargeurAxeY
-          }
-        },
-        interaction: {
-          mode: 'nearest',
-          axis: 'x',
-          intersect: false
-        }
-      }
-    });
+    graphiqueDonneesCompletes = {
+      ticker,
+      labels,
+      prices,
+      volumes,
+      volumeColors: calculerCouleursVolume(prices, themeSombre),
+      previousClose,
+      canal,
+      themeSombre,
+      couleurTexte,
+      couleurGrille
+    };
+    plageVisible = { debut: 0, fin: labels.length - 1 };
 
-    chargerGraphiqueVolume(labels, volumes, prices, themeSombre, couleurTexte);
-
-    // Deuxieme passe de layout sur les DEUX graphiques : la largeur d'axe Y
-    // partagee (largeurAxeYGraphique) n'est connue definitivement qu'une fois
-    // les deux graphiques construits (le plus large des deux impose sa
-    // largeur a l'autre, voir alignerLargeurAxeY) - sans cette deuxieme
-    // passe, celui construit en premier resterait sur sa propre largeur
-    // naturelle si le second s'avere plus large (ex. libelles de volume
-    // "12.3M" plus larges que des libelles de prix courts).
-    chartInstance.update('none');
-    volumeChartInstance.update('none');
-
-    afficherAlertesGraphique(ticker);
-
-    // Evenement generique plutot qu'une branche if (placementAlerteActif)
-    // codee en dur ici : chargerGraphique() est le constructeur generique du
-    // graphique, partage par les valeurs et les indices, et n'a pas besoin de
-    // connaitre la fonctionnalite aval "alerte depuis le graphique" (voir
-    // CLAUDE.md Historique des revues, Revue n°4). Le seul abonne aujourd'hui
-    // est repositionnerPlacementApresChargement() (voir setupEventListeners).
-    document.getElementById('graphiqueContainer').dispatchEvent(new CustomEvent('chart:loaded'));
+    construireGraphiques();
   } catch (error) {
     console.error('Erreur chargement graphique:', error);
+    graphiqueDonneesCompletes = null;
+    plageVisible = { debut: 0, fin: 0 };
     container.innerHTML = `
       <div class="empty-state-small">
         <p>Erreur chargement des donnees</p>
@@ -1446,35 +1377,271 @@ async function chargerGraphique(ticker, period) {
   }
 }
 
+// Extrait de `graphiqueDonneesCompletes` la fenetre actuellement designee
+// par `plageVisible` (integralite de la periode chargee au premier
+// affichage, sous-plage arbitraire apres un pincement) - memes tableaux
+// alignes par indice, tronques ensemble.
+function trancheGraphique() {
+  const { debut, fin } = plageVisible;
+  const c = graphiqueDonneesCompletes;
+  const tranche = (tab) => tab.slice(debut, fin + 1);
+
+  return {
+    labels: tranche(c.labels),
+    prices: tranche(c.prices),
+    volumes: tranche(c.volumes),
+    volumeColors: tranche(c.volumeColors),
+    previousClose: c.previousClose,
+    canal: c.canal && {
+      plus2: tranche(c.canal.plus2),
+      plus1: tranche(c.canal.plus1),
+      moyenne: tranche(c.canal.moyenne),
+      moins1: tranche(c.canal.moins1),
+      moins2: tranche(c.canal.moins2)
+    }
+  };
+}
+
+// Datasets Chart.js du graphique de cours a partir d'une tranche deja
+// decoupee (`trancheGraphique()`) - utilise a la fois par
+// `construireGraphiques()` (chargement initial/changement de periode) et
+// `redessinerPlageVisible()` (pincement), pour ne jamais dupliquer l'ordre
+// des datasets (prix, cloture veille optionnelle, canal optionnel) entre
+// les deux.
+function construireDatasetsPrix(ticker, tranche, themeSombre, couleurTexte) {
+  const datasets = [
+    {
+      label: ticker,
+      data: tranche.prices,
+      borderColor: '#c9a227',
+      backgroundColor: 'rgba(201, 162, 39, 0.12)',
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      fill: true,
+      tension: 0.1
+    }
+  ];
+
+  // Ligne de reference "cloture veille" (session 2026-07-28, demande
+  // explicite utilisateur) : simple dataset Chart.js horizontal plutot
+  // qu'un overlay DOM positionne manuellement (comme .alerte-existante-ligne)
+  // - une valeur constante sur toute la periode n'a pas besoin de gestion de
+  // hors-limite, Chart.js elargit deja l'echelle Y pour l'inclure. Absente
+  // (previousClose null) si Yahoo Finance ne fournit aucune cloture
+  // precedente (ex. valeur recemment cotee) - pas de valeur inventee, voir
+  // BUSINESS_RULES.md § Integrite des cours.
+  if (tranche.previousClose) {
+    datasets.push({
+      label: 'Cloture veille',
+      reference: true,
+      data: tranche.prices.map(() => tranche.previousClose),
+      borderColor: couleurTexte,
+      borderWidth: 1,
+      borderDash: [4, 4],
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      fill: false,
+      tension: 0
+    });
+  }
+
+  if (tranche.canal) {
+    const couleurHaute = themeSombre ? '#5fbb7a' : '#34a853';
+    const couleurBasse = themeSombre ? '#f2685c' : '#ea4335';
+    const datasetCanal = (valeurs, libelle, couleur, pointille) => ({
+      label: libelle,
+      canalLibelle: libelle,
+      data: valeurs,
+      borderColor: couleur,
+      borderWidth: pointille ? 1 : 1.5,
+      borderDash: pointille ? [6, 3] : [],
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      fill: false,
+      tension: 0
+    });
+    datasets.push(
+      datasetCanal(tranche.canal.plus2, '+2 ecarts-type', couleurHaute, true),
+      datasetCanal(tranche.canal.plus1, '+1 ecart-type', couleurHaute, true),
+      datasetCanal(tranche.canal.moyenne, 'Moyenne', couleurTexte, false),
+      datasetCanal(tranche.canal.moins1, '-1 ecart-type', couleurBasse, true),
+      datasetCanal(tranche.canal.moins2, '-2 ecarts-type', couleurBasse, true)
+    );
+  }
+
+  return datasets;
+}
+
+// (Re)construit entierement les deux instances Chart.js (destroy + new
+// Chart) a partir de `graphiqueDonneesCompletes`/`plageVisible` - appele
+// au chargement initial et a chaque changement de periode
+// (`chargerGraphique()`). Le pincement n'appelle jamais cette fonction
+// (voir `redessinerPlageVisible()` plus bas) : reconstruire les deux
+// graphiques a chaque evenement pointermove serait couteux et saccade,
+// alors qu'un simple changement des donnees d'un dataset existant
+// (`chartInstance.update()`) suffit a faire varier la fenetre affichee.
+function construireGraphiques() {
+  const container = document.getElementById('graphiqueContainer');
+  const { ticker, themeSombre, couleurTexte, couleurGrille } = graphiqueDonneesCompletes;
+  const tranche = trancheGraphique();
+
+  container.innerHTML = '<canvas id="chartCanvas"></canvas>';
+  const canvas = document.getElementById('chartCanvas');
+  const ctx = canvas.getContext('2d');
+
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
+  // Remise a zero avant chaque chargement : une valeur a 4 chiffres ne doit
+  // pas laisser une largeur d'axe surdimensionnee a la prochaine ouverture
+  // d'une valeur a 2 chiffres (voir alignerLargeurAxeY).
+  largeurAxeYGraphique = 0;
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: tranche.labels,
+      datasets: construireDatasetsPrix(ticker, tranche, themeSombre, couleurTexte)
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label(context) {
+              const valeur = `${context.parsed.y.toFixed(2)} EUR`;
+              if (context.dataset.reference) return `Cloture veille: ${valeur}`;
+              if (context.dataset.canalLibelle) return `${context.dataset.canalLibelle}: ${valeur}`;
+              return valeur;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          grid: { display: false },
+          ticks: { color: couleurTexte }
+        },
+        y: {
+          display: true,
+          grid: { color: couleurGrille },
+          ticks: {
+            color: couleurTexte,
+            callback(value) {
+              return value.toFixed(2) + ' EUR';
+            }
+          },
+          // Largeur partagee avec le graphique de volume (chargerGraphiqueVolume,
+          // Chart.js separe avec ses propres libelles) plutot que la largeur
+          // auto-calculee a partir des seuls libelles de CET axe, sinon les deux
+          // graphiques desalignent leurs barres/courbe (voir alignerLargeurAxeY).
+          afterFit: alignerLargeurAxeY
+        }
+      },
+      interaction: {
+        mode: 'nearest',
+        axis: 'x',
+        intersect: false
+      }
+    }
+  });
+
+  chargerGraphiqueVolume(tranche.labels, tranche.volumes, tranche.volumeColors, couleurTexte);
+
+  // Deuxieme passe de layout sur les DEUX graphiques : la largeur d'axe Y
+  // partagee (largeurAxeYGraphique) n'est connue definitivement qu'une fois
+  // les deux graphiques construits (le plus large des deux impose sa
+  // largeur a l'autre, voir alignerLargeurAxeY) - sans cette deuxieme
+  // passe, celui construit en premier resterait sur sa propre largeur
+  // naturelle si le second s'avere plus large (ex. libelles de volume
+  // "12.3M" plus larges que des libelles de prix courts).
+  chartInstance.update('none');
+  volumeChartInstance.update('none');
+
+  afficherAlertesGraphique(ticker);
+
+  // Evenement generique plutot qu'une branche if (placementAlerteActif)
+  // codee en dur ici : construireGraphiques() est le constructeur
+  // generique du graphique, partage par les valeurs et les indices, et
+  // n'a pas besoin de connaitre la fonctionnalite aval "alerte depuis le
+  // graphique" (voir CLAUDE.md Historique des revues, Revue n°4). Le seul
+  // abonne aujourd'hui est repositionnerPlacementApresChargement() (voir
+  // setupEventListeners). Pas emis par redessinerPlageVisible() (zoom) :
+  // le pincement est desactive pendant le mode placement (voir
+  // pincementOnPointerDown), ce reevenement ne le concerne donc jamais.
+  document.getElementById('graphiqueContainer').dispatchEvent(new CustomEvent('chart:loaded'));
+}
+
+// Fait varier la fenetre affichee (`plageVisible`) sans reconstruire les
+// instances Chart.js : mutation des donnees des datasets existants puis
+// `update('none')`, appele par `demanderRedessinZoom()` (pincement,
+// throttle par requestAnimationFrame). Beaucoup plus fluide qu'un
+// destroy/new Chart a chaque frame, seul le nombre de points affiches
+// change (jamais la composition des datasets - presence de la cloture
+// veille/du canal deja fixee par construireGraphiques()).
+function redessinerPlageVisible() {
+  if (!chartInstance || !volumeChartInstance || !graphiqueDonneesCompletes) return;
+
+  const { ticker, themeSombre, couleurTexte } = graphiqueDonneesCompletes;
+  const tranche = trancheGraphique();
+
+  chartInstance.data.labels = tranche.labels;
+  chartInstance.data.datasets = construireDatasetsPrix(ticker, tranche, themeSombre, couleurTexte);
+  chartInstance.update('none');
+
+  volumeChartInstance.data.labels = tranche.labels;
+  volumeChartInstance.data.datasets[0].data = tranche.volumes;
+  volumeChartInstance.data.datasets[0].backgroundColor = tranche.volumeColors;
+  volumeChartInstance.update('none');
+
+  afficherAlertesGraphique(ticker);
+}
+
 function reinitialiserCanvasVolume() {
   document.getElementById('graphiqueVolumeContainer').innerHTML = '<canvas id="volumeCanvas"></canvas>';
 }
 
+// Couleur de chaque barre de volume (--success/--danger selon que le cours
+// du point est en hausse ou en baisse par rapport au point precedent,
+// meme convention que .valeur-variation/.stat-variation ; premier point
+// sans reference en gris neutre). Calculee une seule fois sur
+// l'integralite des prix de la periode chargee (jamais recalculee sur la
+// seule plage visible) : sinon, le premier point visible d'une fenetre
+// obtenue par pincement redeviendrait a tort gris neutre a chaque zoom,
+// alors qu'il a bien un point precedent reel dans la periode chargee -
+// seulement hors de la fenetre actuellement affichee.
+function calculerCouleursVolume(prices, themeSombre) {
+  const couleurNeutre = themeSombre ? 'rgba(154, 160, 166, 0.5)' : 'rgba(95, 99, 104, 0.4)';
+  const couleurHausse = themeSombre ? 'rgba(95, 187, 122, 0.6)' : 'rgba(52, 168, 83, 0.6)';
+  const couleurBaisse = themeSombre ? 'rgba(242, 104, 92, 0.6)' : 'rgba(234, 67, 53, 0.6)';
+
+  return prices.map((prix, i) => {
+    if (i === 0) return couleurNeutre;
+    return prix >= prices[i - 1] ? couleurHausse : couleurBaisse;
+  });
+}
+
 // Graphique en barres du volume echange, sous le graphique de cours
-// (session 2026-07-27, demande explicite utilisateur). Barre coloree en
-// --success/--danger selon que le cours du point est en hausse ou en
-// baisse par rapport au point precedent (meme convention que
-// .valeur-variation/.stat-variation), plutot qu'une couleur neutre unique
-// - le premier point du graphique, sans point precedent, est neutre. Un
-// graphique Chart.js separe (pas un axe secondaire du graphique de cours)
-// pour rester independant de son echelle Y, avec ses propres ticks
-// compacts (formatVolume).
-function chargerGraphiqueVolume(labels, volumes, prices, themeSombre, couleurTexte) {
+// (session 2026-07-27, demande explicite utilisateur). Un graphique
+// Chart.js separe (pas un axe secondaire du graphique de cours) pour
+// rester independant de son echelle Y, avec ses propres ticks compacts
+// (formatVolume). `couleurs` deja calculees par `calculerCouleursVolume()`
+// (voir ci-dessus pour la raison de ne pas les recalculer ici a partir des
+// seuls prix visibles).
+function chargerGraphiqueVolume(labels, volumes, couleurs, couleurTexte) {
   reinitialiserCanvasVolume();
   const ctx = document.getElementById('volumeCanvas').getContext('2d');
 
   if (volumeChartInstance) {
     volumeChartInstance.destroy();
   }
-
-  const couleurNeutre = themeSombre ? 'rgba(154, 160, 166, 0.5)' : 'rgba(95, 99, 104, 0.4)';
-  const couleurHausse = themeSombre ? 'rgba(95, 187, 122, 0.6)' : 'rgba(52, 168, 83, 0.6)';
-  const couleurBaisse = themeSombre ? 'rgba(242, 104, 92, 0.6)' : 'rgba(234, 67, 53, 0.6)';
-
-  const couleurs = prices.map((prix, i) => {
-    if (i === 0) return couleurNeutre;
-    return prix >= prices[i - 1] ? couleurHausse : couleurBaisse;
-  });
 
   volumeChartInstance = new Chart(ctx, {
     type: 'bar',

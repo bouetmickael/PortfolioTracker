@@ -454,25 +454,48 @@ délibéré antérieur, non remis en cause).
   (§ Sections repliables), qui reste volontairement en mémoire
   uniquement.
   **Zoom par pincement en orientation paysage** (session 2026-08-04,
-  demande explicite utilisateur) : un pincement à deux doigts sur
+  demande explicite utilisateur — reformulée en session suivante, voir
+  correctif ci-dessous). Un pincement à deux doigts sur
   `#graphiqueWrapper` (graphique de cours + graphique de volume,
-  `pincementOnPointerDown`/`Move`/`Fin`, `public/app.js`) modifie la
-  période affichée — écarter les doigts raccourcit la période (zoom
-  « avant », plus de détail), les rapprocher l'allonge (zoom
-  « arrière », plus de recul), toujours en se déplaçant d'un cran dans
-  `PERIODES_GRAPHIQUE_VALIDES` (jamais de valeur intermédiaire hors des
-  5 périodes existantes). Uniquement actif en orientation paysage
-  (`mqPaysage.matches`, même détection que le canal de régression
-  ci-dessous) — en portrait, le geste ne fait rien de particulier.
-  `persister: false` (même paramètre que le basculement automatique Max
-  de `onOrientationChange`) : un pincement ne modifie que l'affichage
-  courant, jamais `dernierePeriodeGraphique`/`localStorage` — les
-  boutons de période pilule restent le seul moyen de mémoriser une
-  préférence par défaut, et donc de « réinitialiser » explicitement une
-  période atteinte par pincement en sélectionnant l'un des 5 boutons
-  existants (demande explicite utilisateur). N'intervient jamais
-  pendant le mode placement d'une alerte (`placementAlerteActif`, glisser-
-  déposer à un seul doigt déjà actif sur le même conteneur) : le
+  `pincementOnPointerDown`/`Move`/`Fin`, `public/app.js`) fait varier la
+  fenêtre de points affichée à l'intérieur de la période actuellement
+  chargée (`plageVisible`, une paire d'indices dans les tableaux
+  `graphiqueDonneesCompletes` déjà récupérés depuis
+  `GET /api/chart/:ticker`) — écarter les doigts réduit continûment le
+  nombre de points visibles (zoom « avant »: ex. passer d'un mois
+  affiché à une fenêtre arbitraire de 17 jours, sans alignement sur un
+  préréglage), les rapprocher l'élargit (zoom « arrière »), jusqu'à
+  retrouver l'intégralité de la période chargée. **Correctif same-day**
+  (demande explicite utilisateur : la première implémentation ne faisait
+  que sauter d'une période préréglée à l'autre — 1J/1S/1M/1A/Max —, pas
+  ce qui était demandé) : le zoom ne recharge jamais de nouvelles
+  données depuis le serveur pendant le geste (voir un point plus
+  ancien que la période chargée nécessite de choisir un bouton de
+  période plus large) et ne s'aligne sur aucun préréglage — une fenêtre
+  de 17 points sur les 30 d'un mois chargé est un résultat de zoom
+  parfaitement valide. Le point du graphique sous le centre du pincement
+  reste stable pendant le geste (ancrage par position relative,
+  `appliquerPincement()`), et les mises à jour sont limitées à une par
+  frame (`requestAnimationFrame`, `demanderRedessinZoom()`) pour rester
+  fluides — mutation des données des datasets Chart.js existants
+  (`chartInstance.update('none')`) plutôt qu'une reconstruction complète
+  à chaque évènement `pointermove`. Le canal de régression (voir
+  ci-dessous) et les couleurs des barres de volume restent calculés une
+  seule fois sur l'intégralité de la période chargée puis simplement
+  fenêtrés par le zoom, jamais recalculés sur la seule plage visible —
+  la droite de tendance ne « bouge » donc pas pendant le geste, et la
+  couleur de la première barre visible d'une fenêtre zoomée reflète
+  toujours sa vraie comparaison au point précédent réel (même hors de la
+  fenêtre affichée), pas un repli neutre comme au tout premier point de
+  la période. Uniquement actif en orientation paysage (`mqPaysage.matches`,
+  même détection que le canal de régression ci-dessous) — en portrait,
+  le geste ne fait rien de particulier. Les boutons de période pilule
+  restent le seul moyen de « réinitialiser » une fenêtre obtenue par
+  zoom à un choix précis (demande explicite utilisateur) : un clic sur
+  un bouton de période recharge toujours l'intégralité de cette période
+  et réinitialise `plageVisible` en conséquence. N'intervient jamais
+  pendant le mode placement d'une alerte (`placementAlerteActif`,
+  glisser-déposer à un seul doigt déjà actif sur le même conteneur) : le
   pincement se limite structurellement à un geste à deux pointeurs
   simultanés, donc sans interférence avec un tap/glisser à un seul doigt
   — que ce soit le mode placement ou l'infobulle native du graphique

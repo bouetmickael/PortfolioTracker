@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.9.19
+
+- **Correctif** : le pincement sur le graphique en orientation paysage
+  (ajoute en 1.9.18) ne faisait que sauter d'une periode preetablie a
+  l'autre (1J/1S/1M/1A/Max), pas ce qui etait demande. Il decoupe
+  desormais une fenetre continue et arbitraire de points a l'interieur
+  de la periode chargee (ex. les 17 derniers jours d'un mois affiche),
+  sans alignement sur un prereglage, avec le point sous le centre du
+  pincement qui reste stable pendant le geste. Les boutons de periode
+  restent le moyen de reinitialiser une fenetre obtenue par zoom a un
+  choix precis.
+
 ## 1.9.18
 
 - **Fonctionnalite** : sur le graphique en orientation paysage, un
