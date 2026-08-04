@@ -6,7 +6,29 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/5** — Session 49 (2026-08-04, v1.9.17), **correctif hors plan** :
+**4/5** — Session 50 (2026-08-04, v1.9.18) : zoom par pincement à deux
+doigts sur le graphique en orientation paysage, modifiant la période
+affichée (1J/1S/1M/1A/Max) par pas d'un cran plutôt qu'en continu. Les
+boutons de période existants restent le moyen de réinitialiser une
+période choisie par pincement à un choix précis (demande explicite
+utilisateur). N'interfère ni avec le mode placement d'une alerte
+(glisser-déposer à un seul doigt) ni avec l'infobulle native du
+graphique (tap/glisser à un seul doigt, Chart.js) — le pincement ne se
+déclenche que sur un geste à deux pointeurs simultanés. Voir
+`DESIGN.md` § Sélecteur de période (graphique) pour le détail. Vérifié
+par un parcours Playwright réel (Chart.js servi depuis un paquet npm
+local le temps du test uniquement, comme les sessions précédentes) :
+ouverture du graphique en paysage (période initiale Max), pincement
+écarté simulé par évènements `Pointer Events` à deux `pointerId`
+distincts (période descend jusqu'à 1J), pincement resserré (retour à
+Max), clic manuel sur un bouton de période (réinitialisation confirmée),
+et vérification que le survol/tap à un seul pointeur continue de
+déclencher l'infobulle Chart.js normalement après ces gestes ; geste
+identique en portrait vérifié sans aucun effet (période inchangée).
+
+Compteur avant cette session :
+
+3/5 — Session 49 (2026-08-04, v1.9.17), **correctif hors plan** :
 retour utilisateur direct sur la pastille de prix d'un seuil d'alerte
 existant (`.alerte-existante-badge`/`.alerte-hors-limite`,
 `public/styles.css`), déplacée à gauche Session 48 mais encore jugée

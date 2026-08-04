@@ -943,6 +943,8 @@ async function supprimerAlerte(id) {
 async function openGraphique(ticker, nom = null, alertable = false) {
   graphiqueState = { ticker, alertable };
   fermerPlacementAlerte();
+  pincementPointers.clear();
+  pincementDistanceRef = null;
   document.getElementById('graphiqueWrapper').classList.toggle('alertable', alertable);
 
   openModal('modalGraphique');
@@ -969,6 +971,7 @@ async function selectionnerPeriode(ticker, period, persister) {
   document.querySelectorAll('.btn-periode').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.period === period);
   });
+  graphiqueState.period = period;
   if (persister) {
     dernierePeriodeGraphique = period;
     localStorage.setItem('graphique_periode', period);
@@ -1082,6 +1085,73 @@ async function confirmerPlacementAlerte() {
 
   fermerPlacementAlerte();
   await creerAlerteAPI(ticker, seuilHaut, seuilBas);
+}
+
+// ========================================
+// ZOOM DE LA PERIODE DU GRAPHIQUE (pincement, mode paysage)
+// ========================================
+
+// Pincement a deux doigts sur le graphique, uniquement en orientation
+// paysage (demande explicite utilisateur) : ecarter les doigts raccourcit
+// la periode affichee (zoom "avant", plus de detail), les rapprocher
+// l'allonge (zoom "arriere", plus de recul) - toujours l'une des 5
+// periodes du selecteur de boutons (PERIODES_GRAPHIQUE_VALIDES), jamais
+// une valeur intermediaire. Persister: false (comme le basculement
+// automatique Max de onOrientationChange) - le pincement ne modifie que
+// l'affichage courant, jamais la preference par defaut memorisee dans
+// localStorage ; seul un clic manuel sur un bouton de periode reste le
+// moyen de "reinitialiser" une periode choisie par pincement (demande
+// explicite utilisateur), boutons qui restent visibles et fonctionnels en
+// paysage comme en portrait. N'intervient jamais pendant le mode
+// placement d'une alerte (glisser-deposer a un seul doigt deja actif sur
+// le meme conteneur) ni pendant un tap/glisser a un seul doigt normal
+// (infobulle du graphique, geree nativement par Chart.js) - seul le
+// passage a deux doigts simultanes declenche ce mecanisme.
+const SEUIL_PINCEMENT_PX = 60;
+
+let pincementPointers = new Map();
+let pincementDistanceRef = null;
+let pincementEnCours = false;
+
+function distancePincement() {
+  const [p1, p2] = [...pincementPointers.values()];
+  return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+function pincementOnPointerDown(e) {
+  if (!mqPaysage.matches || placementAlerteActif) return;
+
+  pincementPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pincementPointers.size === 2) {
+    pincementDistanceRef = distancePincement();
+  }
+}
+
+function pincementOnPointerMove(e) {
+  if (!pincementPointers.has(e.pointerId)) return;
+  pincementPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (pincementPointers.size !== 2 || pincementDistanceRef === null || pincementEnCours) return;
+
+  const distance = distancePincement();
+  const delta = distance - pincementDistanceRef;
+  if (Math.abs(delta) < SEUIL_PINCEMENT_PX) return;
+
+  pincementDistanceRef = distance;
+
+  const indexActuel = PERIODES_GRAPHIQUE_VALIDES.indexOf(graphiqueState.period);
+  const nouvelIndex = indexActuel - Math.sign(delta);
+  if (indexActuel === -1 || nouvelIndex < 0 || nouvelIndex >= PERIODES_GRAPHIQUE_VALIDES.length) return;
+
+  pincementEnCours = true;
+  selectionnerPeriode(graphiqueState.ticker, PERIODES_GRAPHIQUE_VALIDES[nouvelIndex], false).finally(() => {
+    pincementEnCours = false;
+  });
+}
+
+function pincementOnPointerFin(e) {
+  pincementPointers.delete(e.pointerId);
+  if (pincementPointers.size < 2) pincementDistanceRef = null;
 }
 
 function afficherAlertesGraphique(ticker) {
@@ -1508,6 +1578,17 @@ function setupEventListeners() {
   // innerHTML est remplace), un abonnement unique ici suffit pour tous les
   // chargements a venir (ouverture, changement de periode).
   document.getElementById('graphiqueContainer').addEventListener('chart:loaded', repositionnerPlacementApresChargement);
+
+  // #graphiqueWrapper (pas #graphiqueContainer seul) pour couvrir aussi le
+  // graphique de volume en dessous : abonnement permanent, contrairement
+  // aux ecouteurs du mode placement d'alerte qui ne sont attaches que
+  // pendant ce mode - le pincement doit rester utilisable des le premier
+  // geste sur un graphique fraichement ouvert.
+  const graphiqueWrapperEl = document.getElementById('graphiqueWrapper');
+  graphiqueWrapperEl.addEventListener('pointerdown', pincementOnPointerDown);
+  graphiqueWrapperEl.addEventListener('pointermove', pincementOnPointerMove);
+  graphiqueWrapperEl.addEventListener('pointerup', pincementOnPointerFin);
+  graphiqueWrapperEl.addEventListener('pointercancel', pincementOnPointerFin);
 
   mqPaysage.addEventListener('change', onOrientationChange);
 }

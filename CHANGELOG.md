@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.18
+
+- **Fonctionnalite** : sur le graphique en orientation paysage, un
+  pincement a deux doigts modifie desormais la periode affichee (ecarter
+  les doigts raccourcit la periode, les rapprocher l'allonge), toujours
+  parmi les 5 periodes existantes (1J/1S/1M/1A/Max). Les boutons de
+  periode restent le moyen de reinitialiser une periode choisie par
+  pincement a un choix precis. Le pincement n'affecte jamais l'infobulle
+  du graphique (tap/glisser a un seul doigt, geree nativement par
+  Chart.js) ni le mode placement d'une alerte, tous deux inchanges.
+
 ## 1.9.17
 
 - **Correctif** : la pastille de prix d'un seuil d'alerte existant sur le

@@ -453,6 +453,30 @@ délibéré antérieur, non remis en cause).
   `localStorage`. Contrairement à l'état replié/déplié des sections
   (§ Sections repliables), qui reste volontairement en mémoire
   uniquement.
+  **Zoom par pincement en orientation paysage** (session 2026-08-04,
+  demande explicite utilisateur) : un pincement à deux doigts sur
+  `#graphiqueWrapper` (graphique de cours + graphique de volume,
+  `pincementOnPointerDown`/`Move`/`Fin`, `public/app.js`) modifie la
+  période affichée — écarter les doigts raccourcit la période (zoom
+  « avant », plus de détail), les rapprocher l'allonge (zoom
+  « arrière », plus de recul), toujours en se déplaçant d'un cran dans
+  `PERIODES_GRAPHIQUE_VALIDES` (jamais de valeur intermédiaire hors des
+  5 périodes existantes). Uniquement actif en orientation paysage
+  (`mqPaysage.matches`, même détection que le canal de régression
+  ci-dessous) — en portrait, le geste ne fait rien de particulier.
+  `persister: false` (même paramètre que le basculement automatique Max
+  de `onOrientationChange`) : un pincement ne modifie que l'affichage
+  courant, jamais `dernierePeriodeGraphique`/`localStorage` — les
+  boutons de période pilule restent le seul moyen de mémoriser une
+  préférence par défaut, et donc de « réinitialiser » explicitement une
+  période atteinte par pincement en sélectionnant l'un des 5 boutons
+  existants (demande explicite utilisateur). N'intervient jamais
+  pendant le mode placement d'une alerte (`placementAlerteActif`, glisser-
+  déposer à un seul doigt déjà actif sur le même conteneur) : le
+  pincement se limite structurellement à un geste à deux pointeurs
+  simultanés, donc sans interférence avec un tap/glisser à un seul doigt
+  — que ce soit le mode placement ou l'infobulle native du graphique
+  (`Pointer Events`/tooltip Chart.js, inchangés).
 - **Alerte depuis le graphique** (session 2026-07-25, demande explicite
   utilisateur, inspirée du geste de glisser-déposer de TradingView) :
   sur le graphique d'une valeur de ma propre liste "Valeurs suivies"

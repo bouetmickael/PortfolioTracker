@@ -2483,3 +2483,67 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   3/5, deviation hors plan).
 - Version : `server/package.json`/`config.yaml` 1.9.16 -> 1.9.17
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-08-04 — Session 50, zoom par pincement sur la periode du graphique en orientation paysage (v1.9.18)
+
+- **Demande** : demande explicite utilisateur - pouvoir modifier la
+  periode affichee sur le graphique en orientation paysage par un geste
+  de pincement (zoom), avec les boutons de periode existants
+  (1J/1S/1M/1A/Max) comme moyen de reinitialiser une periode ainsi
+  choisie. Attention explicite demandee a ne pas casser la selection de
+  date/infobulle existante sur le graphique.
+- **Implementation** (`public/app.js`) :
+  - `graphiqueState.period` : nouveau champ, mis a jour dans
+    `selectionnerPeriode()` a chaque (re)chargement du graphique (clic
+    manuel, basculement d'orientation, pincement) - necessaire pour que
+    le pincement sache de quelle periode partir avant de se deplacer d'un
+    cran dans `PERIODES_GRAPHIQUE_VALIDES`.
+  - `pincementOnPointerDown`/`pincementOnPointerMove`/
+    `pincementOnPointerFin` : geste a deux doigts suivi via `Pointer
+    Events` (`pincementPointers`, `Map<pointerId, {x, y}>`), abonnes en
+    permanence sur `#graphiqueWrapper` (`setupEventListeners()`, couvre
+    aussi le graphique de volume). Uniquement actif en orientation
+    paysage (`mqPaysage.matches`) et hors mode placement d'une alerte
+    (`placementAlerteActif`) - un pincement ne se declenche
+    structurellement que sur deux pointeurs simultanes, donc sans
+    interference possible avec un geste a un seul doigt (tap/glisser de
+    l'infobulle Chart.js, glisser-deposer du mode placement). Seuil de
+    60px de variation de distance entre les deux doigts pour franchir un
+    cran (`SEUIL_PINCEMENT_PX`), `pincementEnCours` empeche de declencher
+    un nouveau changement de periode tant que le chargement du graphique
+    precedent n'est pas termine (evite des rechargements concurrents qui
+    pourraient se resoudre dans le desordre). `persister: false` (meme
+    parametre que le basculement automatique Max de
+    `onOrientationChange`) : le pincement ne modifie que l'affichage
+    courant, jamais `dernierePeriodeGraphique`/`localStorage` - un clic
+    manuel sur un bouton de periode reste le seul moyen de memoriser une
+    preference par defaut, et donc de "reinitialiser" une periode
+    choisie par pincement (demande explicite utilisateur). Etat reinitalise
+    (`pincementPointers.clear()`) a chaque ouverture du graphique
+    (`openGraphique()`) pour eviter un residu d'un geste interrompu par la
+    fermeture de la modale.
+- **Verification reelle en navigateur** : Chart.js charge temporairement
+  depuis un paquet npm local (CDN bloque par la politique reseau du bac a
+  sable), reference CDN restauree avant le commit (meme technique que les
+  sessions precedentes). Serveur de test avec une valeur inseree
+  directement en base (contournement de la validation Yahoo Finance,
+  reseau externe bloque) et `GET /api/chart/*` intercepte par Playwright
+  (`page.route`) pour renvoyer une serie de prix synthetique. Script
+  Playwright jetable (non commite) : ouverture du graphique en paysage
+  (viewport 844x390, periode initiale Max confirmee), pincement ecarte
+  simule par deux `pointerId` distincts sur `#graphiqueWrapper` (la
+  periode descend cran par cran jusqu'a 1J), pincement resserre (retour a
+  Max), clic manuel sur le bouton 1M (reinitialisation confirmee), puis
+  simulation d'un survol a un seul pointeur sur le canvas (l'infobulle
+  Chart.js se declenche normalement, `activeElementsCount` non nul) pour
+  confirmer l'absence de regression sur la fonctionnalite existante.
+  Meme geste de pincement rejoue apres passage en portrait (viewport
+  390x844) : periode inchangee, confirmant que le mecanisme reste
+  scope a l'orientation paysage.
+- `node --test test/*.test.js` : 62/62 verts (aucun changement cote
+  serveur).
+- **Documentation mise a jour** : `DESIGN.md` (§ Selecteur de periode
+  (graphique)), `CHANGELOG.md` 1.9.18, `BACKLOG.md` (compteur porte a
+  4/5).
+- Version : `server/package.json`/`config.yaml` 1.9.17 -> 1.9.18
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).
