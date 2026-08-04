@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.16
+
+- **Correctif** : la pastille de prix d'un seuil d'alerte existant sur le
+  graphique était ancrée à droite et masquait la portion la plus récente
+  de la courbe (le cours actuel de la valeur). Déplacée à gauche, quitte
+  à chevaucher les libellés de l'axe des ordonnées.
+
 ## 1.9.15
 
 - Ajout d'un canal de régression (droite de tendance + bandes à ±1 et ±2

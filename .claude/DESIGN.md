@@ -502,13 +502,26 @@ délibéré antérieur, non remis en cause).
   arrière-plan lorsque le seuil se trouvait proche du prix affiché,
   puisque la pastille est ancrée à une position X fixe qui peut tomber
   exactement sur la partie la plus récente — et donc la plus proche du
-  prix courant — de la courbe), bordure et texte `--danger`, ancrée à
-  droite du graphique — côté opposé à la pastille dorée
-  `.alerte-drag-badge` du mode placement, ancrée à gauche, pour qu'elles
-  ne se chevauchent jamais si les deux sont visibles en même temps).
+  prix courant — de la courbe), bordure et texte `--danger`. **Ancrée à
+  gauche du graphique** (correctif session 2026-08-04, retour
+  utilisateur explicite, capture d'écran à l'appui : ancrée à droite
+  auparavant — pour ne jamais chevaucher la pastille dorée
+  `.alerte-drag-badge` du mode placement, elle-même ancrée à gauche —,
+  la pastille tombait alors systématiquement sur la portion la plus
+  récente de la courbe, masquant le cours actuel de la valeur ; quitte
+  à chevaucher les libellés de l'axe Y à gauche, jamais le cours
+  actuel). S'applique à l'identique en orientation paysage (même
+  overlay DOM, indépendant du canal de régression — voir composant
+  ci-dessous). Chevauchement possible mais rare avec
+  `.alerte-drag-badge` si les deux sont visibles à une hauteur de prix
+  proche (mode placement d'une nouvelle alerte pendant qu'un seuil
+  existant est déjà affiché) — non traité, cas transitoire pendant un
+  geste actif de l'utilisateur, jugé secondaire face au risque de
+  masquer en permanence le cours actuel.
   `.alerte-hors-limite` (repère hors-limite, voir ci-dessous) partage
-  cette même translucidité, les deux sélecteurs restant fusionnés sur
-  leurs propriétés communes. Un seuil qui tombe hors de la plage
+  cette même translucidité et ce même ancrage à gauche, les deux
+  sélecteurs restant fusionnés sur leurs propriétés communes. Un seuil
+  qui tombe hors de la plage
   `min`/`max` de l'échelle Y affichée pour la période courante (trop haut
   ou trop bas par rapport aux cours du graphique) n'est **pas** tracé en
   ligne : un simple repère compact (`.alerte-hors-limite`, même habillage

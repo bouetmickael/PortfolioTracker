@@ -6,7 +6,22 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/5** — Session 47 (2026-08-04, v1.9.15) : ajout du canal de
+**2/5** — Session 48 (2026-08-04, v1.9.16), **correctif hors plan** :
+retour utilisateur direct avec capture d'écran sur la pastille de prix
+d'un seuil d'alerte existant (`.alerte-existante-badge`/
+`.alerte-hors-limite`, `public/styles.css`), ancrée à droite depuis sa
+création (Revue n°5) et masquant systématiquement la portion la plus
+récente de la courbe — le cours actuel de la valeur. Déplacée à gauche
+(`right: 8px` → `left: 8px`), quitte à chevaucher les libellés de l'axe
+Y ; s'applique identiquement en orientation paysage (même overlay DOM,
+indépendant du canal de régression ajouté Session 47). Correctif ciblé
+d'une seule propriété CSS, vérifié par mesure DOM réelle (Playwright) en
+portrait et en paysage confirmant `left: 8px` et l'absence de
+chevauchement avec la portion récente de la courbe.
+
+Compteur avant cette session :
+
+1/5 — Session 47 (2026-08-04, v1.9.15) : ajout du canal de
 régression (droite de tendance + bandes ±1/±2 écarts-types) affiché sur
 le graphique en orientation paysage, calculé sur la période Max de
 l'historique de la valeur (voir `DESIGN.md` § Canal de régression en

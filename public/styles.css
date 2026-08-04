@@ -1124,11 +1124,23 @@ body {
 .alerte-existante-badge,
 .alerte-hors-limite {
   position: absolute;
-  right: 8px;
+  /* Ancree a gauche (retour utilisateur explicite, session 2026-08-04) :
+     ancree a droite auparavant, la pastille tombait sur la portion la plus
+     recente de la courbe (le cours actuel de la valeur, toujours a
+     l'extremite droite du graphique) et le masquait - quitte a chevaucher
+     les libelles de l'axe Y a gauche, jamais le cours actuel. S'applique
+     identiquement en orientation paysage (meme overlay DOM, independant du
+     canal de regression, voir DESIGN.md § Canal de regression en
+     orientation paysage). Chevauchement possible mais rare avec
+     .alerte-drag-badge (mode placement d'une nouvelle alerte, deja ancree
+     a gauche) si les deux sont visibles a une hauteur de prix proche -
+     non traite, edge case transitoire pendant un geste actif de
+     l'utilisateur. */
+  left: 8px;
   /* Legerement translucide (retour utilisateur explicite) : cette pastille
-     est ancree a une position fixe (droite du graphique, hauteur du seuil)
-     qui peut tomber exactement sur la courbe de cours - un fond opaque
-     masquait alors completement les donnees en arriere-plan a cet endroit. */
+     est ancree a une position fixe (hauteur du seuil) qui peut tomber
+     exactement sur la courbe de cours - un fond opaque masquait alors
+     completement les donnees en arriere-plan a cet endroit. */
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   border: 1px solid var(--danger);
   color: var(--danger);

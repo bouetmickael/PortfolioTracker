@@ -2413,3 +2413,50 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   `BACKLOG.md` (compteur porte a 1/5).
 - Version : `server/package.json`/`config.yaml` 1.9.14 -> 1.9.15
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-08-04 — Session 48, deplacer la pastille de seuil d'alerte a gauche du graphique (v1.9.16)
+
+- **Demande** : retour utilisateur direct avec capture d'ecran (graphique
+  Thales S.A., seuil a 255.25 EUR) - la pastille de prix d'un seuil
+  d'alerte existant, ancree a droite du graphique depuis sa creation
+  (Revue n°5), tombait exactement sur la portion la plus recente de la
+  courbe (le cours actuel de la valeur) et le masquait. Meme demande
+  explicite pour la vue paysage (canal de regression, Session 47).
+- **Root cause** : `.alerte-existante-badge`/`.alerte-hors-limite`
+  (`public/styles.css`) etaient ancrees `right: 8px` - choix delibere de
+  la Revue n°5/Session 19 pour ne jamais chevaucher la pastille doree
+  `.alerte-drag-badge` du mode placement (ancree a gauche), mais cote
+  droit = toujours la partie la plus recente de la courbe (donc le
+  cours actuel affiche).
+- **Correctif** : `right: 8px` -> `left: 8px`. Une seule propriete CSS,
+  partagee par les deux selecteurs deja fusionnes (Revue n°5) - aucun
+  changement JS necessaire, le positionnement vertical (`top`/`bottom`)
+  reste pilote par `afficherAlertesGraphique()` (`public/app.js`), non
+  touche. S'applique automatiquement en orientation paysage (meme
+  overlay DOM que la vue normale, independant du canal de regression
+  ajoute Session 47 - pas de logique specifique a dupliquer).
+  Chevauchement desormais possible mais rare avec `.alerte-drag-badge`
+  (les deux ancres a gauche) si un seuil existant et le mode placement
+  d'une nouvelle alerte sont visibles a une hauteur de prix proche - non
+  traite, edge case transitoire pendant un geste actif de l'utilisateur,
+  juge secondaire face au risque de masquer en permanence le cours
+  actuel.
+- **Verification reelle en navigateur** : Chart.js charge temporairement
+  depuis un paquet npm local (CDN bloque par la politique reseau du bac
+  a sable), reference CDN restauree avant le commit (meme technique que
+  les sessions precedentes). Serveur de test avec `global.fetch` mocke,
+  alerte creee avec un seuil proche du cours actuel simule. Script
+  Playwright jetable (non commite) : mesure DOM directe
+  (`getBoundingClientRect()`) confirmant `left: 8px`/8px de distance
+  depuis le bord gauche de l'overlay en portrait ET en paysage, captures
+  d'ecran confirmant visuellement que la portion recente de la courbe
+  (et le canal de regression en paysage) restent entierement visibles,
+  sans chevauchement par la pastille. Aucune erreur console.
+- `node --test test/*.test.js` : 62/62 verts (aucun changement cote
+  serveur).
+- **Documentation mise a jour** : `DESIGN.md` (§ Alertes existantes sur
+  le graphique - ancrage a gauche, note de chevauchement rare avec le
+  mode placement), `CHANGELOG.md` 1.9.16, `BACKLOG.md` (compteur porte a
+  2/5, deviation hors plan).
+- Version : `server/package.json`/`config.yaml` 1.9.15 -> 1.9.16
+  (`METHOD.md` §5.5, changement observable par l'utilisateur).
