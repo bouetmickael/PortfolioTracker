@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.10.1
+
+- **Correctif** : sur l'onglet "Portefeuilles" (v1.10.0), les valeurs
+  positives/negatives (variation du cours, plus/moins-value latente par
+  valeur et pour le portefeuille entier) restaient toutes affichees en
+  texte neutre au lieu de vert/rouge. Cause : ces elements posaient une
+  classe `success`/`danger` seule, alors que le reste de l'application
+  ne colore qu'via une regle CSS combinee avec une classe de contexte
+  (`.valeur-variation.success`, etc.) - aucune regle ne correspondait a
+  une classe seule. Ajout de deux regles generiques `.success`/`.danger`
+  (`public/styles.css`), sans impact sur les composants existants (meme
+  couleur, regles combinees plus specifiques toujours prioritaires).
+
 ## 1.10.0
 
 - **Fonctionnalite** : taux de plus/moins-value sur la periode du

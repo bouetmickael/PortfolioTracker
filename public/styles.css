@@ -808,6 +808,24 @@ body {
    prix de revient par valeur, onglet separe de la liste "Valeurs suivies")
    - voir DESIGN.md § Portefeuilles. */
 
+/* Classes utilitaires de couleur positif/negatif, appliquees seules (sans
+   classe de contexte supplementaire) par les cartes de portefeuille -
+   contrairement aux autres composants du projet, qui colorent toujours
+   via une regle combinee (`.valeur-variation.success`,
+   `.stat-variation.success`, etc.). Ces regles combinees restent plus
+   specifiques et continuent de s'appliquer normalement ; celles-ci ne
+   font qu'ajouter le meme resultat pour un usage sans classe de base
+   dediee (retour utilisateur explicite : les valeurs du portefeuille
+   restaient toutes en texte neutre, la classe posee par x-class n'ayant
+   jamais correspondu a une regle CSS existante). */
+.success {
+  color: var(--success);
+}
+
+.danger {
+  color: var(--danger);
+}
+
 .portefeuilles-selector {
   display: flex;
   flex-wrap: wrap;

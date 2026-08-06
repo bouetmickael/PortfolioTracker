@@ -56,6 +56,28 @@ l'ajout d'une position (cours réel renvoyé par Yahoo Finance) n'a pu être
 vérifié qu'via les tests unitaires mockés, pas contre l'API réelle — même
 limitation déjà documentée pour l'ajout d'une valeur suivie (Session 25).
 
+**Correctif (même jour, v1.10.1)** : retour utilisateur direct avec
+capture d'écran sur un déploiement réel — les valeurs positives/négatives
+de l'onglet « Portefeuilles » (variation du cours, plus/moins-value
+latente par valeur et pour le portefeuille entier) restaient toutes en
+texte neutre au lieu de vert/rouge. Cause : ces éléments posaient une
+classe `success`/`danger` seule (`:class="... ? 'success' : 'danger'"`),
+alors que tout le reste de l'application ne colore qu'via une règle CSS
+combinée avec une classe de contexte (`.valeur-variation.success`,
+`.stat-variation.success`, `.graphique-periode-variation.success`, etc.)
+— aucune règle existante ne correspondait à une classe seule, contrairement
+à ce qui avait été supposé en écrivant `public/index.html` cette même
+session. Corrigé par l'ajout de deux règles génériques `.success`/
+`.danger` (`public/styles.css`), sans impact sur les composants
+existants (même couleur obtenue, les règles combinées restant plus
+spécifiques et donc toujours prioritaires). Vérifié par tests unitaires
+(`node --test test/*.test.js`, toujours 73/73 — correctif strictement
+CSS, aucun changement serveur) et par relecture des propriétés CSS
+calculées (règles combinées existantes vs nouvelle règle générique,
+même valeur `var(--success)`/`var(--danger)` dans les deux cas) ; pas de
+nouvelle capture d'écran prise cette fois (correctif d'une seule paire
+de règles CSS, sans ambiguïté sur le résultat visuel).
+
 Compteur avant cette session :
 
 0/5 — Session 53 (2026-08-06), Revue de dette technique n°9. Diff
