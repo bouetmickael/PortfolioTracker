@@ -16,6 +16,8 @@ function toSectionsArray(rows, acces, emailParUserId) {
     const section = { id: row.id, nom: row.nom, ordre: row.ordre, role: info.role };
     if (info.role !== 'proprietaire') {
       section.proprietaireEmail = emailParUserId.get(info.proprietaireId) || null;
+    } else {
+      section.partagee = !!row.partagee;
     }
     return section;
   });
@@ -36,7 +38,12 @@ router.get('/', (req, res) => {
   }
 
   const placeholders = ids.map(() => '?').join(',');
-  const rows = db.prepare(`SELECT * FROM sections WHERE id IN (${placeholders})`).all(...ids);
+  const rows = db
+    .prepare(
+      `SELECT *, EXISTS(SELECT 1 FROM section_shares WHERE section_id = sections.id) AS partagee
+       FROM sections WHERE id IN (${placeholders})`
+    )
+    .all(...ids);
 
   const idsProprietairesPartages = [...new Set(rows.filter((r) => acces.get(r.id).role !== 'proprietaire').map((r) => r.user_id))];
   const emailParUserId = new Map();

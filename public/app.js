@@ -641,6 +641,10 @@ async function chargerPartagesSection(sectionId) {
     const partages = await res.json();
     container.innerHTML = '';
 
+    if (sectionCiblePartage && sectionCiblePartage.id === sectionId) {
+      sectionCiblePartage.partagee = partages.length > 0;
+    }
+
     if (partages.length === 0) {
       container.innerHTML = '<div class="empty-state-small"><p>Section non partagee</p></div>';
       return;

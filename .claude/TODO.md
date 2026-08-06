@@ -2640,3 +2640,50 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   et son correctif documentes comme un seul point d'avancement).
 - Version : `server/package.json`/`config.yaml` 1.9.18 -> 1.9.19
   (`METHOD.md` §5.5, changement observable par l'utilisateur).
+
+## 2026-08-06 — Session 52, allumer le bouton de partage sur les sections deja partagees (v1.9.20)
+
+- **Demande** : demande explicite utilisateur - pouvoir distinguer en un
+  coup d'oeil, dans la liste des sections possedees, celles qui sont
+  deja partagees avec quelqu'un de celles qui ne le sont pas, sans avoir
+  a ouvrir la modale de partage de chaque section pour le savoir.
+- **Serveur** (`server/routes/sections.js`) : `GET /api/sections`
+  expose desormais un champ `partagee` (booleen) sur chaque section
+  possedee, calcule par une sous-requete `EXISTS(SELECT 1 FROM
+  section_shares WHERE section_id = sections.id)` ajoutee au `SELECT`
+  existant. `toSectionsArray()` ne pose ce champ que pour
+  `info.role === 'proprietaire'` - les sections de la liste "Partage
+  avec moi" n'ont de toute facon pas le bouton `icon-share` (voir
+  `DESIGN.md` § Partage de section) et n'ont donc pas besoin du champ.
+- **Client** (`public/index.html`/`app.js`) : le bouton `icon-share` de
+  l'en-tete de chaque section porte desormais `:class="{ 'partage-actif':
+  section.partagee }"` (nouvelle classe CSS, couleur `--primary`, meme
+  convention que `.badge-alerte` pour un signal "etat actif") et un
+  `title`/`aria-label` qui reflete l'etat ("Section partagee" vs
+  "Partager la section"). Mis a jour sans recharger `GET /api/sections` :
+  `chargerPartagesSection()` recalcule `sectionCiblePartage.partagee =
+  partages.length > 0` juste apres chaque chargement de la liste des
+  partages dans la modale (donc apres chaque ajout/revocation, les deux
+  passant par cette meme fonction) - `sectionCiblePartage` est la
+  reference Alpine exacte de l'objet rendu par le `x-for` sur
+  `$store.portfolio.sections`, la mutation est donc immediatement
+  reactive des la fermeture de la modale.
+- **CSS** (`public/styles.css`) : `.btn-icon-small.partage-actif { color:
+  var(--primary); }`, juste apres `.btn-icon-xs`.
+- **Verification** : `node --test test/*.test.js` (62/62, aucune
+  regression). Parcours API reel sur un serveur local dedie (deux
+  comptes crees, section "General" du premier compte non partagee au
+  depart -> `partagee: false`, partage avec le second compte ->
+  `partagee: true`, revocation du partage -> `partagee: false` de
+  nouveau). Pas de verification Playwright de la classe CSS elle-meme
+  cette session (changement purement visuel local a un bouton deja
+  existant, mecanisme identique a `.badge-alerte` deja verifie
+  visuellement par le passe).
+- **Documentation mise a jour** : `DESIGN.md` (§ Partage de section,
+  nouveau point "Icone icon-share allumee pour une section deja
+  partagee"), `CHANGELOG.md` 1.9.20, `BACKLOG.md` (compteur porte a
+  5/5 - **la prochaine session doit etre une revue de dette technique**,
+  `METHOD.md` §0.2).
+- Version : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.9.19 -> 1.9.20 (`METHOD.md` §5.5, changement
+  observable par l'utilisateur).

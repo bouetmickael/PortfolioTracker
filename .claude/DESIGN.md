@@ -355,6 +355,25 @@ délibéré antérieur, non remis en cause).
     graphique. Aucune action de création d'alerte sur les valeurs de
     cette section (les alertes restent strictement privées, voir
     `BUSINESS_RULES.md`).
+  - **Icône `icon-share` allumée pour une section déjà partagée** (session
+    2026-08-06, demande explicite utilisateur : distinguer en un coup
+    d'œil les sections possédées déjà partagées de celles qui ne le sont
+    pas encore, sans avoir à ouvrir la modale de chacune pour vérifier).
+    `GET /api/sections` (`server/routes/sections.js`) expose désormais un
+    champ `partagee` (booléen, `EXISTS(... FROM section_shares ...)`) sur
+    chaque section possédée uniquement — absent des sections de la
+    section « Partagé avec moi » (`role !== 'proprietaire'`), qui n'ont de
+    toute façon pas ce bouton. Le bouton `icon-share` de l'en-tête porte
+    la classe `.partage-actif` (`color: var(--primary)`, même convention
+    de « signal actif » que `.badge-alerte`) quand `section.partagee` est
+    vrai ; `title`/`aria-label` reflètent l'état (« Section partagee » vs
+    « Partager la section »). Mis à jour en direct sans recharger la liste
+    des sections : `chargerPartagesSection()` (`public/app.js`) recalcule
+    `sectionCiblePartage.partagee` à partir du nombre de partages reçus
+    juste après chaque ajout/révocation dans la modale — l'objet muté est
+    la même référence Alpine que celle rendue par le `x-for` sur
+    `$store.portfolio.sections`, donc la classe se met à jour dès la
+    fermeture de la modale sans nouvel appel à `GET /api/sections`.
 - **FAB** (bouton flottant) : 56px, cercle, `--primary` (or), icône
   `icon-plus` blanche, coin bas-droit, respecte les safe-area iOS (`env
   (safe-area-inset-*)`).

@@ -6,7 +6,29 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**4/5** — Session 51 (2026-08-04, v1.9.19), **correctif same-day de la
+**5/5** — Session 52 (2026-08-06, v1.9.20) : le bouton de partage
+(`icon-share`) de l'en-tête de chaque section possédée s'allume
+désormais (`.partage-actif`, couleur `--primary`) dès que la section a
+au moins un partage actif, pour distinguer en un coup d'œil les sections
+perso des sections partagées sans ouvrir la modale de chacune. Nouveau
+champ `partagee` (booléen) exposé par `GET /api/sections`
+(`server/routes/sections.js`, sous-requête `EXISTS(... FROM
+section_shares ...)`, uniquement sur les sections possédées) ;
+`chargerPartagesSection()` (`public/app.js`) recalcule
+`sectionCiblePartage.partagee` juste après chaque ajout/révocation dans
+la modale de partage, sur la même référence Alpine que celle rendue par
+le `x-for` des sections — pas besoin de recharger `GET /api/sections`
+pour voir l'icône se mettre à jour à la fermeture de la modale. Voir
+`DESIGN.md` § Partage de section. Vérifié par `node --test
+test/*.test.js` (62/62) et un parcours API réel sur un serveur local
+dédié (deux comptes, section possédée non partagée au départ, partage
+avec le second compte → `partagee: true`, révocation → `partagee:
+false`). **Compteur à 5/5 : la prochaine session doit être une revue de
+dette technique (`METHOD.md` §0.2)**, pas une nouvelle fonctionnalité.
+
+Compteur avant cette session :
+
+4/5 — Session 51 (2026-08-04, v1.9.19), **correctif same-day de la
 Session 50** : retour utilisateur direct — la Session 50 n'avait fait que
 sauter d'une période préétablie à l'autre (1J/1S/1M/1A/Max) au pincement,
 alors que la demande était de pouvoir zoomer sur une fenêtre continue et

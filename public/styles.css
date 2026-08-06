@@ -230,6 +230,14 @@ body {
   padding: 4px;
 }
 
+/* Bouton icon-share d'une section possedee ayant au moins un partage actif
+   (voir server/routes/sections.js § partagee) : meme convention que
+   .badge-alerte (couleur --primary sur fond neutre) pour signaler un etat
+   actif plutot qu'une simple action disponible. */
+.btn-icon-small.partage-actif {
+  color: var(--primary);
+}
+
 .btn-icon-gold {
   background: var(--primary);
   color: white;

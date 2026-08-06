@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.20
+
+- **Fonctionnalite** : le bouton de partage (icone) de l'en-tete d'une
+  section possedee s'allume desormais (couleur or) des qu'au moins un
+  utilisateur a acces a cette section, pour distinguer en un coup d'oeil
+  les sections perso des sections partagees sans avoir a ouvrir la modale
+  de partage de chacune.
+
 ## 1.9.19
 
 - **Correctif** : le pincement sur le graphique en orientation paysage
