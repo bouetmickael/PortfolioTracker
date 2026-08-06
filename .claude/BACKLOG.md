@@ -6,7 +6,59 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/5** — Session 53 (2026-08-06), Revue de dette technique n°9. Diff
+**1/5** — Session 54 (2026-08-06, v1.10.0) : deux demandes explicites de
+l'utilisateur traitées dans la même session (fournies ensemble dans le
+prompt de session).
+- Taux de plus/moins-value sur la période du graphique : indicateur
+  affiché sous le sélecteur de période (1J/1S/1M/1A/Max), écart entre le
+  premier et le dernier cours exploitable de la période chargée, en euros
+  et en pourcentage. Voir `DESIGN.md` § Sélecteur de période (graphique)
+  pour le détail.
+- Nouvel onglet « Portefeuilles » (barre d'onglets fixe en bas de
+  l'écran, à côté de « Suivi ») : reconstitution d'un ou plusieurs
+  portefeuilles réels (quantité de titres détenue + prix de revient par
+  valeur), avec cours/valeur totale/plus-moins-value latente calculés
+  automatiquement (voir `DESIGN.md` § Barre d'onglets et § Portefeuilles,
+  `BUSINESS_RULES.md` § Portefeuilles pour les règles d'accès/validation).
+  Deux nouvelles tables (`portefeuilles`/`portefeuille_lignes`),
+  nouvelles routes `/api/portefeuilles`, nouveau job planifié
+  `updatePortefeuilleLignes()` (`server/jobs/prices.js`). La recherche de
+  valeur par nom à l'ajout (`GET /api/valeurs/recherche`) a été
+  factorisée côté client (`creerRechercheTicker()`, `public/app.js`) pour
+  être partagée entre la modale d'ajout d'une valeur suivie et la
+  nouvelle modale d'ajout d'une position de portefeuille, plutôt que
+  dupliquée. Limitations connues, non demandées explicitement, laissées
+  pour une session dédiée future si besoin : pas de glisser-déposer pour
+  réordonner les portefeuilles/positions (contrairement aux sections),
+  pas d'alerte de seuil possible sur une position de portefeuille (voir
+  `BUSINESS_RULES.md` § Portefeuilles pour la raison technique).
+
+Vérifié par tests unitaires (`node --test test/*.test.js`, 73/73, dont 11
+nouveaux dans `server/test/portefeuilles.test.js` : CRUD portefeuille,
+CRUD position avec calcul du cours à l'ajout, doublon de ticker dans un
+même portefeuille refusé, quantité/prix de revient invalides refusés,
+modification puis suppression d'une position, cascade de suppression
+d'un portefeuille sur ses positions, isolation stricte entre
+utilisateurs, authentification requise, job `updatePortefeuilleLignes()`)
+et un démarrage réel du serveur (`GET /`/`GET /login.html`/`GET /app.js`/
+`GET /styles.css` → 200) avec un parcours API réel (register, création/
+renommage/suppression de portefeuille). Parcours Playwright partiel
+(Chromium préinstallé, pas de paquet npm Chart.js local nécessaire cette
+fois — aucun graphique ouvert pendant le test) : bascule Suivi/
+Portefeuilles (FAB masqué sur l'onglet Portefeuilles), état vide,
+création d'un portefeuille via la modale prompt générique, ouverture de
+la modale d'ajout de position, tentative d'ajout (échec propre avec toast
+d'erreur — l'appel réseau vers Yahoo Finance est bloqué par la politique
+réseau du bac à sable de développement, limitation déjà documentée pour
+ce projet, voir `ARCHITECTURE.md` § Points de vigilance) — aucune erreur
+JavaScript non gérée sur l'ensemble du parcours. Le chemin de succès de
+l'ajout d'une position (cours réel renvoyé par Yahoo Finance) n'a pu être
+vérifié qu'via les tests unitaires mockés, pas contre l'API réelle — même
+limitation déjà documentée pour l'ajout d'une valeur suivie (Session 25).
+
+Compteur avant cette session :
+
+0/5 — Session 53 (2026-08-06), Revue de dette technique n°9. Diff
 cumulé depuis la clôture de la Revue n°8 (`7bbc386` — voir `CLAUDE.md` §
 Historique des revues pour la correction de portée par rapport au prompt
 initial), couvrant les Sessions 47 à 52 (canal de régression en
@@ -836,6 +888,13 @@ retour utilisateur direct sur deux bugs distincts constatés en usage réel
   limitée aux valeurs propres de l'utilisateur ; les valeurs des sections
   partagées ne sont exposées que par les nouvelles routes dédiées, une
   section à la fois (évite toute ambiguïté de ticker entre comptes).
+
+Session 54 (2026-08-06, v1.10.0), hors de ce plan (deux demandes
+explicites de l'utilisateur, voir compteur ci-dessus pour le détail) :
+taux de plus/moins-value sur la période du graphique, et nouvel onglet
+« Portefeuilles » pour reconstituer un ou plusieurs portefeuilles réels
+(quantité détenue + prix de revient par valeur). Aucune fonctionnalité en
+cours actuellement au-delà du backlog produit ci-dessous.
 
 ## Sessions précédentes
 

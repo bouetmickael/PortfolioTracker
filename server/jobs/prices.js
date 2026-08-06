@@ -169,4 +169,35 @@ async function updateIndices() {
   console.log(`Mise a jour des indices terminee : ${updated} indices`);
 }
 
-module.exports = { updatePrices, updateIndices, fetchYahooFinance };
+// Meme principe que updatePrices() (WHERE ticker = ? met a jour toutes les
+// lignes portant ce ticker en une requete, quel que soit le portefeuille ou
+// l'utilisateur), pour les lignes de portefeuille (quantite/prix de revient
+// detenus par l'utilisateur, distinct des valeurs suivies). Job separe
+// plutot que fusionne a updatePrices()/updateIndices() : meme prudence deja
+// documentee pour ces deux jobs (voir CLAUDE.md Historique des revues,
+// Revues n°1/n°3/n°7 - paralleliser/fusionner les jobs de mise a jour de
+// cours reste hors perimetre d'un correctif a risque faible), la meme
+// reserve s'applique a une fusion avec un troisieme job similaire.
+async function updatePortefeuilleLignes() {
+  console.log('Demarrage mise a jour des positions de portefeuille');
+
+  const tickers = db.prepare('SELECT DISTINCT ticker FROM portefeuille_lignes').all().map((row) => row.ticker);
+  console.log(`${tickers.length} tickers de portefeuille a mettre a jour`);
+
+  const update = db.prepare('UPDATE portefeuille_lignes SET cours = ?, variation = ?, derniere_maj = ? WHERE ticker = ?');
+
+  const updated = await traiterEnParallele(
+    tickers,
+    async (ticker) => {
+      const priceData = await fetchYahooFinance(ticker);
+      const result = update.run(priceData.price, priceData.changePct, Date.now(), ticker);
+      console.log(`${ticker}: ${priceData.price} (${priceData.changePct.toFixed(2)}%)`);
+      return result.changes;
+    },
+    (ticker) => `Erreur ${ticker}`
+  );
+
+  console.log(`Mise a jour des positions de portefeuille terminee : ${updated} lignes`);
+}
+
+module.exports = { updatePrices, updateIndices, updatePortefeuilleLignes, fetchYahooFinance };

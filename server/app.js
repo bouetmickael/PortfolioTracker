@@ -10,6 +10,7 @@ const chartRoutes = require('./routes/chart');
 const sectionsRoutes = require('./routes/sections');
 const usersRoutes = require('./routes/users');
 const indicesRoutes = require('./routes/indices');
+const portefeuillesRoutes = require('./routes/portefeuilles');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api/chart', chartRoutes);
 app.use('/api/sections', sectionsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/indices', indicesRoutes);
+app.use('/api/portefeuilles', portefeuillesRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

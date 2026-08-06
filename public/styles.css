@@ -56,10 +56,47 @@ body {
   transition: background-color 0.2s, color 0.2s;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  /* Espace reserve pour que le FAB (fixe, 56px + 16px de marge) ne
-     recouvre jamais le dernier element quand la page est scrollee tout
-     en bas. */
-  padding-bottom: 88px;
+  /* Espace reserve pour que la barre d'onglets (fixe, 56px) et le FAB
+     (fixe au-dessus d'elle, 56px + 16px de marge) ne recouvrent jamais le
+     dernier element quand la page est scrollee tout en bas :
+     56 (tab-bar) + 56 (fab) + 16*2 (marges). */
+  padding-bottom: 144px;
+}
+
+/* BARRE D'ONGLETS (Suivi / Portefeuilles, voir § PORTEFEUILLES) */
+
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  box-shadow: var(--shadow-large);
+  display: flex;
+  z-index: 95;
+}
+
+.tab-bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.tab-bar-item.active {
+  color: var(--primary);
 }
 
 /* HEADER */
@@ -282,7 +319,9 @@ body {
 
 .fab {
   position: fixed;
-  bottom: 16px;
+  /* Au-dessus de la barre d'onglets (56px), avec la meme marge de 16px que
+     precedemment par rapport au bas de l'ecran. */
+  bottom: 72px;
   right: 16px;
   width: 56px;
   height: 56px;
@@ -765,6 +804,115 @@ body {
   color: var(--text-secondary);
 }
 
+/* PORTEFEUILLES (reconstitution du portefeuille reel : quantite detenue +
+   prix de revient par valeur, onglet separe de la liste "Valeurs suivies")
+   - voir DESIGN.md § Portefeuilles. */
+
+.portefeuilles-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* .valeurs-section-header pousse ses actions a droite via le flex: 1 de
+   .valeurs-section-titre (poignee + titre repliable) - le titre du
+   portefeuille n'a ni poignee ni chevron, juste ce meme flex: 1 pour
+   obtenir le meme espacement sans dupliquer .valeurs-section-titre. */
+.portefeuille-detail .valeurs-section-nom-partagee {
+  flex: 1;
+  min-width: 0;
+}
+
+.portefeuille-resume {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.portefeuille-resume-ligne {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.portefeuille-resume-ligne span:first-child {
+  color: var(--text-secondary);
+}
+
+.portefeuille-resume-ligne span:last-child {
+  font-weight: 600;
+}
+
+.portefeuille-positions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.portefeuille-position-card {
+  position: relative;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 36px 10px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.portefeuille-position-card:hover {
+  background: var(--bg-secondary);
+}
+
+.portefeuille-position-supprimer {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.portefeuille-position-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.portefeuille-position-nom {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.portefeuille-position-total {
+  font-size: 15px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.portefeuille-position-quantite {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.portefeuille-position-ligne {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.portefeuille-position-ligne span:last-child {
+  font-weight: 500;
+}
+
 /* PARTAGE DE SECTION */
 
 .partage-liste {
@@ -1011,6 +1159,24 @@ body {
   background: var(--primary);
   color: white;
   border-color: var(--primary);
+}
+
+/* Taux de plus/moins-value sur la periode de graphique affichee (voir
+   DESIGN.md § Variation sur la periode du graphique), meme convention de
+   coloration --success/--danger que .valeur-variation. */
+.graphique-periode-variation {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.graphique-periode-variation.success {
+  color: var(--success);
+}
+
+.graphique-periode-variation.danger {
+  color: var(--danger);
 }
 
 #graphiqueWrapper {
@@ -1460,12 +1626,22 @@ body {
     padding-right: max(20px, env(safe-area-inset-right));
   }
 
+  /* Hauteur totale augmentee de l'inset, mais compensee par le meme
+     padding-bottom : la zone de contenu (icone + libelle, centres par
+     .tab-bar-item) reste a 56px, l'inset n'ajoute qu'un espace vide sous
+     les boutons (zone home indicator iOS), plutot que de decentrer les
+     boutons vers le bas. */
+  .tab-bar {
+    height: calc(56px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   .fab {
-    bottom: max(16px, env(safe-area-inset-bottom));
+    bottom: max(72px, calc(56px + env(safe-area-inset-bottom) + 16px));
     right: max(16px, env(safe-area-inset-right));
   }
 
   body {
-    padding-bottom: max(88px, calc(72px + env(safe-area-inset-bottom)));
+    padding-bottom: max(144px, calc(144px + env(safe-area-inset-bottom)));
   }
 }

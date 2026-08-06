@@ -38,7 +38,9 @@ composant « Partage de section » ci-dessous), `icon-chevron-down`
 (replier/déplier une section), `icon-x` (fermer une modale), `icon-plus`
 (ajouter), `icon-check` (valider le seuil d'une alerte posée directement
 sur le graphique, voir composant « Alerte depuis le graphique »
-ci-dessous). Toutes
+ci-dessous), `icon-list` (onglet « Suivi » de la barre d'onglets),
+`icon-briefcase` (onglet « Portefeuilles » de la barre d'onglets, voir
+composant « Barre d'onglets » ci-dessous). Toutes
 en `stroke="currentColor"` (la couleur suit `color` du bouton parent),
 `stroke-width="2"`, viewBox `0 0 24 24`, style trait rond (`stroke-
 linecap`/`stroke-linejoin: round`), taille `20x20` (`.icon`), `16x16`
@@ -519,6 +521,22 @@ délibéré antérieur, non remis en cause).
   simultanés, donc sans interférence avec un tap/glisser à un seul doigt
   — que ce soit le mode placement ou l'infobulle native du graphique
   (`Pointer Events`/tooltip Chart.js, inchangés).
+  **Taux de plus/moins-value sur la période du graphique** (session
+  2026-08-06, demande explicite utilisateur). Sous le sélecteur de
+  période (`#graphiquePeriodeVariation`), un indicateur affiche l'écart
+  entre le premier et le dernier cours exploitable de la période
+  actuellement chargée (`graphiqueDonneesCompletes.prices`, avant tout
+  pincement — voir § Zoom par pincement ci-dessus), en euros et en
+  pourcentage (ex. « Sur la période : +12.34 EUR (+5.67%) »), coloré
+  `--success`/`--danger` selon le signe — même convention que
+  `.valeur-variation`. Recalculé à chaque chargement du graphique
+  (ouverture, changement de période) via `afficherVariationPeriode()`
+  (`public/app.js`), masqué (`hidden`) si la période ne compte pas au
+  moins deux points exploitables. Reste rattaché à la période
+  sélectionnée par les boutons pilule, jamais recalculé pendant un
+  pincement (`redessinerPlageVisible()` ne l'appelle pas) : cohérent avec
+  le fait que les boutons de période restent le seul moyen de
+  « réinitialiser » une fenêtre obtenue par zoom, voir ci-dessus.
 - **Alerte depuis le graphique** (session 2026-07-25, demande explicite
   utilisateur, inspirée du geste de glisser-déposer de TradingView) :
   sur le graphique d'une valeur de ma propre liste "Valeurs suivies"
@@ -760,6 +778,97 @@ délibéré antérieur, non remis en cause).
   projet). Champ retiré : l'orientation suit désormais le verrouillage
   de rotation du système d'exploitation, comme n'importe quelle page web
   ordinaire.
+- **Barre d'onglets** (session 2026-08-06, demande explicite utilisateur :
+  « dans un autre onglet, pouvoir reconstituer mon portefeuille
+  d'actions »). Nouvelle navigation fixe en bas de l'écran
+  (`.tab-bar`, sous le contenu, au-dessus du FAB), deux boutons pleine
+  largeur : « Suivi » (`icon-list`, contenu historique — cartes
+  d'indices, listes de valeurs/alertes) et « Portefeuilles »
+  (`icon-briefcase`, voir composant ci-dessous), icône + libellé 11px
+  empilés (`.tab-bar-item`), coloré `--primary` pour l'onglet actif
+  (`.tab-bar-item.active`) sinon `--text-secondary` — même convention
+  de « signal actif » que `.badge-alerte`/`.partage-actif`. État en
+  mémoire uniquement (`vueActive` sur le `x-data` racine de `<body>`,
+  non persisté), toujours sur « Suivi » à l'ouverture de l'application.
+  Le FAB (ajouter une valeur suivie) n'a de sens que sur l'onglet
+  « Suivi » : masqué (`x-show="vueActive === 'suivi'"`) sur l'onglet
+  « Portefeuilles », qui a son propre bouton `icon-plus` dédié dans
+  l'en-tête du portefeuille actif (ajouter une position) — même
+  raisonnement que le bouton `icon-plus` d'une section de la liste des
+  valeurs suivies. Remonte le FAB et le bas de page (`body`) d'une
+  hauteur de barre d'onglets (56px) par rapport à la version précédente
+  de l'application, y compris dans les zones sûres iOS (`env
+  (safe-area-inset-bottom)` désormais appliqué à la barre d'onglets
+  elle-même plutôt qu'au seul FAB).
+- **Portefeuilles** (session 2026-08-06, demande explicite utilisateur,
+  captures d'écran d'une ancienne version du projet à l'appui : pouvoir
+  reconstituer un portefeuille réel — quantité de titres détenue et prix
+  de revient par valeur — et en suivre plusieurs). Concept distinct de la
+  liste « Valeurs suivies » : celle-ci ne suit qu'un cours (aucune
+  quantité ni coût associé), un portefeuille reconstitue une position
+  réellement détenue. Les deux listes sont indépendantes : une valeur
+  peut être suivie sans être dans aucun portefeuille, ou inversement.
+  - Sélecteur de portefeuilles (`.portefeuilles-selector`, boutons
+    pilule `.btn-periode` réutilisés — même gabarit que le sélecteur de
+    période du graphique) : un bouton par portefeuille de l'utilisateur,
+    plus un bouton `+ Nouveau` qui ouvre la modale prompt générique
+    (`showPrompt()`) pour nommer un nouveau portefeuille. Le premier
+    portefeuille créé devient automatiquement le portefeuille actif ;
+    tant qu'aucun portefeuille n'existe, un état vide (`.empty-state`,
+    même gabarit que l'état vide de la liste des valeurs suivies)
+    invite à en créer un.
+  - Portefeuille actif (`.portefeuille-detail`, même gabarit de carte
+    que `.valeurs-section` — coins arrondis, `--shadow`) : en-tête
+    (`.valeurs-section-header` réutilisé) avec le nom du portefeuille et
+    trois actions icône (`icon-plus` ajouter une valeur, `icon-pencil`
+    renommer, `icon-trash` supprimer — renommer/supprimer passent par
+    les modales prompt/confirm génériques, comme une section). Pas de
+    glisser-déposer/réordonnancement dans cette première version (voir
+    `BACKLOG.md` pour ce point laissé de côté).
+  - Résumé du portefeuille (`.portefeuille-resume`) : valeur totale
+    (somme `cours × quantité` de toutes les positions) et plus/moins-value
+    latente totale en euros et en pourcentage (somme des plus/moins-values
+    par position, rapportée au coût total investi), coloré
+    `--success`/`--danger`.
+  - Chaque position (`.portefeuille-position-card`, une carte par valeur
+    détenue, cliquable pour ouvrir son graphique — comme `.valeur-row`) :
+    nom de la valeur et valeur totale de la ligne (`cours × quantité`) en
+    en-tête, quantité détenue en sous-titre (« N titres »), puis trois
+    lignes `.portefeuille-position-ligne` (libellé à gauche,
+    `--text-secondary` ; valeur à droite) : Cours (avec variation du
+    jour, coloration `--success`/`--danger` habituelle), Prix de revient
+    (saisi à l'ajout, jamais recalculé automatiquement), +/- value
+    latente (écart `(cours - prixRevient) × quantité` en euros et en
+    pourcentage, coloré `--success`/`--danger`). Bouton `icon-trash` en
+    surimpression coin haut-droit (`.portefeuille-position-supprimer`,
+    `position: absolute`) pour retirer une position, avec confirmation
+    (`showConfirm()`).
+  - Ajout d'une position : modale dédiée (`#modalAddPosition`, même
+    gabarit que `#modalAddValeur`) avec le même mécanisme de recherche
+    par nom à la saisie que l'ajout d'une valeur suivie (voir §
+    Recherche de valeur à l'ajout ci-dessus, factorisé en une fabrique
+    `creerRechercheTicker()` partagée par les deux modales,
+    `public/app.js`), complétée de deux champs propres au portefeuille :
+    quantité de titres détenus et prix de revient (par titre). Le ticker
+    choisi passe par la même validation Yahoo Finance qu'un ajout de
+    valeur suivie (`verifierTickerExiste`, voir `BUSINESS_RULES.md` §
+    Valeurs suivies) — une position est toujours créée avec un cours réel
+    dès sa création, jamais à 0. Une même valeur ne peut être ajoutée
+    qu'une fois par portefeuille (contrainte `UNIQUE(portefeuille_id,
+    ticker)`, tentative de doublon → 409) ; contrairement aux « Valeurs
+    suivies », rien n'empêche la même valeur d'apparaître dans plusieurs
+    portefeuilles différents.
+  - Cours mis à jour au même rythme que les valeurs suivies et les
+    indices (tâche planifiée toutes les 2 minutes,
+    `updatePortefeuilleLignes()`, `server/jobs/prices.js`) — aucune
+    donnée inventée en cas d'échec (voir `BUSINESS_RULES.md` § Intégrité
+    des cours), même mécanisme que les deux jobs existants.
+  - Pas de bouton d'alerte sur une position de portefeuille (contrairement
+    à une ligne de la liste « Valeurs suivies ») : `checkAlerts()` ne
+    rejoint que sur la table `valeurs`, une alerte posée sur une position
+    de portefeuille non par ailleurs suivie ne serait donc jamais évaluée
+    — même restriction de périmètre que les composants « Alerte(s)… sur
+    le graphique », voir `BUSINESS_RULES.md` § Alertes de seuil.
 
 ## Responsive
 

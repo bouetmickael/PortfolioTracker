@@ -8,6 +8,11 @@ let currentUser = null;
 let valeursPollInterval = null;
 let alertesPollInterval = null;
 let indicesPollInterval = null;
+let portefeuillesPollInterval = null;
+// Instances creerRechercheTicker() (voir § RECHERCHE DE VALEUR), assignees
+// par setupEventListeners() une fois le DOM pret.
+let rechercheTickerValeur = null;
+let rechercheTickerPosition = null;
 let chartInstance = null;
 let volumeChartInstance = null;
 // Largeur (px) de l'axe Y partagee entre le graphique de cours et le
@@ -57,6 +62,9 @@ document.addEventListener('alpine:init', () => {
     sectionsPartagees: [],
     indices: [],
     alertes: [],
+    portefeuilles: [],
+    portefeuilleSelectionneId: null,
+    portefeuillePositions: [],
     chargee: false,
 
     // Regroupement par section calcule une seule fois par changement de
@@ -212,10 +220,12 @@ function setupDataPolling() {
   chargerValeurs();
   chargerAlertes();
   chargerIndices();
+  chargerPortefeuilles();
 
   valeursPollInterval = setInterval(chargerValeurs, POLL_INTERVAL_MS);
   alertesPollInterval = setInterval(chargerAlertes, POLL_INTERVAL_MS);
   indicesPollInterval = setInterval(chargerIndices, POLL_INTERVAL_MS);
+  portefeuillesPollInterval = setInterval(chargerPortefeuilles, POLL_INTERVAL_MS);
 }
 
 async function chargerValeurs() {
@@ -406,7 +416,7 @@ function ouvrirAjoutValeur(section = null) {
   document.getElementById('modalAddValeurTitre').textContent = section
     ? `Ajouter une valeur - ${section.nom}`
     : 'Ajouter une valeur';
-  masquerRechercheResultats();
+  rechercheTickerValeur.masquer();
   openModal('modalAddValeur');
 }
 
@@ -414,72 +424,86 @@ function ouvrirAjoutValeur(section = null) {
 // RECHERCHE DE VALEUR (ajouter par nom, ex. "Schneider" -> SU.PA)
 // ========================================
 
-let rechercheTimeout = null;
+// Fabrique un gestionnaire de recherche-a-la-saisie independant (debounce,
+// affichage/fermeture du menu deroulant, selection d'un resultat), lie a un
+// couple champ/conteneur precis - factorise le mecanisme partage par
+// #modalAddValeur (#inputTicker/#rechercheResultats) et #modalAddPosition
+// (#inputTickerPosition/#rechercheResultatsPosition, voir § PORTEFEUILLES),
+// seule la cible du remplissage (`onSelectionner`) differe entre les deux.
+function creerRechercheTicker(inputId, resultatsId, onSelectionner) {
+  let timeout = null;
 
-function masquerRechercheResultats() {
-  const conteneur = document.getElementById('rechercheResultats');
-  conteneur.hidden = true;
-  conteneur.innerHTML = '';
-}
-
-function selectionnerResultatRecherche(resultat) {
-  document.getElementById('inputTicker').value = resultat.ticker;
-  document.getElementById('inputNom').value = resultat.nom;
-  masquerRechercheResultats();
-}
-
-function afficherRechercheResultats(resultats) {
-  const conteneur = document.getElementById('rechercheResultats');
-
-  if (resultats.length === 0) {
-    masquerRechercheResultats();
-    return;
+  function masquer() {
+    const conteneur = document.getElementById(resultatsId);
+    conteneur.hidden = true;
+    conteneur.innerHTML = '';
   }
 
-  conteneur.innerHTML = '';
-  for (const resultat of resultats) {
-    const item = document.createElement('div');
-    item.className = 'recherche-item';
-    item.innerHTML = `
-      <div class="recherche-item-nom">${resultat.nom}</div>
-      <div class="recherche-item-detail">${resultat.ticker}${resultat.bourse ? ' · ' + resultat.bourse : ''}</div>
-    `;
-    // click (pas pointerdown) : un click natif ne se declenche pas apres un
-    // glisser (scroll tactile dans la liste), contrairement a pointerdown -
-    // appeler preventDefault() sur pointerdown supprimait aussi le geste de
-    // scroll tactile natif pour tout le conteneur (chaque item couvrant
-    // presque toute sa hauteur, plus aucun scroll n'etait possible dans les
-    // resultats - bug reel, retour utilisateur du 2026-07-27). La fermeture
-    // sur clic exterieur (voir setupEventListeners) remplace l'ancien
-    // mecanisme base sur blur + delai de 150ms, qui n'est plus necessaire.
-    item.addEventListener('click', () => selectionnerResultatRecherche(resultat));
-    conteneur.appendChild(item);
-  }
-  conteneur.hidden = false;
-}
+  function afficher(resultats) {
+    const conteneur = document.getElementById(resultatsId);
 
-async function rechercherValeur(query) {
-  try {
-    const res = await apiFetch(`/api/valeurs/recherche?q=${encodeURIComponent(query)}`);
-    if (!res.ok) return;
+    if (resultats.length === 0) {
+      masquer();
+      return;
+    }
 
-    const resultats = await res.json();
-    afficherRechercheResultats(resultats);
-  } catch (error) {
-    console.error('Erreur recherche valeur:', error);
-  }
-}
-
-function onInputTickerChange() {
-  const query = document.getElementById('inputTicker').value.trim();
-
-  clearTimeout(rechercheTimeout);
-  if (query.length < 2) {
-    masquerRechercheResultats();
-    return;
+    conteneur.innerHTML = '';
+    for (const resultat of resultats) {
+      const item = document.createElement('div');
+      item.className = 'recherche-item';
+      item.innerHTML = `
+        <div class="recherche-item-nom">${resultat.nom}</div>
+        <div class="recherche-item-detail">${resultat.ticker}${resultat.bourse ? ' · ' + resultat.bourse : ''}</div>
+      `;
+      // click (pas pointerdown) : un click natif ne se declenche pas apres
+      // un glisser (scroll tactile dans la liste), contrairement a
+      // pointerdown - appeler preventDefault() sur pointerdown supprimait
+      // aussi le geste de scroll tactile natif pour tout le conteneur
+      // (chaque item couvrant presque toute sa hauteur, plus aucun scroll
+      // n'etait possible dans les resultats - bug reel, retour utilisateur
+      // du 2026-07-27). La fermeture sur clic exterieur (voir plus bas)
+      // remplace l'ancien mecanisme base sur blur + delai de 150ms.
+      item.addEventListener('click', () => {
+        onSelectionner(resultat);
+        masquer();
+      });
+      conteneur.appendChild(item);
+    }
+    conteneur.hidden = false;
   }
 
-  rechercheTimeout = setTimeout(() => rechercherValeur(query), 300);
+  async function rechercher(query) {
+    try {
+      const res = await apiFetch(`/api/valeurs/recherche?q=${encodeURIComponent(query)}`);
+      if (!res.ok) return;
+
+      afficher(await res.json());
+    } catch (error) {
+      console.error('Erreur recherche valeur:', error);
+    }
+  }
+
+  const inputEl = document.getElementById(inputId);
+  inputEl.addEventListener('input', () => {
+    const query = inputEl.value.trim();
+
+    clearTimeout(timeout);
+    if (query.length < 2) {
+      masquer();
+      return;
+    }
+
+    timeout = setTimeout(() => rechercher(query), 300);
+  });
+
+  document.addEventListener('click', (e) => {
+    const conteneur = document.getElementById(resultatsId);
+    if (!conteneur.hidden && e.target !== inputEl && !conteneur.contains(e.target)) {
+      masquer();
+    }
+  });
+
+  return { masquer };
 }
 
 async function ajouterValeur() {
@@ -745,6 +769,217 @@ async function supprimerPartage(sectionId, userId) {
     await chargerPartagesSection(sectionId);
     showToast('Acces retire', 'success');
   }, 'Erreur suppression du partage');
+}
+
+// ========================================
+// PORTEFEUILLES (reconstitution du portefeuille reel : quantite detenue +
+// prix de revient par valeur, distinct de la liste "Valeurs suivies" qui ne
+// suit qu'un cours sans quantite/cout). Onglet separe (voir tab-bar), un
+// seul portefeuille "actif" affiche a la fois (portefeuilleSelectionneId).
+// ========================================
+
+function portefeuilleActif() {
+  const store = Alpine.store('portfolio');
+  return store.portefeuilles.find((p) => p.id === store.portefeuilleSelectionneId) || null;
+}
+
+function latenteEur(position) {
+  return (position.cours - position.prixRevient) * position.quantite;
+}
+
+function latentePct(position) {
+  return position.prixRevient ? ((position.cours - position.prixRevient) / position.prixRevient) * 100 : 0;
+}
+
+function totalValeurPortefeuille() {
+  return Alpine.store('portfolio').portefeuillePositions.reduce((acc, p) => acc + p.cours * p.quantite, 0);
+}
+
+function totalCoutPortefeuille() {
+  return Alpine.store('portfolio').portefeuillePositions.reduce((acc, p) => acc + p.prixRevient * p.quantite, 0);
+}
+
+function totalLatenteEur() {
+  return totalValeurPortefeuille() - totalCoutPortefeuille();
+}
+
+function totalLatentePct() {
+  const cout = totalCoutPortefeuille();
+  return cout ? (totalLatenteEur() / cout) * 100 : 0;
+}
+
+async function chargerPortefeuilles() {
+  try {
+    const res = await apiFetch('/api/portefeuilles');
+    if (!res.ok) throw new Error('Erreur chargement des portefeuilles');
+
+    const portefeuilles = await res.json();
+    const store = Alpine.store('portfolio');
+    store.portefeuilles = portefeuilles;
+
+    if (!portefeuilles.some((p) => p.id === store.portefeuilleSelectionneId)) {
+      store.portefeuilleSelectionneId = portefeuilles.length > 0 ? portefeuilles[0].id : null;
+    }
+
+    await chargerPositionsPortefeuille();
+  } catch (error) {
+    console.error('Erreur chargement portefeuilles:', error);
+  }
+}
+
+async function chargerPositionsPortefeuille() {
+  const store = Alpine.store('portfolio');
+
+  if (!store.portefeuilleSelectionneId) {
+    store.portefeuillePositions = [];
+    return;
+  }
+
+  try {
+    const res = await apiFetch(`/api/portefeuilles/${store.portefeuilleSelectionneId}/positions`);
+    if (!res.ok) throw new Error('Erreur chargement des positions');
+
+    store.portefeuillePositions = await res.json();
+  } catch (error) {
+    console.error('Erreur chargement positions portefeuille:', error);
+  }
+}
+
+async function selectionnerPortefeuille(id) {
+  Alpine.store('portfolio').portefeuilleSelectionneId = id;
+  await chargerPositionsPortefeuille();
+}
+
+async function ajouterPortefeuille() {
+  const nom = await showPrompt('Nom du nouveau portefeuille :');
+  if (!nom || !nom.trim()) return;
+
+  await executerAction(async () => {
+    const res = await apiFetch('/api/portefeuilles', {
+      method: 'POST',
+      body: JSON.stringify({ nom: nom.trim() })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur creation portefeuille');
+    }
+
+    const { id } = await res.json();
+    Alpine.store('portfolio').portefeuilleSelectionneId = id;
+    await chargerPortefeuilles();
+    showToast('Portefeuille cree', 'success');
+  }, 'Erreur creation portefeuille');
+}
+
+async function renommerPortefeuille(portefeuille) {
+  const nom = await showPrompt('Nouveau nom du portefeuille :', portefeuille.nom);
+  if (!nom || !nom.trim() || nom.trim() === portefeuille.nom) return;
+
+  await executerAction(async () => {
+    const res = await apiFetch(`/api/portefeuilles/${portefeuille.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nom: nom.trim() })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur renommage portefeuille');
+    }
+
+    await chargerPortefeuilles();
+    showToast('Portefeuille renomme', 'success');
+  }, 'Erreur renommage portefeuille');
+}
+
+async function supprimerPortefeuille(portefeuille) {
+  const ok = await showConfirm(
+    `Supprimer le portefeuille "${portefeuille.nom}" et toutes ses valeurs ?`,
+    'Supprimer le portefeuille'
+  );
+  if (!ok) return;
+
+  await executerAction(async () => {
+    const res = await apiFetch(`/api/portefeuilles/${portefeuille.id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erreur suppression portefeuille');
+
+    const store = Alpine.store('portfolio');
+    if (store.portefeuilleSelectionneId === portefeuille.id) {
+      store.portefeuilleSelectionneId = null;
+    }
+    await chargerPortefeuilles();
+    showToast('Portefeuille supprime', 'success');
+  }, 'Erreur suppression portefeuille');
+}
+
+function ouvrirAjoutPosition() {
+  if (!Alpine.store('portfolio').portefeuilleSelectionneId) return;
+
+  document.getElementById('inputTickerPosition').value = '';
+  document.getElementById('inputNomPosition').value = '';
+  document.getElementById('inputQuantitePosition').value = '';
+  document.getElementById('inputPrixRevientPosition').value = '';
+  rechercheTickerPosition.masquer();
+  openModal('modalAddPosition');
+}
+
+async function ajouterPosition() {
+  const ticker = document.getElementById('inputTickerPosition').value.trim().toUpperCase();
+  const type = document.getElementById('selectTypePosition').value;
+  const nom = document.getElementById('inputNomPosition').value.trim();
+  const quantite = parseFloat(document.getElementById('inputQuantitePosition').value);
+  const prixRevient = parseFloat(document.getElementById('inputPrixRevientPosition').value);
+
+  if (!ticker) {
+    showToast('Ticker requis', 'warning');
+    return;
+  }
+  if (!(quantite > 0)) {
+    showToast('Quantite requise', 'warning');
+    return;
+  }
+  if (!(prixRevient >= 0)) {
+    showToast('Prix de revient requis', 'warning');
+    return;
+  }
+
+  await executerAction(async () => {
+    const portefeuilleId = Alpine.store('portfolio').portefeuilleSelectionneId;
+
+    const res = await apiFetch(`/api/portefeuilles/${portefeuilleId}/positions`, {
+      method: 'POST',
+      body: JSON.stringify({ ticker, type, nom, quantite, prixRevient })
+    });
+
+    if (res.status === 409) {
+      const data = await res.json();
+      showToast(data.error || 'Cette valeur est deja dans ce portefeuille', 'warning');
+      return;
+    }
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur ajout de la valeur');
+    }
+
+    await chargerPositionsPortefeuille();
+    showToast(`${ticker} ajoute au portefeuille`, 'success');
+    closeAllModals();
+  }, 'Erreur ajout de la valeur');
+}
+
+async function supprimerPosition(position) {
+  const ok = await showConfirm(`Supprimer ${position.ticker} de ce portefeuille ?`, 'Supprimer la valeur');
+  if (!ok) return;
+
+  await executerAction(async () => {
+    const portefeuilleId = Alpine.store('portfolio').portefeuilleSelectionneId;
+    const res = await apiFetch(`/api/portefeuilles/${portefeuilleId}/positions/${position.id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erreur suppression valeur');
+
+    await chargerPositionsPortefeuille();
+    showToast(`${position.ticker} supprime`, 'success');
+  }, 'Erreur suppression valeur');
 }
 
 function marquerSortableInit(el) {
@@ -1331,6 +1566,38 @@ function calculerCanalRegression(prices) {
 let graphiqueDonneesCompletes = null;
 let plageVisible = { debut: 0, fin: 0 };
 
+// Taux de plus/moins-value sur la periode de graphique actuellement chargee
+// (bouton 1J/1S/1M/1A/Max), du premier au dernier point exploitable de
+// `prices` - jamais recalcule pendant un pincement (voir § ZOOM PAR
+// PINCEMENT ci-dessus) : reste rattache a la periode selectionnee, pas a la
+// fenetre visible momentanement obtenue par zoom, coherent avec le fait que
+// les boutons de periode restent le seul moyen de "reinitialiser" un zoom.
+function calculerVariationPeriode(prices) {
+  const valeursValides = prices.filter((p) => p !== null && p !== undefined);
+  if (valeursValides.length < 2) return null;
+
+  const depart = valeursValides[0];
+  const arrivee = valeursValides[valeursValides.length - 1];
+  const eur = arrivee - depart;
+  const pct = depart ? (eur / depart) * 100 : 0;
+
+  return { eur, pct };
+}
+
+function afficherVariationPeriode(prices) {
+  const el = document.getElementById('graphiquePeriodeVariation');
+  const variation = calculerVariationPeriode(prices);
+
+  if (!variation) {
+    el.hidden = true;
+    return;
+  }
+
+  el.hidden = false;
+  el.className = 'graphique-periode-variation ' + (variation.eur >= 0 ? 'success' : 'danger');
+  el.textContent = `Sur la periode : ${formatSigneCours(variation.eur)} (${formatVariation(variation.pct)})`;
+}
+
 async function chargerGraphique(ticker, period) {
   const container = document.getElementById('graphiqueContainer');
   container.innerHTML = '<div class="loader-inline"><div class="spinner-small"></div></div>';
@@ -1350,6 +1617,8 @@ async function chargerGraphique(ticker, period) {
     const prices = data.map((d) => d.close);
     const volumes = data.map((d) => d.volume || 0);
     const previousClose = result.previousClose;
+
+    afficherVariationPeriode(prices);
 
     const themeSombre = getTheme() === 'dark';
     const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';
@@ -1384,6 +1653,7 @@ async function chargerGraphique(ticker, period) {
     console.error('Erreur chargement graphique:', error);
     graphiqueDonneesCompletes = null;
     plageVisible = { debut: 0, fin: 0 };
+    document.getElementById('graphiquePeriodeVariation').hidden = true;
     container.innerHTML = `
       <div class="empty-state-small">
         <p>Erreur chargement des donnees</p>
@@ -1720,6 +1990,7 @@ function setupEventListeners() {
     chargerValeurs();
     chargerAlertes();
     chargerIndices();
+    chargerPortefeuilles();
   });
 
   const userMenuBtn = document.getElementById('userMenuBtn');
@@ -1738,21 +2009,16 @@ function setupEventListeners() {
 
   document.getElementById('fab').addEventListener('click', () => ouvrirAjoutValeur());
 
-  const inputTicker = document.getElementById('inputTicker');
-  inputTicker.addEventListener('input', onInputTickerChange);
-
-  // Fermeture sur clic/tap exterieur (meme principe que le menu utilisateur
-  // ci-dessus) plutot que sur blur + delai : blur se declenche des qu'un
-  // autre element recoit le focus (ou meme au premier toucher sur mobile),
-  // avant qu'un tap sur un resultat n'ait eu le temps d'aboutir - la
-  // fermeture sur clic exterieur n'a pas cette course, un tap sur un
-  // resultat le selectionne toujours avant que quoi que ce soit d'autre ne
-  // ferme la liste (voir afficherRechercheResultats).
-  document.addEventListener('click', (e) => {
-    const resultats = document.getElementById('rechercheResultats');
-    if (!resultats.hidden && e.target !== inputTicker && !resultats.contains(e.target)) {
-      masquerRechercheResultats();
-    }
+  // redefinit toujours #inputNom(Position) avec le nom complet de la
+  // valeur selectionnee (ecrase une eventuelle saisie manuelle prealable,
+  // voir DESIGN.md § Recherche de valeur a l'ajout).
+  rechercheTickerValeur = creerRechercheTicker('inputTicker', 'rechercheResultats', (resultat) => {
+    document.getElementById('inputTicker').value = resultat.ticker;
+    document.getElementById('inputNom').value = resultat.nom;
+  });
+  rechercheTickerPosition = creerRechercheTicker('inputTickerPosition', 'rechercheResultatsPosition', (resultat) => {
+    document.getElementById('inputTickerPosition').value = resultat.ticker;
+    document.getElementById('inputNomPosition').value = resultat.nom;
   });
 
   document.getElementById('promptInput').addEventListener('keydown', (e) => {
@@ -1808,7 +2074,8 @@ function openModal(modalId) {
 
 function closeAllModals() {
   fermerPlacementAlerte();
-  masquerRechercheResultats();
+  if (rechercheTickerValeur) rechercheTickerValeur.masquer();
+  if (rechercheTickerPosition) rechercheTickerPosition.masquer();
   document.querySelectorAll('.modal').forEach((modal) => {
     modal.classList.remove('active');
   });
@@ -1932,6 +2199,15 @@ function formatVariation(variation) {
   return `${signe}${v.toFixed(2)}%`;
 }
 
+// Comme formatCoursDevise(), mais garde le signe (+/-) et n'affiche jamais
+// "-" pour une valeur nulle : utilise pour un ecart (+/- value latente,
+// variation sur une periode), jamais pour un cours absolu.
+function formatSigneCours(valeur, devise) {
+  const v = valeur || 0;
+  const signe = v >= 0 ? '+' : '';
+  return `${signe}${v.toFixed(2)} ${devise || 'EUR'}`;
+}
+
 function formatCoursDevise(cours, devise) {
   if (!cours) return '-';
   return cours.toFixed(2) + ' ' + (devise || 'EUR');
@@ -1945,4 +2221,5 @@ window.addEventListener('beforeunload', () => {
   if (valeursPollInterval) clearInterval(valeursPollInterval);
   if (alertesPollInterval) clearInterval(alertesPollInterval);
   if (indicesPollInterval) clearInterval(indicesPollInterval);
+  if (portefeuillesPollInterval) clearInterval(portefeuillesPollInterval);
 });

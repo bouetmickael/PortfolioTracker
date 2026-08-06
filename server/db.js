@@ -79,6 +79,30 @@ db.exec(`
     devise TEXT NOT NULL DEFAULT 'EUR',
     derniere_maj INTEGER
   );
+
+  CREATE TABLE IF NOT EXISTS portefeuilles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    nom TEXT NOT NULL,
+    ordre INTEGER NOT NULL DEFAULT 0,
+    cree_le INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS portefeuille_lignes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    portefeuille_id INTEGER NOT NULL REFERENCES portefeuilles(id) ON DELETE CASCADE,
+    ticker TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'Action',
+    nom TEXT NOT NULL DEFAULT '',
+    quantite REAL NOT NULL,
+    prix_revient REAL NOT NULL,
+    cours REAL NOT NULL DEFAULT 0,
+    variation REAL NOT NULL DEFAULT 0,
+    derniere_maj INTEGER,
+    ajoute_le INTEGER NOT NULL,
+    ordre INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(portefeuille_id, ticker)
+  );
 `);
 
 // Amorcage des indices de marche suivis (liste fixe, voir server/indices.js) :

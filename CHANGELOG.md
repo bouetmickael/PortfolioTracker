@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.10.0
+
+- **Fonctionnalite** : taux de plus/moins-value sur la periode du
+  graphique. A l'ouverture du graphique d'une valeur ou d'un indice (et
+  a chaque changement de periode 1J/1S/1M/1A/Max), un indicateur affiche
+  desormais l'ecart entre le premier et le dernier cours de la periode
+  chargee, en euros et en pourcentage, colore vert/rouge selon le signe.
+- **Fonctionnalite** : nouvel onglet "Portefeuilles" (barre d'onglets en
+  bas de l'ecran, a cote de "Suivi") pour reconstituer un ou plusieurs
+  portefeuilles reels - quantite de titres detenue et prix de revient par
+  valeur, avec calcul automatique du cours actuel, de la valeur totale et
+  de la plus/moins-value latente (en euros et en pourcentage) par valeur
+  et pour le portefeuille entier. Plusieurs portefeuilles peuvent etre
+  crees et selectionnes via une liste de pilules, independamment de la
+  liste "Valeurs suivies" existante (deux concepts distincts : suivre un
+  cours sans quantite, contre reconstituer une position reellement
+  detenue).
+
 ## 1.9.20
 
 - **Fonctionnalite** : le bouton de partage (icone) de l'en-tete d'une

@@ -25,6 +25,9 @@ gestion de rôles, pas d'inscription publique protégée par invitation — voir
 
 ## Écran principal (`public/index.html`)
 
+- **Barre d'onglets** (bas de l'écran, fixe) : « Suivi » (contenu
+  ci-dessous) et « Portefeuilles » (voir § Écran Portefeuilles) — voir
+  `DESIGN.md` § Barre d'onglets.
 - **En-tête** : titre « Portfolio », bouton d'actualisation manuelle,
   bouton menu utilisateur (nom, email, déconnexion).
 - **Bloc statistiques** : 3 tuiles de suivi des indices de marché SBF 120,
@@ -56,13 +59,35 @@ gestion de rôles, pas d'inscription publique protégée par invitation — voir
   consultée (toutes valeurs/indices confondus), pas systématiquement sur
   1 mois — persistée dans `localStorage` (survit à un rafraîchissement de
   la page et à une fermeture/réouverture de la PWA), sans persistance
-  côté serveur.
+  côté serveur. Un indicateur sous le sélecteur de période affiche
+  également le taux de plus/moins-value de la période chargée (écart
+  entre le premier et le dernier cours, en euros et en pourcentage) —
+  voir `DESIGN.md` § Sélecteur de période (graphique).
 - **Rafraîchissement des données** : polling HTTP toutes les 30 secondes
-  pour les valeurs et les alertes (pas de mise à jour temps réel poussée
-  par le serveur), plus un bouton d'actualisation manuelle immédiate.
+  pour les valeurs, les alertes et les portefeuilles (pas de mise à jour
+  temps réel poussée par le serveur), plus un bouton d'actualisation
+  manuelle immédiate.
 - **Retours utilisateur** : toasts de confirmation/erreur (succès,
   avertissement, erreur, info), loader plein écran pendant les actions
   d'écriture (ajout/suppression de valeur ou d'alerte).
+
+## Écran Portefeuilles (onglet « Portefeuilles »)
+
+- Reconstitution d'un ou plusieurs portefeuilles réels, distincte de la
+  liste « Valeurs suivies » (qui ne suit qu'un cours, sans quantité ni
+  coût) — voir `DESIGN.md` § Portefeuilles et `BUSINESS_RULES.md` §
+  Portefeuilles.
+- Sélecteur de portefeuilles (pilules) + création d'un nouveau
+  portefeuille (modale prompt, nom uniquement).
+- Portefeuille actif : en-tête (nom, renommer, supprimer, ajouter une
+  valeur), résumé (valeur totale, plus/moins-value latente totale), puis
+  une carte par valeur détenue (nom, valeur totale de la ligne, quantité,
+  cours + variation du jour, prix de revient, plus/moins-value latente en
+  euros et en pourcentage), cliquable pour ouvrir son graphique.
+- Ajout d'une position : modale dédiée avec recherche de valeur par nom
+  (même mécanisme que l'ajout d'une valeur suivie), quantité et prix de
+  revient. Le ticker est vérifié sur Yahoo Finance avant l'ajout, comme
+  pour une valeur suivie.
 
 ## Alertes de seuil par email
 

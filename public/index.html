@@ -24,7 +24,7 @@
   <meta name="apple-mobile-web-app-title" content="Portfolio">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 </head>
-<body x-data>
+<body x-data="{ vueActive: 'suivi' }">
 
   <svg style="display:none" aria-hidden="true">
     <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -92,6 +92,18 @@
     <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"></polyline>
     </symbol>
+    <symbol id="icon-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"></line>
+      <line x1="8" y1="12" x2="21" y2="12"></line>
+      <line x1="8" y1="18" x2="21" y2="18"></line>
+      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+    </symbol>
+    <symbol id="icon-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+    </symbol>
   </svg>
 
   <header class="header">
@@ -122,6 +134,19 @@
     <hr>
     <button onclick="logout()" class="menu-item">Deconnexion</button>
   </div>
+
+  <nav class="tab-bar">
+    <button class="tab-bar-item" :class="{ active: vueActive === 'suivi' }" @click="vueActive = 'suivi'">
+      <svg class="icon"><use href="#icon-list"></use></svg>
+      <span>Suivi</span>
+    </button>
+    <button class="tab-bar-item" :class="{ active: vueActive === 'portefeuilles' }" @click="vueActive = 'portefeuilles'">
+      <svg class="icon"><use href="#icon-briefcase"></use></svg>
+      <span>Portefeuilles</span>
+    </button>
+  </nav>
+
+  <div x-show="vueActive === 'suivi'">
 
   <section class="stats-container">
     <template x-for="indice in $store.portfolio.indices" :key="indice.ticker">
@@ -310,7 +335,105 @@
     </div>
   </section>
 
-  <button id="fab" class="fab" title="Ajouter une valeur" aria-label="Ajouter une valeur">
+  </div>
+
+  <div x-show="vueActive === 'portefeuilles'">
+
+  <section class="section">
+    <div class="section-header">
+      <div class="section-header-titre">
+        <h2>Portefeuilles</h2>
+      </div>
+    </div>
+
+    <div class="portefeuilles-selector" x-show="$store.portfolio.portefeuilles.length > 0">
+      <template x-for="p in $store.portfolio.portefeuilles" :key="p.id">
+        <button
+          class="btn-periode"
+          :class="{ active: p.id === $store.portfolio.portefeuilleSelectionneId }"
+          @click="selectionnerPortefeuille(p.id)"
+          x-text="p.nom"
+        ></button>
+      </template>
+      <button class="btn-periode" @click="ajouterPortefeuille()">+ Nouveau</button>
+    </div>
+
+    <div class="empty-state" x-show="$store.portfolio.portefeuilles.length === 0">
+      <p>Aucun portefeuille</p>
+      <button @click="ajouterPortefeuille()" class="btn btn-primary">Creer un portefeuille</button>
+    </div>
+
+    <template x-if="portefeuilleActif()">
+      <div class="valeurs-section portefeuille-detail">
+        <div class="valeurs-section-header">
+          <h3 class="valeurs-section-nom valeurs-section-nom-partagee" x-text="portefeuilleActif().nom"></h3>
+          <div class="valeurs-section-actions">
+            <button class="btn-icon-small" @click="ouvrirAjoutPosition()" title="Ajouter une valeur" aria-label="Ajouter une valeur">
+              <svg class="icon icon-sm"><use href="#icon-plus"></use></svg>
+            </button>
+            <button class="btn-icon-small" @click="renommerPortefeuille(portefeuilleActif())" title="Renommer le portefeuille" aria-label="Renommer le portefeuille">
+              <svg class="icon icon-sm"><use href="#icon-pencil"></use></svg>
+            </button>
+            <button class="btn-icon-small" @click="supprimerPortefeuille(portefeuilleActif())" title="Supprimer le portefeuille" aria-label="Supprimer le portefeuille">
+              <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="portefeuille-resume" x-show="$store.portfolio.portefeuillePositions.length > 0">
+          <div class="portefeuille-resume-ligne">
+            <span>Valeur totale</span>
+            <span x-text="formatCours(totalValeurPortefeuille())"></span>
+          </div>
+          <div class="portefeuille-resume-ligne">
+            <span>Plus/moins-value latente</span>
+            <span :class="totalLatenteEur() >= 0 ? 'success' : 'danger'" x-text="formatSigneCours(totalLatenteEur()) + ' (' + formatVariation(totalLatentePct()) + ')'"></span>
+          </div>
+        </div>
+
+        <div class="portefeuille-positions">
+          <template x-for="position in $store.portfolio.portefeuillePositions" :key="position.id">
+            <div class="portefeuille-position-card" @click="openGraphique(position.ticker, position.nom)">
+              <button class="btn-icon-small btn-icon-xs portefeuille-position-supprimer" @click.stop="supprimerPosition(position)" title="Supprimer" aria-label="Supprimer">
+                <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
+              </button>
+              <div class="portefeuille-position-header">
+                <div class="portefeuille-position-nom" x-text="position.nom || position.ticker"></div>
+                <div class="portefeuille-position-total" x-text="formatCours(position.cours * position.quantite)"></div>
+              </div>
+              <div class="portefeuille-position-quantite" x-text="position.quantite + ' titres'"></div>
+
+              <div class="portefeuille-position-ligne">
+                <span>Cours</span>
+                <span>
+                  <span x-text="formatCours(position.cours)"></span>
+                  <span :class="(position.variation || 0) >= 0 ? 'success' : 'danger'" x-text="formatVariation(position.variation)"></span>
+                </span>
+              </div>
+              <div class="portefeuille-position-ligne">
+                <span>Prix de revient</span>
+                <span x-text="formatCours(position.prixRevient)"></span>
+              </div>
+              <div class="portefeuille-position-ligne">
+                <span>+/- value latente</span>
+                <span>
+                  <span :class="latenteEur(position) >= 0 ? 'success' : 'danger'" x-text="formatSigneCours(latenteEur(position))"></span>
+                  <span :class="latenteEur(position) >= 0 ? 'success' : 'danger'" x-text="formatVariation(latentePct(position))"></span>
+                </span>
+              </div>
+            </div>
+          </template>
+          <div class="valeurs-section-vide" x-show="$store.portfolio.portefeuillePositions.length === 0">
+            Aucune valeur dans ce portefeuille - ajoutez-en une avec le bouton +
+          </div>
+        </div>
+      </div>
+    </template>
+  </section>
+
+  </div>
+
+  <button id="fab" class="fab" title="Ajouter une valeur" aria-label="Ajouter une valeur" x-show="vueActive === 'suivi'">
     <svg class="icon icon-large"><use href="#icon-plus"></use></svg>
   </button>
 
@@ -357,6 +480,70 @@
       <div class="modal-footer">
         <button onclick="closeAllModals()" class="btn btn-secondary">Annuler</button>
         <button onclick="ajouterValeur()" class="btn btn-primary">Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalAddPosition" class="modal">
+    <div class="modal-backdrop" onclick="closeAllModals()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Ajouter une valeur au portefeuille</h3>
+        <button class="btn-close" onclick="closeAllModals()" aria-label="Fermer"><svg class="icon icon-sm"><use href="#icon-x"></use></svg></button>
+      </div>
+      <div class="modal-body">
+        <label class="label">Ticker ou nom de la valeur</label>
+        <div class="recherche-ticker-wrapper">
+          <input
+            type="text"
+            id="inputTickerPosition"
+            placeholder="Ex: AAPL, MC.PA, BNP.PA ou Schneider"
+            class="input"
+            autocomplete="off"
+          >
+          <div id="rechercheResultatsPosition" class="recherche-resultats" hidden></div>
+        </div>
+        <small class="help-text">
+          Le ticker doit exister sur Yahoo Finance (verifie a l'ajout).
+        </small>
+
+        <label class="label">Type</label>
+        <select id="selectTypePosition" class="input">
+          <option value="Action">Action</option>
+          <option value="Warrant">Warrant</option>
+        </select>
+
+        <label class="label">Nom (optionnel)</label>
+        <input
+          type="text"
+          id="inputNomPosition"
+          placeholder="Ex: Apple Inc."
+          class="input"
+        >
+
+        <label class="label">Quantite (titres detenus)</label>
+        <input
+          type="number"
+          id="inputQuantitePosition"
+          placeholder="Ex: 30"
+          class="input"
+          step="0.0001"
+          min="0"
+        >
+
+        <label class="label">Prix de revient (par titre)</label>
+        <input
+          type="number"
+          id="inputPrixRevientPosition"
+          placeholder="Ex: 5.00"
+          class="input"
+          step="0.01"
+          min="0"
+        >
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeAllModals()" class="btn btn-secondary">Annuler</button>
+        <button onclick="ajouterPosition()" class="btn btn-primary">Ajouter</button>
       </div>
     </div>
   </div>
@@ -419,6 +606,7 @@
           <button class="btn-periode" data-period="1Y">1A</button>
           <button class="btn-periode" data-period="MAX">Max</button>
         </div>
+        <div id="graphiquePeriodeVariation" class="graphique-periode-variation" hidden></div>
         <div id="graphiqueWrapper">
           <div id="graphiquePriceZone">
             <div id="graphiqueContainer">

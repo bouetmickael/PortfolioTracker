@@ -174,6 +174,57 @@
   partage — aucune autre donnee (mot de passe, valeurs, sections) n'est
   exposee par cette route.
 
+## Portefeuilles (positions detenues)
+
+- Concept distinct des « Valeurs suivies » : un portefeuille reconstitue
+  une position reellement detenue (quantite de titres + prix de revient),
+  la liste des valeurs suivies ne suit qu'un cours sans quantite ni cout.
+  Les deux listes sont independantes (une valeur suivie n'a pas besoin
+  d'etre dans un portefeuille, et inversement).
+- Un portefeuille (table `portefeuilles`) n'appartient qu'a un seul
+  `user_id`, aucun partage possible (contrairement aux sections) : toute
+  lecture/ecriture sur `portefeuilles`/`portefeuille_lignes` est filtree
+  par `user_id` en SQL (`portefeuillePossede()`,
+  `server/routes/portefeuilles.js`), meme regle d'isolation que
+  `valeurs`/`alertes`/`sections`. Toutes les routes exigent `requireAuth`.
+- Un utilisateur peut creer plusieurs portefeuilles, sans minimum requis
+  (contrairement aux sections, qui exigent toujours au moins une section
+  "General") : supprimer le dernier portefeuille d'un utilisateur est
+  autorise, l'application affiche alors un etat vide invitant a en
+  recreer un.
+- **Une meme valeur ne peut apparaitre qu'une fois par portefeuille**
+  (contrainte `UNIQUE(portefeuille_id, ticker)`), tentative de doublon
+  dans le meme portefeuille -> 409. Contrairement aux sections de la
+  liste des valeurs suivies, rien n'empeche en revanche la meme valeur
+  d'etre presente dans plusieurs portefeuilles differents de
+  l'utilisateur (chaque portefeuille est une reconstitution independante,
+  ex. un CTO et un PEA peuvent tous deux detenir la meme action).
+- **Le ticker est verifie sur Yahoo Finance avant l'ajout d'une position**
+  (`verifierTickerExiste`, meme fonction partagee que pour l'ajout d'une
+  valeur suivie, voir § Valeurs suivies) : une position est toujours
+  creee avec un cours reel des sa creation, jamais a 0 en attendant le
+  prochain cycle de la tache planifiee.
+- La quantite doit etre strictement positive et le prix de revient
+  positif ou nul (400 sinon) ; la quantite et le prix de revient d'une
+  position existante peuvent etre modifies (`PUT
+  /api/portefeuilles/:id/positions/:positionId`) sans recreer la ligne.
+- Supprimer un portefeuille supprime toutes ses positions (`ON DELETE
+  CASCADE` sur `portefeuille_lignes.portefeuille_id`, contrairement a la
+  suppression d'une section qui reassigne ses valeurs plutot que de les
+  supprimer).
+- Le cours de chaque position est mis a jour par une tache planifiee
+  dediee (`updatePortefeuilleLignes()`, `server/jobs/prices.js`, meme
+  cadence de 2 minutes que les valeurs suivies et les indices) - meme
+  regle d'integrite des cours que le reste de l'application (voir §
+  Integrite des cours ci-dessous) : aucune donnee inventee en cas
+  d'echec.
+- **Aucune alerte de seuil sur une position de portefeuille** : le
+  formulaire/le glisser-depose de creation d'alerte restent reserves aux
+  valeurs de la liste "Valeurs suivies" de l'utilisateur (voir §
+  Alertes de seuil ci-dessous, meme raison technique -
+  `checkAlerts()` ne rejoint que la table `valeurs`, jamais
+  `portefeuille_lignes`) - non demande, pas implemente.
+
 ## Alertes de seuil
 
 - Une alerte doit définir au moins un seuil (`seuilHaut` ou `seuilBas`) ;

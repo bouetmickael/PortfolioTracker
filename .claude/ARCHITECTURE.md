@@ -104,6 +104,7 @@
     ├── load-addon-options.js     # traduction /data/options.json -> variables d'environnement
     ├── yahooFinance.js           # squelette reseau bas niveau Yahoo Finance (fetch/ok/json)
     ├── valeurs.js                # logique valeurs partagee entre routes (mapping, creation/suppression, recherche)
+    ├── portefeuilles.js          # logique positions de portefeuille partagee entre routes (mapping, insertion)
     ├── partage.js                # controle d'acces aux sections partagees (rolesSection/roleSection/peutEcrire)
     ├── ordre.js                  # calcul du prochain `ordre` disponible (sections/valeurs)
     ├── ticker.js                 # normalizeTicker() (trim + majuscules)
@@ -119,11 +120,12 @@
     │   ├── sections.js              # /api/sections (CRUD sections, partages, valeurs de section, PUT /reorder)
     │   ├── users.js                  # /api/users (liste des comptes connus, pour le partage de section)
     │   ├── indices.js               # /api/indices (cours des indices de marche suivis)
+    │   ├── portefeuilles.js         # /api/portefeuilles (CRUD portefeuilles + positions detenues)
     │   └── chart.js                 # /api/chart/:ticker (historique Yahoo Finance, cache memoire 60s)
     ├── jobs/
-    │   ├── prices.js               # mise à jour des cours des valeurs + des indices (cron 2 min)
+    │   ├── prices.js               # mise à jour des cours des valeurs + des indices + des positions de portefeuille (cron 2 min)
     │   ├── alerts.js                # vérification + envoi des alertes (cron 2 min)
-    │   └── parallel.js               # traiterEnParallele() : Promise.allSettled partage par les 3 jobs ci-dessus
+    │   └── parallel.js               # traiterEnParallele() : Promise.allSettled partage par les jobs ci-dessus
     └── test/                     # node:test (npm test), voir §1 Tests
         ├── support/helpers.js     # serveur de test isolé + DB SQLite temporaire + mocks Yahoo Finance
         ├── sections.test.js
@@ -132,7 +134,8 @@
         ├── partage.test.js
         ├── chart.test.js
         ├── db-migration.test.js
-        └── valeurs.test.js
+        ├── valeurs.test.js
+        └── portefeuilles.test.js
 ```
 
 ## 3. Découpage en couches et flux
@@ -161,10 +164,13 @@
    Avant-bourse) via `updatePrices` (valeurs suivies par au moins un
    utilisateur) ainsi que les 3 indices de marché suivis
    (`updateIndices`, liste fixe `server/indices.js`, données globales non
-   rattachées à un utilisateur) — les deux jobs et `server/jobs/alerts.js`
-   traitent leurs items (tickers/alertes) en parallèle via
-   `traiterEnParallele()` (`server/jobs/parallel.js`, `Promise.allSettled`,
-   une erreur individuelle n'interrompt pas les autres) ;
+   rattachées à un utilisateur) ainsi que les positions de portefeuille
+   (`updatePortefeuilleLignes`, tickers distincts de
+   `portefeuille_lignes`, voir `BUSINESS_RULES.md` § Portefeuilles) — ces
+   trois jobs et `server/jobs/alerts.js` traitent leurs items
+   (tickers/alertes) en parallèle via `traiterEnParallele()`
+   (`server/jobs/parallel.js`, `Promise.allSettled`, une erreur
+   individuelle n'interrompt pas les autres) ;
    `server/routes/chart.js` interroge le même endpoint pour l'historique
    par période (1J/1S/1M/1A/Max), avec un cache mémoire de 60 secondes par
    ticker+période pour éviter un appel identique à chaque réouverture du

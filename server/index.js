@@ -7,7 +7,7 @@ const http = require('http');
 const https = require('https');
 const cron = require('node-cron');
 const app = require('./app');
-const { updatePrices, updateIndices } = require('./jobs/prices');
+const { updatePrices, updateIndices, updatePortefeuilleLignes } = require('./jobs/prices');
 const { checkAlerts } = require('./jobs/alerts');
 
 const PORT = process.env.PORT || 3000;
@@ -48,4 +48,8 @@ cron.schedule('*/2 * * * *', () => {
 
 cron.schedule('*/2 * * * *', () => {
   checkAlerts().catch((error) => console.error('Erreur globale checkAlerts:', error));
+}, { timezone: 'Europe/Paris' });
+
+cron.schedule('*/2 * * * *', () => {
+  updatePortefeuilleLignes().catch((error) => console.error('Erreur globale updatePortefeuilleLignes:', error));
 }, { timezone: 'Europe/Paris' });
