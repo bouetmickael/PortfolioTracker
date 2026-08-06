@@ -2687,3 +2687,88 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - Version : `server/package.json`/`server/package-lock.json`/
   `config.yaml` 1.9.19 -> 1.9.20 (`METHOD.md` §5.5, changement
   observable par l'utilisateur).
+
+## 2026-08-06 — Session 53, Revue de dette technique n°9
+
+- **Contexte** : compteur `BACKLOG.md` a 5/5 apres la Session 52 ->
+  session obligatoirement consacree au cycle de revue (`METHOD.md`
+  §0.2), pas a une nouvelle fonctionnalite.
+- **Portee** : diff cumule depuis la cloture de la Revue n°8 jusqu'a
+  HEAD sur `main` (`git diff 7bbc386..HEAD -- server/ public/
+  ':!public/vendor'`). Correction de portee par rapport au prompt de
+  session initial (qui indiquait `d15c6a3..HEAD`) : `d15c6a3` est la
+  borne haute du diff deja revu par la Revue n°8 elle-meme (Sessions 40
+  a 45), pas sa cloture - la cloture reelle est `7bbc386` (« Session 46
+  - technical debt review n8 »), le commit qui applique les correctifs
+  de la Revue n°8. Meme type de correction de portee que celle deja
+  appliquee aux Revues n°3/n°4/n°5/n°6 - voir `CLAUDE.md` § Historique
+  des revues, Revue n°9, pour le detail complet. Portee reelle : Sessions
+  47 a 52 (canal de regression en orientation paysage, deplacement puis
+  translucidite de la pastille de seuil d'alerte, zoom par pincement du
+  graphique en deux temps, icone de partage allumee).
+- **Outillage** : `/simplify` (4 agents de revue en parallele :
+  reutilisation, simplification, efficacite, altitude), lances via le
+  tool Agent sur le diff sauvegarde dans le scratchpad de la session.
+- **Correctifs appliques** (risque faible, comportement inchange) :
+  - `pincementRect` (`public/app.js`) : le rectangle du canvas
+    (`getBoundingClientRect()`) du geste de pincement est desormais
+    capture une seule fois au debut du geste
+    (`pincementOnPointerDown()`) et reutilise a chaque `pointermove`, au
+    lieu d'etre recalcule a chaque evenement - meme correctif deja
+    applique en Session 30/Revue n°4 au geste soeur de placement d'une
+    alerte (`dragRect`). Signale independamment par 3 des 4 agents.
+  - `pointsPincement()` (`public/app.js`), remplace la ligne dupliquee
+    `const [p1, p2] = [...pincementPointers.values()]` en tete de
+    `distancePincement()`/`centreXPincement()`.
+  - Fusion CSS `.alerte-drag-badge`/`.alerte-existante-badge`/
+    `.alerte-hors-limite` (`public/styles.css`) : les Sessions 48/49
+    avaient rendu les trois pastilles visuellement equivalentes sur 6
+    proprietes (`position`, `left: 8px`, `border-radius`,
+    `pointer-events`, `white-space`, `font-weight`) sans reprendre la
+    technique de fusion deja appliquee au couple
+    `.alerte-drag-line`/`.alerte-existante-ligne` juste au-dessus dans le
+    meme fichier. CSS calcule strictement identique avant/apres.
+  - `libellePartage(section)` (`public/app.js`), remplace la meme
+    expression ternaire dupliquee entre `:title` et `:aria-label` du
+    bouton `icon-share` (`public/index.html`, Session 52).
+- **Correctifs evalues et explicitement ecartes** : extraction d'un
+  helper de couleur succes/danger partage entre le canal de regression
+  (hex) et `calculerCouleursVolume()` (rgba avec opacite) - formats
+  reellement differents, indirection non justifiee pour une seule paire
+  de constantes ; `mqPaysage.matches` lu directement a 3 endroits plutot
+  qu'un accesseur unique - gain juge trop faible.
+- **Correctifs reportes** (documentes dans `CLAUDE.md` § Historique des
+  revues, Revue n°9, pas corriges cette session) : destruction/
+  reconstruction complete du DOM des alertes a chaque frame de redessin
+  du zoom par pincement (`afficherAlertesGraphique()` appelee depuis
+  `redessinerPlageVisible()`) ; reconstruction complete des tableaux de
+  donnees Chart.js a chaque frame de zoom plutot qu'une mutation en
+  place ; condition `mqPaysage.matches` embarquee directement dans
+  `chargerGraphique()` (fonction de chargement generique) pour le canal
+  de regression ; `chargerPartagesSection()` qui mute
+  `sectionCiblePartage.partagee` en effet de bord ; sous-requete
+  `EXISTS(...)` de `partagee` (`server/routes/sections.js`) non
+  factorisee en constante nommee (occurrence unique, pas encore
+  justifie) et calculee pour des lignes qui ne la lisent jamais (sections
+  partagees avec moi). Correctifs reportes des revues n°1 a n°8
+  toujours non traites (liste inchangee).
+- **Verification** : `npm install` (server/, node_modules absent au
+  demarrage de la session) puis `node --test test/*.test.js` (62/62,
+  aucune regression). Demarrage reel du serveur local (`GET /`/
+  `GET /login.html`/`GET /app.js`/`GET /styles.css` -> 200). Pas de
+  parcours Playwright cette session : le CDN Chart.js reste bloque par
+  la politique reseau du bac a sable, et les 4 correctifs appliques sont
+  des refactorisations a comportement prouve identique par lecture/
+  analyse statique du code (mise en cache d'une valeur deja lue ailleurs
+  a l'identique, fusion CSS a proprietes calculees rigoureusement
+  identiques avant/apres, extractions de fonctions sans changement de
+  logique) plutot que des changements de mecanisme visuel ou interactif.
+- **Documentation mise a jour** : `CLAUDE.md` (§ Historique des revues
+  de dette technique, Revue n°9), `BACKLOG.md` (compteur reinitialise a
+  0/5).
+- **Version** : pas d'incrementation (`METHOD.md` §5.5 - le cycle de
+  revue n'incremente le compteur de version que si les correctifs
+  changent un comportement observable par l'utilisateur ; les 4
+  correctifs appliques cette session sont strictement internes -
+  optimisation de performance imperceptible, fusion CSS a rendu
+  identique, extractions de fonctions).

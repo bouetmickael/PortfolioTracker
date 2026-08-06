@@ -1138,3 +1138,167 @@ variables d'environnement, vérification).
     `server/db.js`, la quasi-duplication structurelle
     `updatePrices()`/`updateIndices()` — voir ci-dessus pour cette
     dernière) restent non traités, conformément à la consigne de session.
+
+### 2026-08-06 — Revue n°9
+
+- **Portée** : diff cumulé depuis la clôture de la Revue n°8 jusqu'à
+  `HEAD` (`git diff 7bbc386..HEAD -- server/ public/ ':!public/vendor'`).
+  Correction de portée par rapport au prompt de session initial (qui
+  indiquait `d15c6a3..HEAD`) : `d15c6a3` (« Session 45 - fix pre-market
+  detection and translucent alert badge ») est la borne **haute** du
+  diff effectivement revu par la Revue n°8 elle-même (« Couvre les
+  Sessions 40 à 45 », voir Revue n°8 ci-dessus), pas sa clôture — la
+  clôture réelle est `7bbc386` (« Session 46 - technical debt review
+  n8 »), commit qui applique les correctifs de la Revue n°8. Utiliser
+  `d15c6a3` aurait fait rentrer dans le périmètre de cette revue les
+  correctifs déjà appliqués et déjà journalisés par la Revue n°8
+  elle-même — même type de correction de portée déjà appliquée aux
+  Revues n°3/n°4/n°5/n°6. Portée réelle : Sessions 47 à 52 (canal de
+  régression en orientation paysage, déplacement puis translucidité de
+  la pastille de seuil d'alerte, zoom par pincement sur la période du
+  graphique en deux temps — preset puis fenêtre continue arbitraire —,
+  icône de partage allumée pour les sections déjà partagées), soit
+  exactement l'intervalle annoncé par le prompt de session (« Sessions
+  47 à 52 »), qui portait donc la bonne intention malgré la borne basse
+  erronée fournie. Outillage utilisé : `/simplify` (4 agents de revue en
+  parallèle : réutilisation, simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement inchangé,
+  vérifiés par tests unitaires (`node --test test/*.test.js`, 62/62) et
+  un démarrage réel du serveur (`GET /`/`GET /login.html`/`GET /app.js`/
+  `GET /styles.css` → 200) ; pas de parcours Playwright cette session
+  (le CDN Chart.js reste bloqué par la politique réseau du bac à sable et
+  les quatre correctifs appliqués sont des refactorisations à
+  comportement prouvé identique par analyse statique — voir le détail de
+  chacun ci-dessous — plutôt que des changements de mécanisme
+  observables) :
+  - `pincementRect` (`public/app.js`, zoom par pincement du graphique) :
+    le rectangle du canvas (`getBoundingClientRect()`) est désormais
+    capturé une seule fois au début du geste (`pincementOnPointerDown()`,
+    quand le second pointeur rejoint) et réutilisé par
+    `appliquerPincement()` à chaque `pointermove`, au lieu d'être
+    recalculé à chaque évènement — même correctif déjà appliqué en
+    Session 30/Revue n°4 au geste sœur de placement d'une alerte
+    (`dragRect`, `alerteOnPointerDown()`), pour la même raison
+    (`getBoundingClientRect()` force un recalcul de layout, potentiellement
+    coûteux, répété sur tout un geste). Signalé indépendamment par les 3
+    agents réutilisation/simplification/efficacité.
+  - `pointsPincement()` (`public/app.js`), remplace la ligne identique
+    `const [p1, p2] = [...pincementPointers.values()]` dupliquée en tête
+    de `distancePincement()` et `centreXPincement()`.
+  - Fusion CSS `.alerte-drag-badge`/`.alerte-existante-badge`/
+    `.alerte-hors-limite` (`public/styles.css`) : les Sessions 48/49
+    avaient déplacé la pastille de seuil actif de `right: 8px` à
+    `left: 8px` (pour ne plus chevaucher le cours actuel, voir Session
+    48 ci-dessus) sans reprendre la fusion déjà pratiquée pour
+    `.alerte-drag-line`/`.alerte-existante-ligne` juste au-dessus dans le
+    même fichier — les trois sélecteurs partagent désormais `position:
+    absolute`, `left: 8px`, `border-radius: 4px`, `pointer-events: none`,
+    `white-space: nowrap`, `font-weight: 500` à l'identique, extraits
+    dans une base commune ; chacun garde sa propre règle pour le fond, la
+    couleur, la bordure, le padding, la taille de police et le
+    `z-index`, qui diffèrent réellement entre le mode placement (or
+    plein, `--toast-neutral`) et les seuils existants/hors-limite
+    (translucide, `--danger`). CSS calculé strictement identique
+    avant/après — même technique de fusion déjà appliquée aux Revues
+    n°5/n°8 pour d'autres paires de sélecteurs de ce même fichier.
+  - `libellePartage(section)` (`public/app.js`), remplace la même
+    expression ternaire `section.partagee ? 'Section partagee' :
+    'Partager la section'` dupliquée entre `:title` et `:aria-label` du
+    bouton `icon-share` (`public/index.html`, Session 52).
+- **Correctifs évalués et explicitement écartés** (analysés plutôt que
+  reportés) :
+  - Extraction d'un helper `couleurSucces(themeSombre)`/
+    `couleurDanger(themeSombre)` pour les couleurs de bande du canal de
+    régression (`construireDatasetsPrix()`, `public/app.js`, hex
+    `#34a853`/`#5fbb7a`/`#ea4335`/`#f2685c`) partagé avec
+    `calculerCouleursVolume()` (mêmes valeurs RGB sous-jacentes, mais en
+    `rgba(...)` avec une opacité 0.6 pour les barres de volume) :
+    signalé par l'agent réutilisation, mais les deux sites ont des
+    formats de sortie réellement différents (hex plein vs rgba avec
+    alpha) — factoriser n'éliminerait qu'une paire de constantes
+    dupliquée une seule fois, pour le prix d'une indirection
+    supplémentaire. Laissé tel quel par choix, pas par prudence
+    générique.
+  - `mqPaysage.matches` (`public/app.js`, lu directement à 3 endroits :
+    `openGraphique()`, `pincementOnPointerDown()`,
+    `chargerGraphique()`) plutôt que derrière un accesseur nommé unique
+    (ex. `enPaysage()`) : signalé par l'agent altitude comme mineur («
+    worth a mention, not urgent »). Gain jugé trop faible pour
+    l'indirection ajoutée sur seulement 3 sites — laissé tel quel.
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - `redessinerPlageVisible()` (`public/app.js`, zoom par pincement)
+    appelle `afficherAlertesGraphique()` à chaque frame de redessin
+    (limité à une frame par `requestAnimationFrame`, mais potentiellement
+    plusieurs par seconde pendant un geste actif) — celle-ci détruit et
+    reconstruit intégralement les nœuds DOM de l'overlay des alertes
+    (`overlay.innerHTML = ''` puis `createElement`/`appendChild` par
+    seuil) au lieu de repositionner des éléments existants. Signalé par
+    l'agent efficacité comme transformant une dette déjà tolérée depuis
+    la Revue n°5 (« nœuds DOM créés/détruits à chaque appel ») en un
+    véritable chemin chaud interactif. Correctif envisageable (garder les
+    éléments vivants entre les frames, ne mettre à jour que
+    `style.top`/`style.bottom`/`textContent`) mais touche un mécanisme de
+    rendu utilisé pendant un geste utilisateur actif — à traiter avec un
+    test manuel/Playwright dédié plutôt qu'en correctif à l'aveugle,
+    même prudence que celle déjà appliquée aux gestes de glisser-déposer
+    de ce projet (Revues n°2/n°4/n°5).
+  - `redessinerPlageVisible()` reconstruit l'intégralité des tableaux de
+    données de chaque dataset Chart.js à chaque frame de zoom
+    (`construireDatasetsPrix()`, y compris le ré-`map()` complet de la
+    ligne « Clôture veille » et le re-découpage des 5 tableaux du canal
+    de régression) plutôt que de muter en place
+    `chartInstance.data.datasets[i].data` pour les seuls datasets déjà
+    existants. Signalé par l'agent efficacité. Correctif plus profond
+    (Chart.js n'a besoin que des tableaux `data` mis à jour pour
+    `update('none')`, pas de reconstruire les objets de style) mais
+    touche le même mécanisme de rendu interactif que le point
+    précédent — même prudence.
+  - `chargerGraphique()` (`public/app.js`) embarque directement la
+    condition `mqPaysage.matches ? calculerCanalRegression(prices) :
+    null` dans la fonction générique de chargement du graphique, partagée
+    par les valeurs, les indices et les sections partagées — signalé par
+    l'agent altitude comme la même catégorie de couplage que celle déjà
+    corrigée en Session 30/Revue n°4 pour `placementAlerteActif` (résolue
+    à l'époque en faisant émettre un évènement générique `chart:loaded`
+    plutôt qu'une branche codée en dur). Défendable ici (le calcul du
+    canal est coûteux et n'est de toute façon consommé que par
+    `construireDatasetsPrix()`/`trancheGraphique()` quand `tranche.canal`
+    est vrai), mais rend le chargeur générique non plus agnostique de
+    l'orientation — déplacer entièrement la condition derrière ses
+    consommateurs réels changerait un mécanisme central utilisé par
+    plusieurs types de graphiques, à valider avec prudence dans une
+    session dédiée plutôt qu'en correctif à risque faible ce cycle.
+  - `chargerPartagesSection()` (`public/app.js`, Session 52) mute
+    `sectionCiblePartage.partagee` en effet de bord au retour du
+    chargement de la liste des partages, pour piloter l'indicateur «
+    icône allumée » d'une fonctionnalité distincte — signalé par l'agent
+    altitude. Ce mécanisme ne fonctionne que parce que
+    `sectionCiblePartage` se trouve être la même référence Alpine que
+    l'objet rendu par le `x-for` de `$store.portfolio.sections`, un
+    couplage implicite dont dépend désormais silencieusement la
+    fonction. Une profondeur plus propre calculerait/exposerait
+    `partagee` comme une valeur dérivée, ou la mettrait à jour aux points
+    qui mutent réellement les partages (`ajouterPartage()`/
+    `supprimerPartage()`) plutôt que dans le chargeur de liste — non
+    traité cette session (fonctionnement correct, couplage pragmatique
+    déjà toléré à l'échelle de ce projet selon l'agent lui-même).
+  - `EXISTS(SELECT 1 FROM section_shares WHERE section_id =
+    sections.id) AS partagee` (`server/routes/sections.js`, `GET
+    /sections`, Session 52) reste une prédicat `EXISTS(...)` ad hoc en
+    ligne plutôt qu'une constante nommée partagée, contrairement à la
+    convention déjà établie par le projet pour ce même motif
+    (`HAS_ALERTE_SUBQUERY`, `server/valeurs.js`, Revue n°3) — signalé par
+    l'agent altitude comme point de vigilance, pas un défaut actuel : une
+    seule occurrence à ce jour, extraction non justifiée tant qu'un
+    second site n'apparaît pas. Cette même sous-requête est en outre
+    calculée pour chaque ligne renvoyée par `GET /sections`, y compris
+    les sections de la section « Partagé avec moi » où `partagee` n'est
+    jamais lue (`toSectionsArray()` ne la lit que pour `role ===
+    'proprietaire'`) — coût négligible à l'échelle de ce projet (quelques
+    sections par utilisateur), signalé par l'agent efficacité, laissé tel
+    quel plutôt que d'introduire un `CASE WHEN` conditionnel pour un
+    gain non mesurable.
+  - Correctifs reportés des revues n°1 à n°8 toujours non traités (liste
+    inchangée, voir Revues n°1 à n°8 ci-dessus) — aucun n'a été adressé
+    cette session.

@@ -335,6 +335,10 @@ function texteDerniereAlerte(alerte) {
   return alerte.derniereAlerte ? `Declenchee a ${formatHeure(alerte.derniereAlerte)}` : 'Jamais declenchee';
 }
 
+function libellePartage(section) {
+  return section.partagee ? 'Section partagee' : 'Partager la section';
+}
+
 function createAlerteCard(id, alerte) {
   const div = document.createElement('div');
   div.className = 'alerte-card';
@@ -1124,14 +1128,24 @@ const MIN_POINTS_VISIBLE = 5;
 let pincementPointers = new Map();
 let pincementDistancePrecedente = null;
 let pincementRafId = null;
+// Rectangle du canvas, capture une seule fois au debut du geste (quand le
+// deuxieme pointeur rejoint) plutot que recalcule a chaque pointermove -
+// meme raisonnement que `dragRect` (mode placement d'une alerte,
+// `alerteOnPointerDown`) : `getBoundingClientRect()` force un recalcul de
+// layout, couteux repete sur tout un geste de pincement.
+let pincementRect = null;
+
+function pointsPincement() {
+  return [...pincementPointers.values()];
+}
 
 function distancePincement() {
-  const [p1, p2] = [...pincementPointers.values()];
+  const [p1, p2] = pointsPincement();
   return Math.hypot(p1.x - p2.x, p1.y - p2.y);
 }
 
 function centreXPincement() {
-  const [p1, p2] = [...pincementPointers.values()];
+  const [p1, p2] = pointsPincement();
   return (p1.x + p2.x) / 2;
 }
 
@@ -1141,6 +1155,8 @@ function pincementOnPointerDown(e) {
   pincementPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pincementPointers.size === 2) {
     pincementDistancePrecedente = distancePincement();
+    const canvas = document.getElementById('chartCanvas');
+    pincementRect = canvas ? canvas.getBoundingClientRect() : null;
   }
 }
 
@@ -1159,7 +1175,10 @@ function pincementOnPointerMove(e) {
 
 function pincementOnPointerFin(e) {
   pincementPointers.delete(e.pointerId);
-  if (pincementPointers.size < 2) pincementDistancePrecedente = null;
+  if (pincementPointers.size < 2) {
+    pincementDistancePrecedente = null;
+    pincementRect = null;
+  }
 }
 
 // Deplace/retrecit-elargit `plageVisible` (indices dans
@@ -1177,11 +1196,9 @@ function appliquerPincement(centreClientX, ratio) {
   const { debut, fin } = plageVisible;
   const nombreVisibleActuel = fin - debut + 1;
 
-  const canvas = document.getElementById('chartCanvas');
-  if (!canvas) return;
-  const rect = canvas.getBoundingClientRect();
+  if (!pincementRect) return;
   const { left, right } = chartInstance.chartArea;
-  const positionRelative = Math.max(0, Math.min(1, (centreClientX - rect.left - left) / (right - left)));
+  const positionRelative = Math.max(0, Math.min(1, (centreClientX - pincementRect.left - left) / (right - left)));
 
   const ancre = debut + positionRelative * (nombreVisibleActuel - 1);
 

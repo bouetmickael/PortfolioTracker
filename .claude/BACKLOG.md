@@ -6,7 +6,26 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 52 (2026-08-06, v1.9.20) : le bouton de partage
+**0/5** — Session 53 (2026-08-06), Revue de dette technique n°9. Diff
+cumulé depuis la clôture de la Revue n°8 (`7bbc386` — voir `CLAUDE.md` §
+Historique des revues pour la correction de portée par rapport au prompt
+initial), couvrant les Sessions 47 à 52 (canal de régression en
+orientation paysage, déplacement/translucidité de la pastille de seuil
+d'alerte, zoom par pincement du graphique, icône de partage allumée).
+`/simplify` (4 agents en parallèle) a identifié 4 correctifs à risque
+faible appliqués (cache de `getBoundingClientRect()` du geste de
+pincement, extraction de `pointsPincement()`, fusion CSS des trois
+pastilles `.alerte-drag-badge`/`.alerte-existante-badge`/
+`.alerte-hors-limite`, extraction de `libellePartage()`) et plusieurs
+correctifs plus profonds documentés comme reportés (voir `CLAUDE.md` §
+Historique des revues, Revue n°9, pour le détail complet). Vérifié par
+`node --test test/*.test.js` (62/62) et un démarrage réel du serveur
+(`GET /`/`GET /login.html`/`GET /app.js`/`GET /styles.css` → 200).
+Compteur réinitialisé à 0/5.
+
+Compteur avant cette session :
+
+5/5 — Session 52 (2026-08-06, v1.9.20) : le bouton de partage
 (`icon-share`) de l'en-tête de chaque section possédée s'allume
 désormais (`.partage-actif`, couleur `--primary`) dès que la section a
 au moins un partage actif, pour distinguer en un coup d'œil les sections
@@ -23,10 +42,7 @@ pour voir l'icône se mettre à jour à la fermeture de la modale. Voir
 test/*.test.js` (62/62) et un parcours API réel sur un serveur local
 dédié (deux comptes, section possédée non partagée au départ, partage
 avec le second compte → `partagee: true`, révocation → `partagee:
-false`). **Compteur à 5/5 : la prochaine session doit être une revue de
-dette technique (`METHOD.md` §0.2)**, pas une nouvelle fonctionnalité.
-
-Compteur avant cette session :
+false`).
 
 4/5 — Session 51 (2026-08-04, v1.9.19), **correctif same-day de la
 Session 50** : retour utilisateur direct — la Session 50 n'avait fait que
