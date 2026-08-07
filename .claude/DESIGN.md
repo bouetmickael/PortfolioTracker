@@ -474,6 +474,17 @@ délibéré antérieur, non remis en cause).
   `localStorage`. Contrairement à l'état replié/déplié des sections
   (§ Sections repliables), qui reste volontairement en mémoire
   uniquement.
+  **Format compact des dates en abscisse** (session 2026-08-07, demande
+  explicite utilisateur : le nom du mois en toutes lettres de l'Intl
+  français (`month: 'short'`, ex. « 3 janvier »/« 15 septembre ») prenait
+  plus de place que nécessaire sur l'axe des abscisses). `formatDateCourte()`
+  (`public/app.js`) affiche désormais `jj/mm/aa` (ex. « 07/08/26 ») pour
+  toutes les périodes affichant une date (`1M`/`1Y`/`MAX`, ainsi que la
+  partie date de `1W` qui reste accompagnée de l'heure) — seule la
+  période `1J` (heure seule, sans date) n'est pas concernée. Utilisé par
+  `formatGraphiqueLabel()`, seul point d'entrée des libellés de l'axe X
+  du graphique de cours, partagé par valeurs suivies, sections partagées
+  et indices de marché.
   **Zoom par pincement en orientation paysage** (session 2026-08-04,
   demande explicite utilisateur — reformulée en session suivante, voir
   correctif ci-dessous). Un pincement à deux doigts sur

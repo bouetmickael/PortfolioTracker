@@ -1556,6 +1556,17 @@ function afficherAlertesGraphique(ticker) {
   });
 }
 
+// Format court jj/mm/aa (demande explicite utilisateur : moins encombrant
+// sur l'axe des abscisses du graphique que le nom du mois, qui reste ecrit
+// en toutes lettres pour la plupart des mois avec le style 'short' de
+// l'Intl francais, ex. "3 janvier"/"15 septembre").
+function formatDateCourte(date) {
+  const jour = String(date.getDate()).padStart(2, '0');
+  const mois = String(date.getMonth() + 1).padStart(2, '0');
+  const annee = String(date.getFullYear()).slice(-2);
+  return `${jour}/${mois}/${annee}`;
+}
+
 function formatGraphiqueLabel(dateStr, period) {
   const date = new Date(dateStr);
 
@@ -1564,12 +1575,11 @@ function formatGraphiqueLabel(dateStr, period) {
   }
 
   if (period === '1W') {
-    const jour = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
     const heure = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    return `${jour} ${heure}`;
+    return `${formatDateCourte(date)} ${heure}`;
   }
 
-  return date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
+  return formatDateCourte(date);
 }
 
 // Canal de regression lineaire (droite des moindres carres + bandes a 1 et

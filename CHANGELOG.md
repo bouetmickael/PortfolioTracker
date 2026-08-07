@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.5
+
+- **Fonctionnalite** : les dates affichees en abscisse des graphiques
+  (valeurs suivies, sections partagees, indices de marche) utilisent
+  desormais le format compact `jj/mm/aa` (ex. "07/08/26") au lieu du nom
+  du mois en toutes lettres, plus encombrant (demande explicite
+  utilisateur).
+
 ## 1.10.4
 
 - **Correctif** : le pourcentage affiche entre parentheses pour le cours
