@@ -474,17 +474,33 @@ délibéré antérieur, non remis en cause).
   `localStorage`. Contrairement à l'état replié/déplié des sections
   (§ Sections repliables), qui reste volontairement en mémoire
   uniquement.
-  **Format compact des dates en abscisse** (session 2026-08-07, demande
-  explicite utilisateur : le nom du mois en toutes lettres de l'Intl
-  français (`month: 'short'`, ex. « 3 janvier »/« 15 septembre ») prenait
-  plus de place que nécessaire sur l'axe des abscisses). `formatDateCourte()`
-  (`public/app.js`) affiche désormais `jj/mm/aa` (ex. « 07/08/26 ») pour
-  toutes les périodes affichant une date (`1M`/`1Y`/`MAX`, ainsi que la
-  partie date de `1W` qui reste accompagnée de l'heure) — seule la
-  période `1J` (heure seule, sans date) n'est pas concernée. Utilisé par
-  `formatGraphiqueLabel()`, seul point d'entrée des libellés de l'axe X
-  du graphique de cours, partagé par valeurs suivies, sections partagées
-  et indices de marché.
+  **Format compact des dates en abscisse, distinct par période** (session
+  2026-08-07, demande explicite utilisateur, complétée le même jour par
+  un correctif de forme demandé pour la période 1S — voir ci-dessous) :
+  le nom du mois en toutes lettres de l'Intl français (`month: 'short'`,
+  ex. « 3 janvier »/« 15 septembre ») prenait plus de place que
+  nécessaire sur l'axe des abscisses. `formatGraphiqueLabel()`
+  (`public/app.js`), seul point d'entrée des libellés de l'axe X du
+  graphique de cours (partagé par valeurs suivies, sections partagées et
+  indices de marché), délègue désormais à un format compact **différent
+  par période**, chacune choisie pour rester lisible sans redondance
+  avec la granularité réelle des points affichés à cette échelle :
+  - `1J` : heure seule (`hh:mm`), inchangé — pas de date sur une seule
+    journée.
+  - `1S` : jour de la semaine abrégé + jour du mois, suivi de l'heure
+    (`formatDateJourSemaine()`, ex. « lun 01 » puis `hh:mm`) — demande
+    explicite utilisateur, correctif same-day remplaçant le format
+    `jj/mm/aa` de l'implémentation initiale : sur une semaine, le jour de
+    la semaine identifie le point plus vite que le millésime de l'année
+    (implicite sur une fenêtre de 7 jours).
+  - `1M` : `jj/mm` (`formatDateJourMois()`, ex. « 07/08 ») — l'année est
+    déjà implicite sur une fenêtre d'un mois, l'omettre gagne encore de
+    la place par rapport au format initial `jj/mm/aa`.
+  - `1A`/`Max` : `jj/mm/aa` (`formatDateCourte()`, ex. « 07/08/26 »,
+    format initial de la première implémentation) — seules périodes
+    pouvant réellement s'étendre sur plusieurs années, où le millésime
+    reste nécessaire pour lever l'ambiguïté entre deux points de mois/
+    jour identiques d'années différentes.
   **Zoom par pincement en orientation paysage** (session 2026-08-04,
   demande explicite utilisateur — reformulée en session suivante, voir
   correctif ci-dessous). Un pincement à deux doigts sur

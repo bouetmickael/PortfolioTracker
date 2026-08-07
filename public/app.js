@@ -1560,11 +1560,24 @@ function afficherAlertesGraphique(ticker) {
 // sur l'axe des abscisses du graphique que le nom du mois, qui reste ecrit
 // en toutes lettres pour la plupart des mois avec le style 'short' de
 // l'Intl francais, ex. "3 janvier"/"15 septembre").
+const JOURS_SEMAINE_ABREGES = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+
 function formatDateCourte(date) {
   const jour = String(date.getDate()).padStart(2, '0');
   const mois = String(date.getMonth() + 1).padStart(2, '0');
   const annee = String(date.getFullYear()).slice(-2);
   return `${jour}/${mois}/${annee}`;
+}
+
+function formatDateJourMois(date) {
+  const jour = String(date.getDate()).padStart(2, '0');
+  const mois = String(date.getMonth() + 1).padStart(2, '0');
+  return `${jour}/${mois}`;
+}
+
+function formatDateJourSemaine(date) {
+  const jour = String(date.getDate()).padStart(2, '0');
+  return `${JOURS_SEMAINE_ABREGES[date.getDay()]} ${jour}`;
 }
 
 function formatGraphiqueLabel(dateStr, period) {
@@ -1576,7 +1589,11 @@ function formatGraphiqueLabel(dateStr, period) {
 
   if (period === '1W') {
     const heure = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    return `${formatDateCourte(date)} ${heure}`;
+    return `${formatDateJourSemaine(date)} ${heure}`;
+  }
+
+  if (period === '1M') {
+    return formatDateJourMois(date);
   }
 
   return formatDateCourte(date);

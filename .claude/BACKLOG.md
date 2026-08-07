@@ -6,24 +6,29 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 58 (2026-08-07, v1.10.5), **correctif hors plan** :
-demande explicite utilisateur — les dates affichées en abscisse des
-graphiques (valeurs suivies, sections partagées, indices de marché)
+**5/5** — Session 58 (2026-08-07, v1.10.5 puis v1.10.6), **correctif hors
+plan** : demande explicite utilisateur — les dates affichées en abscisse
+des graphiques (valeurs suivies, sections partagées, indices de marché)
 utilisaient le nom du mois en toutes lettres de l'Intl français
 (`month: 'short'`, ex. « 3 janvier »/« 15 septembre »), plus encombrant
-qu'un format compact. Nouveau helper `formatDateCourte()`
-(`public/app.js`), format `jj/mm/aa` (ex. « 07/08/26 »), utilisé par
-`formatGraphiqueLabel()` pour toutes les périodes affichant une date
-(`1M`/`1Y`/`MAX`, et la partie date de `1W`) — seule la période `1J`
-(heure seule) n'est pas concernée. Voir `DESIGN.md` § Sélecteur de
-période (graphique) pour le détail.
+qu'un format compact. Implémentation initiale (v1.10.5) : format unique
+`jj/mm/aa` (ex. « 07/08/26 ») pour toutes les périodes affichant une date.
+**Correctif same-day (v1.10.6)**, demande explicite utilisateur : format
+distinct par période plutôt qu'un seul format pour toutes — `ddd jj` puis
+l'heure sur 1 semaine (`formatDateJourSemaine()`, ex. « lun 01 »),
+`jj/mm` sur 1 mois (`formatDateJourMois()`, année implicite), `jj/mm/aa`
+inchangé sur 1 an et Max (`formatDateCourte()`, seules périodes pouvant
+réellement couvrir plusieurs années). `1J` (heure seule) toujours non
+concernée. Toujours centralisé dans `formatGraphiqueLabel()`
+(`public/app.js`). Voir `DESIGN.md` § Sélecteur de période (graphique)
+pour le détail.
 
 Vérifié par tests unitaires (`node --test test/*.test.js`, 75/75, aucun
 test serveur affecté — changement purement client) et un démarrage réel
 du serveur (`GET /`/`GET /login.html`/`GET /app.js` → 200) ; pas de
 parcours Playwright cette session (CDN Chart.js bloqué par la politique
-réseau du bac à sable, changement limité à une fonction de formatage pure
-sans changement de mécanisme de rendu).
+réseau du bac à sable, changement limité à des fonctions de formatage
+pures sans changement de mécanisme de rendu).
 
 **Compteur à 5/5 : la prochaine session est mandatoirement une revue de
 dette technique (Revue n°10), voir `METHOD.md` §0.2.**

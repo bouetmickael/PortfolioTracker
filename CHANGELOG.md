@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.6
+
+- **Correctif** : le format compact des dates en abscisse (v1.10.5) est
+  desormais different selon la periode affichee, sur demande explicite
+  utilisateur : "ddd jj" puis l'heure sur 1 semaine (ex. "lun 01"), au
+  lieu du format `jj/mm/aa` initial, moins lisible a cette echelle ;
+  `jj/mm` sur 1 mois (annee implicite) ; `jj/mm/aa` inchange sur 1 an et
+  Max.
+
 ## 1.10.5
 
 - **Fonctionnalite** : les dates affichees en abscisse des graphiques
