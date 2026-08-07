@@ -1344,6 +1344,12 @@ body {
   #modalGraphique .graphique-periode-variation {
     margin-bottom: 6px;
     flex-shrink: 0;
+    /* Retour utilisateur explicite, capture d'ecran a l'appui : ligne
+       trop imposante par rapport au reste du graphique en paysage
+       (espace horizontal genereux disponible pour une seule ligne de
+       texte centree). Reduite de moitie par rapport a la base 13px,
+       uniquement dans ce contexte paysage. */
+    font-size: 6.5px;
   }
 
   #modalGraphique #graphiqueWrapper {

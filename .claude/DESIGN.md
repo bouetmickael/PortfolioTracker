@@ -839,7 +839,15 @@ délibéré antérieur, non remis en cause).
   période/l'indicateur de variation, le graphique de volume garde une
   hauteur fixe réduite à 45px) plutôt que des valeurs figées inadaptées à
   la faible hauteur disponible en paysage, quel que soit le modèle de
-  téléphone.
+  téléphone. **Taux de période réduit de moitié en paysage** (correctif
+  session 2026-08-07, retour utilisateur explicite, capture d'écran à
+  l'appui : la ligne `.graphique-periode-variation` (voir § Sélecteur de
+  période (graphique) ci-dessous) restait disproportionnée par rapport
+  au reste de la modale plein écran, l'espace horizontal généreux du
+  paysage exagérant visuellement cette seule ligne de texte centrée) :
+  `font-size: 6.5px` (moitié de la base 13px), scopé à
+  `#modalGraphique .graphique-periode-variation` dans le même
+  `@media (orientation: landscape)`, sans toucher au portrait.
 - **Barre d'onglets** (session 2026-08-06, demande explicite utilisateur :
   « dans un autre onglet, pouvoir reconstituer mon portefeuille
   d'actions »). Nouvelle navigation fixe en bas de l'écran

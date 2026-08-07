@@ -6,7 +6,33 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 58 (2026-08-07, v1.10.5 puis v1.10.6), **correctif hors
+**5/5** — Session 59 (2026-08-07, v1.10.7), **correctif hors plan,
+same-day de la Session 58** : retour utilisateur explicite, capture
+d'écran à l'appui — en orientation paysage, la ligne
+`.graphique-periode-variation` (« Sur la période : ... », voir `DESIGN.md`
+§ Sélecteur de période (graphique)) restait disproportionnée par rapport
+au reste de la modale plein écran, l'espace horizontal généreux exagérant
+visuellement cette seule ligne de texte centrée. Taille réduite de moitié
+(`font-size: 6.5px`, moitié de la base 13px) uniquement dans ce contexte
+paysage (`#modalGraphique .graphique-periode-variation`, `@media
+(orientation: landscape)`), sans toucher au portrait. Sujet distinct du
+format des dates traité en Session 58, mais même journée — même
+convention que la Session 51/Session 50 : compteur inchangé à 5/5 plutôt
+qu'incrémenté, un correctif same-day n'ouvrant pas un nouveau cycle.
+
+Vérifié par tests unitaires (`node --test test/*.test.js`, 75/75, aucun
+test affecté — changement CSS pur) et un démarrage réel du serveur
+(`GET /`/`GET /login.html`/`GET /app.js` → 200) ; pas de parcours
+Playwright cette session (CDN Chart.js bloqué par la politique réseau du
+bac à sable, changement limité à une valeur `font-size` scopée par
+media query, sans changement de mécanisme).
+
+**Compteur toujours à 5/5 : la prochaine session est mandatoirement une
+revue de dette technique (Revue n°10), voir `METHOD.md` §0.2.**
+
+Compteur avant cette session :
+
+5/5 — Session 58 (2026-08-07, v1.10.5 puis v1.10.6), **correctif hors
 plan** : demande explicite utilisateur — les dates affichées en abscisse
 des graphiques (valeurs suivies, sections partagées, indices de marché)
 utilisaient le nom du mois en toutes lettres de l'Intl français

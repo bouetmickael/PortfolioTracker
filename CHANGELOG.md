@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.7
+
+- **Correctif** : en orientation paysage, la ligne "Sur la periode : ..."
+  au-dessus du graphique restait disproportionnee par rapport au reste
+  de la modale (retour utilisateur explicite, capture d'ecran a l'appui).
+  Taille de texte reduite de moitie dans ce contexte paysage uniquement.
+
 ## 1.10.6
 
 - **Correctif** : le format compact des dates en abscisse (v1.10.5) est
