@@ -659,6 +659,18 @@ délibéré antérieur, non remis en cause).
   Nasdaq-100/S&P 500, tuiles d'indices). Recalculé au
   même rythme que le cours normal (tâche planifiée toutes les 2 minutes,
   `server/index.js`), pas de mécanisme de rafraîchissement dédié.
+  **Pourcentage avant-bourse corrigé en session 2026-08-07** (retour
+  utilisateur explicite, capture d'écran à l'appui : "Cours 70.47 EUR
+  +3.36%" et "Avant-bourse 70.49 EUR (+3.39%)" affichés côte à côte,
+  pourcentages quasi identiques pour deux cours qui ne différaient que de
+  0.02 EUR). Cause : `avantBourseVariation` était calculée par rapport à
+  `previousClose` (la clôture **précédent** celle affichée comme "Cours"
+  — une séance plus tôt), au lieu de `price`/`regularMarketPrice` (la
+  clôture affichée comme "Cours" elle-même, puisque la séance régulière
+  du jour n'a pas encore commencé pendant la fenêtre avant-bourse) — le
+  pourcentage mesurait donc un cumul sur deux séances plutôt que le seul
+  mouvement avant-bourse. `server/jobs/prices.js` § `fetchYahooFinance`
+  compare désormais `avantBourseCours` à `price`.
 - **Clôture de la veille sur le graphique** (session 2026-07-28, demande
   explicite utilisateur) : ligne pointillée fine grise (couleur des
   ticks/texte du graphique, `--text-secondary` selon le thème actif) sur

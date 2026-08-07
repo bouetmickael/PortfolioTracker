@@ -86,7 +86,18 @@ async function fetchYahooFinance(ticker) {
       const dernierPrix = await fetchDernierPrixPreMarket(ticker);
       if (dernierPrix) {
         avantBourseCours = dernierPrix;
-        avantBourseVariation = pctChange(dernierPrix, previousClose);
+        // Variation par rapport a `price` (derniere cloture de seance
+        // reguliere, affiche cote client comme le "Cours" juste au-dessus
+        // de la ligne avant-bourse), pas `previousClose` (la cloture
+        // PRECEDENT celle-ci, une seance plus tot). Bug corrige suite a un
+        // retour utilisateur (capture d'ecran : "Cours 70.47 EUR +3.36%"
+        // et "Avant-bourse 70.49 EUR (+3.39%)" affiches cote a cote,
+        // pourcentages quasi identiques pour deux cours qui ne different
+        // que de 0.02 EUR - la variation avant-bourse ne mesurait en
+        // realite pas le mouvement de la seance avant-bourse elle-meme,
+        // mais un cumul sur deux seances). Voir BUSINESS_RULES.md §
+        // Integrite des cours.
+        avantBourseVariation = pctChange(dernierPrix, price);
       }
     } catch (error) {
       // Best-effort : l'absence de cours avant-bourse ne doit jamais faire

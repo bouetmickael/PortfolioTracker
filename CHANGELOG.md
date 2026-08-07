@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.4
+
+- **Correctif** : le pourcentage affiche entre parentheses pour le cours
+  avant-bourse ("Avant-bourse X EUR (+Y%)") etait calcule par rapport a
+  la cloture d'il y a deux seances au lieu du dernier cours affiche
+  juste au-dessus - deux prix quasi identiques pouvaient ainsi afficher
+  des pourcentages presque egaux mais tous deux faux (cumul sur deux
+  seances plutot que le seul mouvement avant-bourse). Le pourcentage
+  avant-bourse est desormais calcule par rapport au dernier cours de
+  cloture affiche ("Cours"), comme attendu.
+
 ## 1.10.3
 
 - **Fonctionnalite** : les positions d'un portefeuille peuvent desormais

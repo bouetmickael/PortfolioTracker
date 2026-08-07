@@ -97,7 +97,10 @@ test('fenetre avant-bourse active et dernier prix disponible : cours et variatio
   const priceData = await fetchYahooFinance('TEST');
 
   assert.equal(priceData.avantBourseCours, 99);
-  assert.equal(priceData.avantBourseVariation, ((99 - 98) / 98) * 100);
+  // Variation par rapport a regularMarketPrice (le "Cours" affiche, deja la
+  // cloture de la veille pendant que le marche est en pre-ouverture), pas
+  // previousClose (une seance plus tot) - voir server/jobs/prices.js.
+  assert.equal(priceData.avantBourseVariation, ((99 - 100) / 100) * 100);
 });
 
 test('en dehors de la fenetre avant-bourse : avant-bourse absent, aucun appel supplementaire', async () => {

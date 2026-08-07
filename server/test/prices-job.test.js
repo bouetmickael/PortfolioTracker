@@ -98,7 +98,9 @@ test('updatePrices() renseigne le cours avant-bourse quand le marche du ticker e
   const aapl = parTicker(valeurs, 'AAPL');
 
   assert.equal(aapl.avantBourseCours, 99);
-  assert.equal(aapl.avantBourseVariation, ((99 - 98) / 98) * 100);
+  // Variation par rapport a regularMarketPrice (100, le "Cours" affiche),
+  // pas previousClose (98, une seance plus tot) - voir server/jobs/prices.js.
+  assert.equal(aapl.avantBourseVariation, ((99 - 100) / 100) * 100);
 });
 
 test('updatePrices() efface le cours avant-bourse des que le marche repasse en seance normale', async () => {
@@ -162,5 +164,7 @@ test('updateIndices() renseigne le cours avant-bourse des indices US (ex. Nasdaq
   const ndx = indices.find((i) => i.ticker === '^NDX');
 
   assert.equal(ndx.avantBourseCours, 19900);
-  assert.equal(ndx.avantBourseVariation, ((19900 - 19800) / 19800) * 100);
+  // Variation par rapport a regularMarketPrice (20000), pas previousClose
+  // (19800) - voir server/jobs/prices.js.
+  assert.equal(ndx.avantBourseVariation, ((19900 - 20000) / 20000) * 100);
 });

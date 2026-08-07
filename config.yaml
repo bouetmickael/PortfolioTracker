@@ -1,5 +1,5 @@
 name: "Portfolio Tracker"
-version: "1.10.3"
+version: "1.10.4"
 slug: "portfolio_tracker"
 description: "Suivi de portefeuille (actions et warrants), sans Firebase"
 url: "https://github.com/bouetmickael/PortfolioTracker"

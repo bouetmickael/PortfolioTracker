@@ -6,7 +6,32 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/5** — Session 56 (2026-08-07, v1.10.3) : demande explicite
+**4/5** — Session 57 (2026-08-07, v1.10.4), **correctif hors plan** :
+retour utilisateur direct (capture d'écran) — le pourcentage avant-bourse
+affiché entre parenthèses ("Avant-bourse 70.49 EUR (+3.39%)") restait
+quasi identique au pourcentage du cours normal juste au-dessus ("Cours
+70.47 EUR +3.36%") alors que les deux cours ne différaient que de
+0.02 EUR, ce qui n'avait pas de sens. Cause réelle : `avantBourseVariation`
+(`server/jobs/prices.js` § `fetchYahooFinance`) était calculée par
+rapport à `previousClose` (la clôture **précédent** celle affichée comme
+"Cours" — une séance plus tôt), alors que pendant la fenêtre avant-bourse
+`price`/`regularMarketPrice` (affiché comme "Cours") **est déjà** la
+clôture de la veille (la séance régulière du jour n'a pas encore
+commencé) — le pourcentage avant-bourse mesurait donc un cumul sur deux
+séances au lieu du seul mouvement avant-bourse, d'où deux pourcentages
+presque égaux pour un écart de prix minime. Comparaison corrigée pour se
+faire par rapport à `price`. Voir `DESIGN.md` § Avant-bourse pour le
+détail.
+
+Vérifié par tests unitaires (`node --test test/*.test.js`, 75/75 — trois
+assertions mises à jour dans `server/test/prices.test.js`/
+`server/test/prices-job.test.js`, qui asserraient jusqu'ici la formule
+buggée) ; pas de parcours Playwright/navigateur cette session (correctif
+serveur pur, aucun changement d'UI).
+
+Compteur avant cette session :
+
+3/5 — Session 56 (2026-08-07, v1.10.3) : demande explicite
 utilisateur — pouvoir réordonner les positions d'un portefeuille par
 glisser-déposer, comme les valeurs de la liste "Suivi" (limitation
 connue, déjà signalée comme laissée de côté en Session 54). Poignée
