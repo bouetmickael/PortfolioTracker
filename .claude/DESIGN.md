@@ -741,16 +741,20 @@ délibéré antérieur, non remis en cause).
   `public/app.js`) plutôt qu'un `resize`/`orientationchange` classique,
   pour un évènement fiable indépendant des variations de dimensions du
   viewport (ex. barre d'adresse qui apparaît/disparaît sans changement
-  d'orientation réel). En passant en paysage pendant que le graphique
-  est ouvert, la période bascule automatiquement sur Max (« positionner
-  la valeur par rapport à **son historique** » n'a pas de sens sur 1
-  jour ou 1 semaine) ; en repassant en portrait, la période affichée
-  avant le basculement est restaurée. Ce basculement automatique
-  (`selectionnerPeriode(ticker, period, persister)`, `public/app.js`)
-  n'écrase jamais `dernierePeriodeGraphique`/`localStorage` (paramètre
-  `persister: false`) — seul un clic manuel sur un bouton de période
-  reste mémorisé comme préférence par défaut à la prochaine ouverture,
-  y compris si ce clic a lieu pendant que l'écran est en paysage.
+  d'orientation réel). **La période reste toujours celle choisie par
+  l'utilisateur, quelle que soit l'orientation** (correctif session
+  2026-08-07, retour utilisateur explicite : la première implémentation
+  basculait automatiquement sur Max en passant en paysage — « positionner
+  la valeur par rapport à son historique n'a pas de sens sur 1 jour ou 1
+  semaine » — mais obligeait à re-choisir sa période à chaque rotation,
+  y compris pour revenir à un affichage court après être passé en paysage
+  ; retiré sur demande explicite). Une rotation d'écran continue de
+  recharger le graphique (`onOrientationChange()`, avec la **même**
+  période que celle déjà affichée plutôt qu'une valeur forcée,
+  `public/app.js`) : nécessaire pour faire apparaître/disparaître le
+  canal de régression (calculé uniquement en paysage, voir plus bas) et
+  pour que Chart.js redimensionne ses canvas après le reflow CSS de la
+  rotation — mais n'affecte plus jamais la période active elle-même.
   Implémenté comme 5 datasets Chart.js supplémentaires
   (`calculerCanalRegression()`, `public/app.js`) plutôt qu'un overlay
   DOM positionné en pixels (comme les composants « Alerte(s) » ci-dessus)
@@ -778,6 +782,25 @@ délibéré antérieur, non remis en cause).
   projet). Champ retiré : l'orientation suit désormais le verrouillage
   de rotation du système d'exploitation, comme n'importe quelle page web
   ordinaire.
+  **Modale plein écran en paysage** (correctif session 2026-08-07, retour
+  utilisateur explicite, capture d'écran à l'appui : la modale du
+  graphique restait plafonnée aux mêmes dimensions qu'en portrait
+  (`max-height: 90vh`, `.modal-large` à 800px de large maximum), ce qui
+  coupait le bas du graphique — hauteur d'écran déjà réduite par
+  l'orientation paysage — et obligeait à faire défiler dans une fenêtre
+  exiguë). `#modalGraphique .modal-content` occupe désormais 100% de
+  l'écran en paysage (`@media (orientation: landscape)`, `public/
+  styles.css` — seule exception du projet à la règle « pas de `@media`
+  de largeur », voir § Responsive : ceci reste un `@media` d'orientation,
+  pas de largeur, cohérent avec le choix déjà fait pour ce même
+  composant). `#graphiqueContainer`/`#graphiqueVolumeContainer`, pensés
+  pour le portrait avec des hauteurs fixes en pixels (300px/70px),
+  deviennent élastiques en paysage (le graphique de cours en `flex: 1`
+  occupe tout l'espace vertical restant après l'en-tête/le sélecteur de
+  période/l'indicateur de variation, le graphique de volume garde une
+  hauteur fixe réduite à 45px) plutôt que des valeurs figées inadaptées à
+  la faible hauteur disponible en paysage, quel que soit le modèle de
+  téléphone.
 - **Barre d'onglets** (session 2026-08-06, demande explicite utilisateur :
   « dans un autre onglet, pouvoir reconstituer mon portefeuille
   d'actions »). Nouvelle navigation fixe en bas de l'écran

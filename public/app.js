@@ -1197,12 +1197,13 @@ async function openGraphique(ticker, nom = null, alertable = false) {
   openModal('modalGraphique');
   document.getElementById('graphiqueTitre').textContent = `Graphique - ${nom || ticker}`;
 
-  // Ouverture directement en paysage (telephone deja tourne avant le tap) :
-  // demarrer sur Max comme un basculement d'orientation classique plutot
-  // que sur la periode memorisee (voir onOrientationChange/DESIGN.md §
-  // Canal de regression en orientation paysage).
-  const periodeInitiale = mqPaysage.matches ? 'MAX' : dernierePeriodeGraphique;
-  await selectionnerPeriode(ticker, periodeInitiale, false);
+  // Toujours la periode memorisee, quelle que soit l'orientation (retour
+  // utilisateur explicite : la periode ne doit plus jamais etre forcee sur
+  // Max en paysage, voir onOrientationChange/DESIGN.md § Canal de
+  // regression en orientation paysage - l'ancien comportement forcait Max
+  // a chaque rotation et obligeait a re-choisir sa periode au retour en
+  // portrait).
+  await selectionnerPeriode(ticker, dernierePeriodeGraphique, false);
 
   document.querySelectorAll('.btn-periode').forEach((btn) => {
     btn.onclick = () => selectionnerPeriode(ticker, btn.dataset.period, true);
@@ -1210,10 +1211,11 @@ async function openGraphique(ticker, nom = null, alertable = false) {
 }
 
 // `persister` controle si ce choix devient la nouvelle periode par defaut a
-// la prochaine ouverture (clic manuel sur un bouton) ou reste un affichage
-// ponctuel qui ne doit pas ecraser la preference memorisee dans
-// localStorage (bascule automatique Max en entrant en paysage, restauration
-// en sortant - voir onOrientationChange).
+// la prochaine ouverture (clic manuel sur un bouton, voir setupEventListeners
+// via openGraphique) ou reste un rechargement ponctuel qui ne doit pas
+// ecraser la preference deja memorisee dans localStorage (rechargement sur
+// rotation d'ecran - voir onOrientationChange, qui recharge toujours la
+// meme periode que celle deja affichee).
 async function selectionnerPeriode(ticker, period, persister) {
   document.querySelectorAll('.btn-periode').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.period === period);
@@ -1225,13 +1227,16 @@ async function selectionnerPeriode(ticker, period, persister) {
   await chargerGraphique(ticker, period);
 }
 
-// Bascule Max/periode memorisee en entrant/sortant du mode paysage (voir
-// DESIGN.md § Canal de regression en orientation paysage) : ne s'applique
-// que si le graphique est actuellement ouvert, sinon la prochaine ouverture
-// gere deja elle-meme l'orientation courante (periodeInitiale ci-dessus).
-function onOrientationChange(e) {
+// Recharge le graphique a chaque rotation d'ecran (meme periode qu'avant,
+// jamais forcee sur Max - voir openGraphique/DESIGN.md § Canal de
+// regression en orientation paysage) : necessaire pour faire apparaitre/
+// disparaitre le canal de regression (calcule uniquement en paysage, voir
+// chargerGraphique) et pour que Chart.js redimensionne ses canvas apres le
+// reflow CSS de la rotation. Ne s'applique que si le graphique est
+// actuellement ouvert.
+function onOrientationChange() {
   if (!graphiqueState.ticker || !document.getElementById('modalGraphique').classList.contains('active')) return;
-  selectionnerPeriode(graphiqueState.ticker, e.matches ? 'MAX' : dernierePeriodeGraphique, false);
+  selectionnerPeriode(graphiqueState.ticker, dernierePeriodeGraphique, false);
 }
 
 // ========================================

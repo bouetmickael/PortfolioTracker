@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.10.2
+
+- **Correctif** : le graphique en orientation paysage remontait
+  systematiquement la periode sur "Max" a chaque rotation d'ecran,
+  obligeant a re-choisir sa periode a chaque passage en paysage (retour
+  utilisateur explicite). La periode reste desormais celle choisie par
+  l'utilisateur, quelle que soit l'orientation.
+- **Fonctionnalite** : la modale du graphique occupe desormais 100% de
+  l'ecran en orientation paysage (retour utilisateur explicite, capture
+  d'ecran a l'appui : le bas du graphique etait auparavant coupe et
+  necessitait de faire defiler dans une fenetre exigue). Le graphique de
+  cours s'adapte a l'espace vertical reellement disponible plutot que de
+  garder une hauteur fixe pensee pour le portrait.
+
 ## 1.10.1
 
 - **Correctif** : sur l'onglet "Portefeuilles" (v1.10.0), les valeurs

@@ -6,7 +6,56 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/5** — Session 54 (2026-08-06, v1.10.0) : deux demandes explicites de
+**2/5** — Session 55 (2026-08-07, v1.10.2) : retour utilisateur explicite
+sur le mode paysage du graphique (deux demandes traitées ensemble) :
+- La période bascule automatiquement sur Max était l'implémentation
+  originale du canal de régression en orientation paysage (session
+  2026-08-04), demandée à l'époque pour que « positionner la valeur par
+  rapport à son historique » ait du sens. L'utilisateur a explicitement
+  demandé son retrait : la période reste désormais celle déjà
+  sélectionnée, quelle que soit l'orientation — `openGraphique()`/
+  `onOrientationChange()` (`public/app.js`) utilisent toujours
+  `dernierePeriodeGraphique` au lieu de forcer `'MAX'`. La rotation
+  continue de recharger le graphique avec la même période (nécessaire
+  pour faire apparaître/disparaître le canal de régression et pour que
+  Chart.js redimensionne ses canvas après le reflow), mais n'affecte
+  plus jamais la période active. `DESIGN.md` § Canal de régression en
+  orientation paysage mis à jour en conséquence.
+- La modale du graphique restait plafonnée aux mêmes dimensions qu'en
+  portrait (`max-height: 90vh`, 800px de large maximum), coupant le bas
+  du graphique en paysage (hauteur d'écran déjà réduite par
+  l'orientation) et obligeant à faire défiler — capture d'écran à
+  l'appui. `#modalGraphique .modal-content` occupe désormais 100% de
+  l'écran en paysage (`@media (orientation: landscape)`,
+  `public/styles.css`, scopé à cette seule modale) ;
+  `#graphiqueContainer`/`#graphiqueVolumeContainer`, pensés pour le
+  portrait avec des hauteurs fixes (300px/70px), deviennent élastiques
+  (`flex: 1` pour le graphique de cours, hauteur fixe réduite à 45px
+  pour le volume) afin d'occuper tout l'espace vertical réellement
+  disponible. Voir `DESIGN.md` § Canal de régression en orientation
+  paysage (« Modale plein écran en paysage »).
+
+Vérifié par tests unitaires (`node --test test/*.test.js`, 73/73 —
+correctif strictement frontend, aucun changement serveur) et un parcours
+Playwright réel en viewport paysage (844×390, Chromium préinstallé) :
+ouverture du graphique, capture d'écran confirmant que la modale occupe
+l'intégralité du viewport sans marge ni coin arrondi et que le contenu
+(en-tête, sélecteur de période, zone de graphique, graphique de volume)
+tient entièrement dans la hauteur disponible sans qu'aucun élément ne
+déborde (mesure DOM de chaque bloc), clic manuel sur la période 1M puis
+simulation d'une rotation d'écran confirmant que la période reste 1M
+(jamais réinitialisée à Max) ; parcours identique en viewport portrait
+(390×844) confirmant l'absence de régression (modale à 95%/90vh comme
+avant, graphique 300px/70px comme avant). Le rendu réel du graphique
+Chart.js lui-même n'a pas pu être vérifié visuellement (CDN Chart.js
+bloqué par la politique réseau du bac à sable de développement, même
+limitation documentée pour les sessions précédentes) — uniquement l'état
+d'erreur réseau gracieux (`GET /api/chart/:ticker` échouant faute d'accès
+à Yahoo Finance), qui n'affecte pas la mise en page vérifiée.
+
+Compteur avant cette session :
+
+1/5 — Session 54 (2026-08-06, v1.10.0) : deux demandes explicites de
 l'utilisateur traitées dans la même session (fournies ensemble dans le
 prompt de session).
 - Taux de plus/moins-value sur la période du graphique : indicateur

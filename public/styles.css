@@ -1274,6 +1274,90 @@ body {
   margin-top: 4px;
 }
 
+/* Modale du graphique plein ecran en orientation paysage (retour
+   utilisateur explicite : la modale restait plafonnee a 90vh/800px comme
+   en portrait, ce qui coupait le bas du graphique - hauteur d'ecran deja
+   reduite par l'orientation paysage - et obligeait a scroller a
+   l'interieur d'une fenetre exigue). #graphiqueContainer/
+   #graphiqueVolumeContainer, penses pour le portrait avec des hauteurs
+   fixes (300px/70px), deviennent elastiques (flex: 1 pour le graphique de
+   cours, hauteur fixe reduite pour le volume) afin d'occuper tout l'espace
+   vertical restant apres l'en-tete/le selecteur de periode/l'indicateur de
+   variation, quelle que soit la hauteur reelle de l'ecran - values fixes
+   en pixels inadaptees a la faible hauteur disponible en paysage. Scope
+   par #modalGraphique (seule modale `.modal-large` du projet a ce jour)
+   plutot que globalement sur `.modal` : les autres modales (ajout de
+   valeur, alertes, partage...) ne sont pas concernees par cette demande. */
+@media (orientation: landscape) {
+  #modalGraphique .modal-content {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #modalGraphique .modal-header {
+    padding: 8px 16px;
+    flex-shrink: 0;
+  }
+
+  #modalGraphique .modal-body {
+    padding: 8px 16px;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #modalGraphique .periode-selector {
+    margin-bottom: 6px;
+    flex-shrink: 0;
+  }
+
+  #modalGraphique .graphique-periode-variation {
+    margin-bottom: 6px;
+    flex-shrink: 0;
+  }
+
+  #modalGraphique #graphiqueWrapper {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #modalGraphique #graphiquePriceZone {
+    flex: 1;
+    min-height: 0;
+  }
+
+  #modalGraphique #graphiqueContainer {
+    height: 100%;
+  }
+
+  #modalGraphique #graphiqueVolumeContainer {
+    height: 45px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+}
+
+@supports (padding: max(0px)) {
+  @media (orientation: landscape) {
+    /* Zones sures iOS laterales (encoche/coins arrondis) : la modale
+       occupant desormais tout l'ecran, ses bords gauche/droit peuvent
+       autrement tomber sous l'encoche en paysage. */
+    #modalGraphique .modal-content {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+}
+
 /* Base commune : proprietes strictement identiques entre les deux lignes
    pointillees du graphique (mode placement vs seuil deja actif), meme
    technique de fusion que .alerte-existante-badge/.alerte-hors-limite
