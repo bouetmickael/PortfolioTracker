@@ -846,8 +846,10 @@ délibéré antérieur, non remis en cause).
     trois actions icône (`icon-plus` ajouter une valeur, `icon-pencil`
     renommer, `icon-trash` supprimer — renommer/supprimer passent par
     les modales prompt/confirm génériques, comme une section). Pas de
-    glisser-déposer/réordonnancement dans cette première version (voir
-    `BACKLOG.md` pour ce point laissé de côté).
+    glisser-déposer pour réordonner les **portefeuilles** eux-mêmes
+    (sélecteur en pilules, voir ci-dessus) : demande explicite non
+    formulée à ce jour, la liste des portefeuilles d'un utilisateur reste
+    de toute façon courte en usage personnel.
   - Résumé du portefeuille (`.portefeuille-resume`) : valeur totale
     (somme `cours × quantité` de toutes les positions) et plus/moins-value
     latente totale en euros et en pourcentage (somme des plus/moins-values
@@ -855,17 +857,36 @@ délibéré antérieur, non remis en cause).
     `--success`/`--danger`.
   - Chaque position (`.portefeuille-position-card`, une carte par valeur
     détenue, cliquable pour ouvrir son graphique — comme `.valeur-row`) :
-    nom de la valeur et valeur totale de la ligne (`cours × quantité`) en
-    en-tête, quantité détenue en sous-titre (« N titres »), puis trois
-    lignes `.portefeuille-position-ligne` (libellé à gauche,
-    `--text-secondary` ; valeur à droite) : Cours (avec variation du
-    jour, coloration `--success`/`--danger` habituelle), Prix de revient
-    (saisi à l'ajout, jamais recalculé automatiquement), +/- value
-    latente (écart `(cours - prixRevient) × quantité` en euros et en
-    pourcentage, coloré `--success`/`--danger`). Bouton `icon-trash` en
-    surimpression coin haut-droit (`.portefeuille-position-supprimer`,
-    `position: absolute`) pour retirer une position, avec confirmation
-    (`showConfirm()`).
+    poignée de glisser-déposer dédiée en tête d'en-tête (session
+    2026-08-07, demande explicite utilisateur : « déplacer des valeurs
+    dans les portefeuilles comme je peux le faire dans le suivi » —
+    `.portefeuille-position-drag-handle`, icône `icon-grip`, même
+    principe que `.valeur-drag-handle` : `touch-action: none` sur la
+    seule poignée, pas sur le reste de la carte, pour ne pas geler le
+    scroll tactile de la page), puis nom de la valeur et valeur totale de
+    la ligne (`cours × quantité`) en en-tête, quantité détenue en
+    sous-titre (« N titres »), puis trois lignes
+    `.portefeuille-position-ligne` (libellé à gauche, `--text-secondary` ;
+    valeur à droite) : Cours (avec variation du jour, coloration
+    `--success`/`--danger` habituelle), Prix de revient (saisi à l'ajout,
+    jamais recalculé automatiquement), +/- value latente (écart
+    `(cours - prixRevient) × quantité` en euros et en pourcentage, coloré
+    `--success`/`--danger`). Bouton `icon-trash` en surimpression coin
+    haut-droit (`.portefeuille-position-supprimer`, `position: absolute`)
+    pour retirer une position, avec confirmation (`showConfirm()`).
+    **Réordonnancement par glisser-déposer** (SortableJS, même
+    bibliothèque vendorisée que la liste des valeurs suivies) :
+    contrairement aux sections (plusieurs listes de valeurs visibles
+    simultanément, glisser-déposer possible entre elles), un seul
+    portefeuille est affiché à la fois — le réordonnancement se limite
+    donc aux positions à l'intérieur du portefeuille actif, jamais entre
+    deux portefeuilles (`initSortablePositions()`, `public/app.js`,
+    squelette simple à liste unique comme `initSortableSections()`,
+    plutôt que le mécanisme multi-groupes `initSortableListeValeurs()`
+    des sections). Persisté via `PUT
+    /api/portefeuilles/:id/positions/reorder` (liste ordonnée
+    d'identifiants de position, `ordre` réattribué par position dans la
+    liste — même contrat que `PUT /api/sections/reorder`).
   - Ajout d'une position : modale dédiée (`#modalAddPosition`, même
     gabarit que `#modalAddValeur`) avec le même mécanisme de recherche
     par nom à la saisie que l'ajout d'une valeur suivie (voir §

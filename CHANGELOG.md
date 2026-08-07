@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.3
+
+- **Fonctionnalite** : les positions d'un portefeuille peuvent desormais
+  etre reordonnees par glisser-depose, comme les valeurs de la liste
+  "Suivi" (poignee dediee sur chaque carte, meme mecanisme SortableJS).
+  Le reordonnancement reste limite aux positions d'un meme portefeuille
+  (un seul portefeuille affiche a la fois, pas de glisser-depose entre
+  deux portefeuilles).
+
 ## 1.10.2
 
 - **Correctif** : le graphique en orientation paysage remontait

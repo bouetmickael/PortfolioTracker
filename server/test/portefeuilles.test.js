@@ -236,6 +236,66 @@ test('isolation stricte : un utilisateur ne peut pas voir ou modifier le portefe
   assert.equal(del.status, 404);
 });
 
+test('reorder persiste l ordre des positions d un portefeuille', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'pf-reorder@test.local');
+
+  const portefeuille = await (
+    await fetch(`${baseUrl}/api/portefeuilles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ nom: 'CTO' })
+    })
+  ).json();
+
+  const aapl = await (
+    await fetch(`${baseUrl}/api/portefeuilles/${portefeuille.id}/positions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ ticker: 'AAPL', quantite: 10, prixRevient: 90 })
+    })
+  ).json();
+  const msft = await (
+    await fetch(`${baseUrl}/api/portefeuilles/${portefeuille.id}/positions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ ticker: 'MSFT', quantite: 5, prixRevient: 200 })
+    })
+  ).json();
+
+  const reorder = await fetch(`${baseUrl}/api/portefeuilles/${portefeuille.id}/positions/reorder`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ positionIds: [msft.id, aapl.id] })
+  });
+  assert.equal(reorder.status, 200);
+
+  const positions = await (await fetch(`${baseUrl}/api/portefeuilles/${portefeuille.id}/positions`, { headers: { Cookie: cookie } })).json();
+  assert.equal(positions[0].ticker, 'MSFT');
+  assert.equal(positions[0].ordre, 0);
+  assert.equal(positions[1].ticker, 'AAPL');
+  assert.equal(positions[1].ordre, 1);
+});
+
+test('reorder refuse un portefeuille n appartenant pas a l utilisateur', async () => {
+  const userA = await creerUtilisateur(baseUrl, 'pf-reorder-iso-a@test.local');
+  const userB = await creerUtilisateur(baseUrl, 'pf-reorder-iso-b@test.local');
+
+  const portefeuilleA = await (
+    await fetch(`${baseUrl}/api/portefeuilles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: userA.cookie },
+      body: JSON.stringify({ nom: 'CTO A' })
+    })
+  ).json();
+
+  const res = await fetch(`${baseUrl}/api/portefeuilles/${portefeuilleA.id}/positions/reorder`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Cookie: userB.cookie },
+    body: JSON.stringify({ positionIds: [] })
+  });
+  assert.equal(res.status, 404);
+});
+
 test('les routes de portefeuilles exigent une authentification', async () => {
   const res = await fetch(`${baseUrl}/api/portefeuilles`);
   assert.equal(res.status, 401);

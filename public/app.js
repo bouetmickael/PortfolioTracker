@@ -982,6 +982,55 @@ async function supprimerPosition(position) {
   }, 'Erreur suppression valeur');
 }
 
+// Glisser-depose des positions d'un portefeuille (reordonnancement au sein
+// du seul portefeuille actif, meme demande utilisateur que pour les
+// valeurs suivies - voir DESIGN.md § Portefeuilles). Contrairement aux
+// valeurs suivies, il n'y a jamais deux listes de positions visibles en
+// meme temps (un seul portefeuille actif a la fois, voir § selecteur de
+// portefeuilles) : pas de glisser-depose entre portefeuilles, seulement un
+// reordonnancement au sein de la liste affichee - initSortableListeValeurs()
+// (groupe cross-listes) n'est donc pas reutilisable ici, meme squelette
+// simple que initSortableSections().
+function initSortablePositions(el) {
+  if (!marquerSortableInit(el)) return;
+
+  Sortable.create(el, {
+    handle: '.portefeuille-position-drag-handle',
+    draggable: '.portefeuille-position-card',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    dragClass: 'sortable-drag',
+    onEnd: () => {
+      const idsOrdonnes = Array.from(el.querySelectorAll(':scope > .portefeuille-position-card')).map((node) =>
+        Number(node.dataset.positionId)
+      );
+
+      const positionsParId = new Map(Alpine.store('portfolio').portefeuillePositions.map((p) => [p.id, p]));
+      idsOrdonnes.forEach((id, index) => {
+        const position = positionsParId.get(id);
+        if (position) position.ordre = index;
+      });
+
+      persisterOrdrePositions(idsOrdonnes);
+    }
+  });
+}
+
+async function persisterOrdrePositions(positionIds) {
+  try {
+    const portefeuilleId = Alpine.store('portfolio').portefeuilleSelectionneId;
+    const res = await apiFetch(`/api/portefeuilles/${portefeuilleId}/positions/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ positionIds })
+    });
+
+    if (!res.ok) throw new Error('Erreur enregistrement ordre');
+  } catch (error) {
+    console.error('Erreur enregistrement ordre positions:', error);
+    showToast('Erreur lors de l\'enregistrement de l\'ordre', 'error');
+  }
+}
+
 function marquerSortableInit(el) {
   if (el.dataset.sortableInit) return false;
   el.dataset.sortableInit = 'true';

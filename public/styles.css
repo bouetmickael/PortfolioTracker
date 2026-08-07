@@ -893,12 +893,35 @@ body {
 
 .portefeuille-position-header {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Poignee de glisser-depose dediee (reordonnancement des positions au sein
+   du portefeuille actif, meme demande utilisateur que pour les valeurs
+   suivies) - meme motif que .valeur-drag-handle : taille fixe, touch-
+   action: none pour ne pas intercepter le scroll tactile de la page (le
+   reste de la carte reste cliquable/scrollable normalement, voir
+   BUSINESS_RULES.md/DESIGN.md § Liste des valeurs suivies pour la meme
+   contrainte deja resolue sur .valeur-row). */
+.portefeuille-position-drag-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--text-secondary);
+  cursor: grab;
+  touch-action: none;
+}
+
+.portefeuille-position-drag-handle:active {
+  cursor: grabbing;
 }
 
 .portefeuille-position-nom {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;

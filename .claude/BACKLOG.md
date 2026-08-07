@@ -6,7 +6,38 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/5** — Session 55 (2026-08-07, v1.10.2) : retour utilisateur explicite
+**3/5** — Session 56 (2026-08-07, v1.10.3) : demande explicite
+utilisateur — pouvoir réordonner les positions d'un portefeuille par
+glisser-déposer, comme les valeurs de la liste "Suivi" (limitation
+connue, déjà signalée comme laissée de côté en Session 54). Poignée
+dédiée (`.portefeuille-position-drag-handle`, icône `icon-grip`) sur
+chaque carte de position, SortableJS (`initSortablePositions()`,
+`public/app.js`) sur un squelette à liste unique — contrairement aux
+sections, un seul portefeuille est visible à la fois, donc pas de
+glisser-déposer possible entre deux portefeuilles, seulement à
+l'intérieur du portefeuille actif. Nouvelle route `PUT
+/api/portefeuilles/:id/positions/reorder` (liste ordonnée d'identifiants
+de position, déclarée avant `PUT /:id/positions/:positionId` pour ne pas
+être interceptée par la route paramétrée — même précaution que `PUT
+/api/sections/reorder`). Voir `DESIGN.md` § Portefeuilles pour le détail.
+
+Vérifié par tests unitaires (`node --test test/*.test.js`, 75/75, dont 2
+nouveaux : reorder persiste l'ordre, reorder refuse un portefeuille
+n'appartenant pas à l'utilisateur) et un parcours Playwright réel contre
+un serveur local — positions insérées directement en base (contournant
+la vérification Yahoo Finance, réseau bloqué par la politique du bac à
+sable de développement) : glisser-déposer réel de la première carte vers
+la position de la seconde (simulation souris complète, comme la Session
+30 pour le glisser-déposer des sections), vérification que l'ordre DOM a
+bien changé puis que `GET /api/portefeuilles/:id/positions` renvoie les
+positions dans le nouvel ordre persisté — capture d'écran confirmant le
+rendu visuel (poignées visibles, cartes réordonnées, aucune régression
+sur les couleurs positif/négatif corrigées en Session 54 ni sur les
+actions de suppression/clic).
+
+Compteur avant cette session :
+
+2/5 — Session 55 (2026-08-07, v1.10.2) : retour utilisateur explicite
 sur le mode paysage du graphique (deux demandes traitées ensemble) :
 - La période bascule automatiquement sur Max était l'implémentation
   originale du canal de régression en orientation paysage (session

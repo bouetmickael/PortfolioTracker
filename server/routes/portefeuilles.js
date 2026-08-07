@@ -130,6 +130,29 @@ router.post(
   })
 );
 
+// Doit etre declare avant /:id/positions/:positionId pour ne pas etre
+// intercepte par la route parametree (Express matche les routes dans
+// l'ordre de declaration, "reorder" matcherait sinon :positionId) - meme
+// pattern que PUT /reorder dans server/routes/sections.js.
+router.put('/:id/positions/reorder', (req, res) => {
+  const portefeuille = portefeuillePossede(req.session.userId, req.params.id);
+  if (!portefeuille) {
+    return res.status(404).json({ error: 'Portefeuille introuvable' });
+  }
+
+  const positionIds = Array.isArray(req.body.positionIds) ? req.body.positionIds : [];
+  const updateOrdre = db.prepare('UPDATE portefeuille_lignes SET ordre = ? WHERE id = ? AND portefeuille_id = ?');
+
+  const appliquerReorder = db.transaction(() => {
+    positionIds.forEach((id, index) => {
+      updateOrdre.run(index, id, portefeuille.id);
+    });
+  });
+  appliquerReorder();
+
+  res.json({ success: true });
+});
+
 router.put('/:id/positions/:positionId', (req, res) => {
   const portefeuille = portefeuillePossede(req.session.userId, req.params.id);
   if (!portefeuille) {

@@ -391,13 +391,16 @@
           </div>
         </div>
 
-        <div class="portefeuille-positions">
-          <template x-for="position in $store.portfolio.portefeuillePositions" :key="position.id">
-            <div class="portefeuille-position-card" @click="openGraphique(position.ticker, position.nom)">
+        <div class="portefeuille-positions" x-init="initSortablePositions($el)">
+          <template x-for="position in [...$store.portfolio.portefeuillePositions].sort((a, b) => (a.ordre || 0) - (b.ordre || 0))" :key="position.id">
+            <div class="portefeuille-position-card" :data-position-id="position.id" @click="openGraphique(position.ticker, position.nom)">
               <button class="btn-icon-small btn-icon-xs portefeuille-position-supprimer" @click.stop="supprimerPosition(position)" title="Supprimer" aria-label="Supprimer">
                 <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
               </button>
               <div class="portefeuille-position-header">
+                <div class="portefeuille-position-drag-handle" @click.stop title="Glisser pour deplacer" aria-hidden="true">
+                  <svg class="icon icon-sm"><use href="#icon-grip"></use></svg>
+                </div>
                 <div class="portefeuille-position-nom" x-text="position.nom || position.ticker"></div>
                 <div class="portefeuille-position-total" x-text="formatCours(position.cours * position.quantite)"></div>
               </div>
