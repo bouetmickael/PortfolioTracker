@@ -1207,7 +1207,12 @@ body {
    coloration --success/--danger que .valeur-variation. */
 .graphique-periode-variation {
   text-align: center;
-  font-size: 13px;
+  /* Reduit de 20% (13px -> 10.4px, demande explicite utilisateur) : la
+     base 13px paraissait trop imposante, mais la reduction de moitie
+     tentee ensuite en paysage (6.5px, voir ci-dessous) s'est averee
+     trop petite - cette taille reduite sert desormais de base commune
+     au portrait ET au paysage. */
+  font-size: 10.4px;
   font-weight: 500;
   margin-bottom: 12px;
 }
@@ -1344,12 +1349,11 @@ body {
   #modalGraphique .graphique-periode-variation {
     margin-bottom: 6px;
     flex-shrink: 0;
-    /* Retour utilisateur explicite, capture d'ecran a l'appui : ligne
-       trop imposante par rapport au reste du graphique en paysage
-       (espace horizontal genereux disponible pour une seule ligne de
-       texte centree). Reduite de moitie par rapport a la base 13px,
-       uniquement dans ce contexte paysage. */
-    font-size: 6.5px;
+    /* Retour utilisateur explicite : la reduction a 6.5px tentee ici
+       (moitie de l'ancienne base 13px) s'est averee trop petite. Herite
+       desormais de la base commune 10.4px (portrait ET paysage, voir
+       la regle .graphique-periode-variation ci-dessus) au lieu d'un
+       font-size dedie a ce contexte. */
   }
 
   #modalGraphique #graphiqueWrapper {

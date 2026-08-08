@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.8
+
+- **Correctif** : la reduction de moitie appliquee en v1.10.7 a la ligne
+  "Sur la periode : ..." en paysage s'est averee trop petite (retour
+  utilisateur explicite). Cette ligne est desormais reduite de 20%
+  (au lieu de 50%) et cette taille est appliquee uniformement en
+  portrait ET en paysage, au lieu d'un reglage dedie par orientation.
+
 ## 1.10.7
 
 - **Correctif** : en orientation paysage, la ligne "Sur la periode : ..."

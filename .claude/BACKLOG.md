@@ -6,7 +6,31 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 59 (2026-08-07, v1.10.7), **correctif hors plan,
+**5/5** — Session 60 (2026-08-07, v1.10.8), **correctif hors plan,
+same-day de la Session 59** : retour utilisateur direct — la réduction de
+moitié appliquée en Session 59 (`font-size: 6.5px`) s'est avérée trop
+petite en usage réel. `.graphique-periode-variation` réduite de 20%
+seulement (13px → 10.4px, au lieu de 50%) et cette taille sert désormais
+de base commune au portrait **et** au paysage — l'override paysage dédié
+(`6.5px`, scopé à `#modalGraphique .graphique-periode-variation`) est
+retiré, le paysage hérite simplement de la base. Voir `DESIGN.md` §
+Modale plein écran en paysage pour le détail. Même convention que la
+Session 51/Session 50/Session 59 : compteur inchangé à 5/5, un correctif
+same-day n'ouvrant pas un nouveau cycle.
+
+Vérifié par tests unitaires (`node --test test/*.test.js`, 75/75, aucun
+test affecté — changement CSS pur) et un démarrage réel du serveur
+(`GET /`/`GET /login.html`/`GET /styles.css` → 200) ; pas de parcours
+Playwright cette session (CDN Chart.js bloqué par la politique réseau du
+bac à sable, changement limité à une valeur `font-size`, sans changement
+de mécanisme).
+
+**Compteur toujours à 5/5 : la prochaine session est mandatoirement une
+revue de dette technique (Revue n°10), voir `METHOD.md` §0.2.**
+
+Compteur avant cette session :
+
+5/5 — Session 59 (2026-08-07, v1.10.7), **correctif hors plan,
 same-day de la Session 58** : retour utilisateur explicite, capture
 d'écran à l'appui — en orientation paysage, la ligne
 `.graphique-periode-variation` (« Sur la période : ... », voir `DESIGN.md`
