@@ -1017,18 +1017,8 @@ function initSortablePositions(el) {
 }
 
 async function persisterOrdrePositions(positionIds) {
-  try {
-    const portefeuilleId = Alpine.store('portfolio').portefeuilleSelectionneId;
-    const res = await apiFetch(`/api/portefeuilles/${portefeuilleId}/positions/reorder`, {
-      method: 'PUT',
-      body: JSON.stringify({ positionIds })
-    });
-
-    if (!res.ok) throw new Error('Erreur enregistrement ordre');
-  } catch (error) {
-    console.error('Erreur enregistrement ordre positions:', error);
-    showToast('Erreur lors de l\'enregistrement de l\'ordre', 'error');
-  }
+  const portefeuilleId = Alpine.store('portfolio').portefeuilleSelectionneId;
+  await envoyerReorder(`/api/portefeuilles/${portefeuilleId}/positions/reorder`, { positionIds }, ' positions');
 }
 
 function marquerSortableInit(el) {
@@ -1126,14 +1116,15 @@ function initSortableValeursPartagees(el, section) {
   });
 }
 
-// Queue commune aux deux flux de persistance de l'ordre (memes conditions
-// d'echec, meme toast) : seule differe la construction du payload `sections`
-// en amont (voir persisterOrdre/persisterOrdreSectionPartagee).
-async function envoyerReorder(sections, contexte = '') {
+// Queue commune a tous les flux de persistance d'un ordre par glisser-depose
+// (memes conditions d'echec, meme toast) : seuls different l'URL et le corps
+// de la requete (voir persisterOrdre/persisterOrdreSectionPartagee/
+// persisterOrdrePositions).
+async function envoyerReorder(url, body, contexte = '') {
   try {
-    const res = await apiFetch('/api/sections/reorder', {
+    const res = await apiFetch(url, {
       method: 'PUT',
-      body: JSON.stringify({ sections })
+      body: JSON.stringify(body)
     });
 
     if (!res.ok) throw new Error('Erreur enregistrement ordre');
@@ -1156,7 +1147,7 @@ async function persisterOrdre() {
         .map((v) => v.id)
     }));
 
-  await envoyerReorder(sections);
+  await envoyerReorder('/api/sections/reorder', { sections });
 }
 
 async function persisterOrdreSectionPartagee(section, valeurIds) {
@@ -1169,7 +1160,7 @@ async function persisterOrdreSectionPartagee(section, valeurIds) {
     });
   }
 
-  await envoyerReorder([{ id: section.id, valeurIds }], ' section partagee');
+  await envoyerReorder('/api/sections/reorder', { sections: [{ id: section.id, valeurIds }] }, ' section partagee');
 }
 
 async function creerAlerteAPI(ticker, seuilHaut, seuilBas) {
@@ -1562,22 +1553,21 @@ function afficherAlertesGraphique(ticker) {
 // l'Intl francais, ex. "3 janvier"/"15 septembre").
 const JOURS_SEMAINE_ABREGES = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
 
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
 function formatDateCourte(date) {
-  const jour = String(date.getDate()).padStart(2, '0');
-  const mois = String(date.getMonth() + 1).padStart(2, '0');
   const annee = String(date.getFullYear()).slice(-2);
-  return `${jour}/${mois}/${annee}`;
+  return `${formatDateJourMois(date)}/${annee}`;
 }
 
 function formatDateJourMois(date) {
-  const jour = String(date.getDate()).padStart(2, '0');
-  const mois = String(date.getMonth() + 1).padStart(2, '0');
-  return `${jour}/${mois}`;
+  return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}`;
 }
 
 function formatDateJourSemaine(date) {
-  const jour = String(date.getDate()).padStart(2, '0');
-  return `${JOURS_SEMAINE_ABREGES[date.getDay()]} ${jour}`;
+  return `${JOURS_SEMAINE_ABREGES[date.getDay()]} ${pad2(date.getDate())}`;
 }
 
 function formatGraphiqueLabel(dateStr, period) {

@@ -1302,3 +1302,182 @@ variables d'environnement, vérification).
   - Correctifs reportés des revues n°1 à n°8 toujours non traités (liste
     inchangée, voir Revues n°1 à n°8 ci-dessus) — aucun n'a été adressé
     cette session.
+
+### 2026-08-09 — Revue n°10
+
+- **Portée** : diff cumulé depuis la clôture de la Revue n°9 (commit
+  `e30e344`, « Session 53 - technical debt review n9 ») jusqu'à `HEAD`
+  (`3d071ef`), soit `git diff e30e344..HEAD -- server/ public/
+  ':!public/vendor'` — borne vérifiée par `git log` en début de session
+  (conforme au prompt initial, aucune correction de portée nécessaire,
+  comme pour les Revues n°7/n°8). Couvre les Sessions 54 à 60 (v1.10.0 à
+  v1.10.8) : taux de plus/moins-value sur la période du graphique + nouvel
+  onglet « Portefeuilles » multi-portefeuilles (54), correctif de couleur
+  positif/négatif sur les valeurs de portefeuille (54 same-day), graphique
+  plein écran en orientation paysage + arrêt du forçage de la période Max
+  à la rotation (55), glisser-déposer des positions d'un portefeuille
+  (56), correctif du calcul du pourcentage avant-bourse (57), format de
+  date compact en abscisse du graphique puis différencié par période (58,
+  deux commits), taille du texte « Sur la période » réduite en paysage
+  puis unifiée portrait/paysage (59-60, deux commits). Outillage utilisé :
+  `/simplify` (4 agents de revue en parallèle : réutilisation,
+  simplification, efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement strictement
+  inchangé, vérifiés par tests unitaires (`node --test test/*.test.js`,
+  75/75 avant et après), un démarrage réel du serveur (`GET /`/
+  `GET /login.html`/`GET /app.js`/`GET /styles.css` → 200), un parcours
+  API réel (register, création de section, création de portefeuille,
+  `PUT /api/portefeuilles/:id/positions/reorder` via le chemin
+  `envoyerReorder()` généralisé) et une vérification programmatique
+  dédiée comparant les sorties des fonctions de formatage de date
+  avant/après refactorisation sur un échantillon de dates — pas de test
+  unitaire client-side existant pour ces fonctions ; pas de parcours
+  Playwright cette session, CDN Chart.js toujours bloqué par la politique
+  réseau du bac à sable et aucun des correctifs appliqués ne touche un
+  mécanisme de rendu ou une interaction utilisateur directe) :
+  - `pad2(n)` (`public/app.js`), remplace trois occurrences séparées de
+    `String(n).padStart(2, '0')` dans `formatDateCourte()`/
+    `formatDateJourMois()`/`formatDateJourSemaine()` (Session 58) ;
+    `formatDateCourte()` délègue désormais à `formatDateJourMois()`
+    (`formatDateCourte(d) === formatDateJourMois(d) + '/' + annee`)
+    plutôt que de recalculer `jour`/`mois` une troisième fois. Signalé
+    indépendamment par les agents réutilisation et simplification.
+    Vérifié par comparaison programmatique ancien/nouveau sur un
+    échantillon de dates (dont un 31 décembre et un 1er du mois, cas
+    limites de remplissage à deux chiffres) : sorties identiques.
+  - `planifierJob(fn, nom)` (`server/index.js`), remplace quatre blocs
+    `cron.schedule('*/2 * * * *', () => { X().catch(...) }, { timezone:
+    'Europe/Paris' })` quasi identiques — `updatePortefeuilleLignes()`
+    (Session 54) avait ajouté une quatrième copie verbatim aux trois déjà
+    présentes (`updatePrices`/`updateIndices`/`checkAlerts`), jamais
+    signalée aux revues précédentes. Signalé indépendamment par les
+    agents réutilisation et simplification. Même planification (cron
+    identique, même fuseau), même message de log par job (`Erreur
+    globale <nom>:`) — vérifié par démarrage réel du serveur confirmant
+    les quatre jobs planifiés sans erreur.
+  - Fusion CSS `.valeur-drag-handle`/`.portefeuille-position-drag-handle`
+    (`public/styles.css`, Session 56) : la poignée de glisser-déposer
+    d'une position de portefeuille redéclarait verbatim les sept
+    propriétés de la poignée d'une valeur suivie (`flex-shrink`,
+    `display`, `align-items`, `justify-content`, `width`, `color`,
+    `cursor`, `touch-action`, plus l'état `:active`) — même technique de
+    fusion par liste de sélecteurs déjà appliquée aux Revues n°5/n°8/n°9
+    pour d'autres paires de sélecteurs du même fichier, CSS calculé
+    strictement identique avant/après.
+  - `envoyerReorder(url, body, contexte)` (`public/app.js`) généralisée
+    (paramétrée par URL et corps de requête au lieu d'être câblée en dur
+    sur `/api/sections/reorder`/`{ sections }`), réutilisée par
+    `persisterOrdrePositions()` (Session 56) à la place d'une copie
+    intégrale du squelette try/`apiFetch`/catch/`console.error`/
+    `showToast` — même toast d'erreur, même mécanique de queue, seuls
+    l'URL et la forme du corps différaient réellement entre les trois
+    appelants (`persisterOrdre()`, `persisterOrdreSectionPartagee()`,
+    `persisterOrdrePositions()`). Signalé indépendamment par les agents
+    simplification et altitude. Vérifié par un appel API réel de bout en
+    bout (`PUT /api/portefeuilles/:id/positions/reorder` avec une liste
+    vide → 200) confirmant le nouveau chemin fonctionnel.
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - `updatePortefeuilleLignes()` (`server/jobs/prices.js`, Session 54)
+    devient une **troisième** copie quasi identique du squelette de job
+    déjà signalé aux Revues n°1/n°3/n°7/n°8 pour `updatePrices()`/
+    `updateIndices()` (même log de départ/clôture, même préparation
+    d'`UPDATE`, même appel à `traiterEnParallele()`) — le commentaire du
+    code lui-même reconnaît explicitement cette parenté et cite les
+    revues précédentes comme raison de ne pas y toucher. Confirmé par les
+    quatre agents comme une aggravation d'un item déjà connu, pas un
+    problème nouveau isolé — traité avec la même prudence que les cycles
+    précédents (fusionner/coordonner ces jobs a un impact direct sur le
+    comportement sous charge face à Yahoo Finance).
+  - `chargerGraphique()` (`public/app.js`) appelle désormais directement
+    `afficherVariationPeriode()` (taux de plus/moins-value sur la période,
+    Session 54) au lieu de passer par l'évènement générique `chart:loaded`
+    déjà introduit en Session 30/Revue n°4 précisément pour ce genre de
+    couplage (à l'époque pour `placementAlerteActif`/
+    `repositionnerPlacementApresChargement()`). Signalé par l'agent
+    altitude comme une nouvelle occurrence évitable de ce couplage — le
+    mécanisme de découplage existe déjà et n'a simplement pas été utilisé
+    ici. Non corrigé cette session : `chargerGraphique()` est le chemin de
+    chargement partagé par les valeurs, indices et sections partagées,
+    déjà traité avec prudence à plusieurs reprises (Revue n°9 pour le
+    couplage `mqPaysage.matches`/canal de régression) — à faire migrer
+    vers `chart:loaded` dans une session dédiée avec vérification
+    manuelle plutôt qu'en correctif à l'aveugle.
+  - `x-for="position in [...$store.portfolio.portefeuillePositions].sort(...)"`
+    (`public/index.html`, Session 54/56) retrie et réalloue le tableau
+    des positions à chaque évaluation réactive Alpine, et
+    `totalLatentePct()`/`totalLatenteEur()` (`public/app.js`) recalculent
+    chacune plusieurs `reduce()` redondants sur `portefeuillePositions` à
+    chaque rendu — même anti-motif que `valeursDeSection()` avant sa
+    mémoïsation en Revue n°2/Session 30, réintroduit pour les
+    portefeuilles. Impact réel négligible à l'échelle de ce projet
+    (portefeuille personnel, quelques positions), mais une mémoïsation
+    toucherait le modèle réactif Alpine et son invalidation, en
+    interaction avec le `onEnd` du glisser-déposer des positions (Session
+    56) qui écrit directement `ordre` sur les objets du store — même
+    prudence que celle déjà appliquée à `valeursDeSection()` en son
+    temps (mémoïsée seulement lors d'une session dédiée, pas au premier
+    cycle de revue qui l'a repérée).
+  - `portefeuillePossede(userId, portefeuilleId)`
+    (`server/routes/portefeuilles.js`) est une troisième variante
+    structurellement identique d'un contrôle de propriété
+    (`SELECT id FROM <table> WHERE id = ? AND user_id = ?`), aux côtés de
+    `sectionPossedee()` (`server/routes/sections.js`) et de la logique
+    équivalente dans `roleSection()`/`rolesSection()`
+    (`server/partage.js`, duplication déjà signalée et reportée depuis la
+    Revue n°7). Répétition consciente et documentée par son propre
+    commentaire (« même pattern que sectionPossedee() ») plutôt qu'une
+    copie accidentelle — une généralisation (`possede(table, id,
+    userId)`) toucherait un mécanisme d'autorisation partagé par
+    plusieurs routes sensibles, même catégorie de prudence que
+    `roleSection()`/`rolesSection()` déjà reportée trois revues de suite.
+  - `initSortablePositions()` (`public/app.js`, Session 56) réutilise à
+    bon escient le squelette simple à liste unique de
+    `initSortableSections()` plutôt que le mécanisme multi-groupes
+    `initSortableListeValeurs()` (choix documenté et confirmé correct par
+    l'agent altitude — un seul portefeuille est visible à la fois, pas de
+    glisser-déposer inter-portefeuilles à gérer). Le squelette
+    `Sortable.create({ handle, draggable, animation, ghostClass,
+    dragClass, onEnd })` lui-même reste néanmoins dupliqué littéralement
+    entre `initSortablePositions()`/`initSortableSections()` — même
+    duplication de forme que celle déjà repérée pour
+    `showPrompt()`/`showConfirm()` (Revue n°2) et pour les paires
+    d'`initSortableValeurs*`/`persisterOrdre*` (Revue n°3), à chaque fois
+    laissée de côté faute de moyen de vérification par geste réel
+    (Playwright), non disponible cette session non plus.
+  - Convention divergente pour les données dérivées du portefeuille
+    (`public/app.js`) : `portefeuilleActif()`, `totalValeurPortefeuille()`,
+    `totalCoutPortefeuille()`, `latenteEur()`, `latentePct()` sont des
+    fonctions de module appelées directement depuis les templates
+    (`portefeuilleActif()`) plutôt que des getters du store Alpine
+    (`$store.portfolio.xxx()`, convention établie par `valeursDeSection()`/
+    `alertesActivesPour()`/`alertesDeclenchees()`). Fonctionnellement
+    équivalent, mais introduit une seconde façon d'exposer une donnée
+    dérivée du store plutôt que d'étendre la convention existante —
+    changement de nommage/API touchant de nombreux sites d'appel dans
+    `public/index.html`, pas un correctif ponctuel à risque faible.
+  - Classes CSS génériques `.success`/`.danger` (`public/styles.css`,
+    correctif same-day Session 54, v1.10.1) : première règle de couleur
+    « nue » du projet, alors que tous les autres composants colorent via
+    un sélecteur combiné avec une classe de contexte (`.valeur-variation.
+    success`, `.stat-variation.success`, etc.) — divergence délibérée et
+    déjà documentée par son propre commentaire au moment de l'écrire (le
+    correctif d'origine visait spécifiquement des éléments de l'onglet
+    Portefeuilles qui posaient la classe seule). Signalé par l'agent
+    altitude à titre informatif, pas un défaut à corriger : precedent à
+    garder à l'esprit pour la cohérence du design system, sans action
+    associée.
+  - `PUT /api/portefeuilles/:id/positions/:positionId` (modification de
+    la quantité/du prix de revient d'une position existante) n'a aucun
+    appelant côté UI (`public/app.js`/`public/index.html` ne permettent
+    que l'ajout/la suppression d'une position, jamais sa modification) —
+    uniquement exercée par `server/test/portefeuilles.test.js`. Signalé
+    par l'agent simplification comme du code potentiellement mort côté
+    parcours utilisateur réel, mais possiblement une marche d'API
+    délibérément posée en avance de la fonctionnalité UI correspondante
+    (non demandée explicitement à ce jour) — à confirmer avec
+    l'utilisateur avant d'y toucher, pas un correctif à trancher seul
+    dans ce cycle.
+  - Correctifs reportés des revues n°1 à n°9 toujours non traités (liste
+    inchangée, voir Revues n°1 à n°9 ci-dessus) — aucun n'a été adressé
+    cette session.

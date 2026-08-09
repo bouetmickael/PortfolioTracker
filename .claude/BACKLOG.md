@@ -6,7 +6,51 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**5/5** — Session 60 (2026-08-07, v1.10.8), **correctif hors plan,
+**0/5** — Session 61 (2026-08-09), Revue de dette technique n°10. Diff
+cumulé depuis la clôture de la Revue n°9 (`e30e344` — voir `CLAUDE.md` §
+Historique des revues), couvrant les Sessions 54 à 60 (taux de
+plus/moins-value sur la période du graphique + nouvel onglet
+« Portefeuilles » multi-portefeuilles, correctif de couleur positif/
+négatif, graphique plein écran en paysage + période conservée à la
+rotation, glisser-déposer des positions de portefeuille, correctif du
+pourcentage avant-bourse, format de date en abscisse compact puis
+différencié par période, taille du texte « Sur la période » réduite en
+paysage puis unifiée portrait/paysage). `/simplify` (4 agents en
+parallèle) a identifié 4 correctifs à risque faible appliqués (helpers
+`pad2()`/délégation entre `formatDateCourte()`/`formatDateJourMois()`/
+`formatDateJourSemaine()`, helper `planifierJob()` remplaçant quatre
+blocs `cron.schedule()` quasi identiques dans `server/index.js`, fusion
+CSS `.valeur-drag-handle`/`.portefeuille-position-drag-handle`,
+généralisation de `envoyerReorder()` — désormais paramétrée par URL/corps
+— réutilisée par `persisterOrdrePositions()` au lieu d'une copie du
+squelette try/fetch/catch/toast) et plusieurs correctifs plus profonds
+documentés comme reportés (voir `CLAUDE.md` § Historique des revues,
+Revue n°10, pour le détail complet — notamment `updatePortefeuilleLignes()`
+devenue une troisième copie quasi identique du squelette de job déjà
+signalé aux Revues n°1/n°3/n°7/n°8, laissée en l'état par prudence comme
+les fois précédentes). Vérifié par `node --test test/*.test.js` (75/75,
+tous verts avant et après), un démarrage réel du serveur (`GET /`/
+`GET /login.html`/`GET /app.js`/`GET /styles.css` → 200), un parcours API
+réel (register, création de section, création de portefeuille,
+`PUT /api/portefeuilles/:id/positions/reorder` via le nouveau chemin
+`envoyerReorder()` généralisé) et une vérification programmatique
+dédiée que les trois fonctions de formatage de date produisent
+exactement les mêmes chaînes avant/après refactorisation sur un
+échantillon de dates (aucun test unitaire client-side n'existant pour
+ces fonctions). Pas de parcours Playwright cette session (CDN Chart.js
+bloqué par la politique réseau du bac à sable, comme les cycles
+précédents ; aucun des correctifs appliqués ne touche un mécanisme de
+rendu ou une interaction utilisateur directe — glisser-déposer,
+placement d'alerte — donc pas de vérification visuelle jugée nécessaire
+au-delà de la revue statique). Aucun changement de comportement
+observable par l'utilisateur : version applicative non incrémentée
+(`METHOD.md` §5.5), reste `1.10.8`. Pas de nouvelle fonctionnalité du
+backlog produit traitée cette session, conformément à l'obligation du
+cycle de revue.
+
+Compteur avant cette session :
+
+5/5 — Session 60 (2026-08-07, v1.10.8), **correctif hors plan,
 same-day de la Session 59** : retour utilisateur direct — la réduction de
 moitié appliquée en Session 59 (`font-size: 6.5px`) s'est avérée trop
 petite en usage réel. `.graphique-periode-variation` réduite de 20%

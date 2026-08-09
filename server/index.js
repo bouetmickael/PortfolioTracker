@@ -38,18 +38,13 @@ if (process.env.HTTPS_ENABLED === 'true') {
   }
 }
 
-cron.schedule('*/2 * * * *', () => {
-  updatePrices().catch((error) => console.error('Erreur globale updatePrices:', error));
-}, { timezone: 'Europe/Paris' });
+function planifierJob(fn, nom) {
+  cron.schedule('*/2 * * * *', () => {
+    fn().catch((error) => console.error(`Erreur globale ${nom}:`, error));
+  }, { timezone: 'Europe/Paris' });
+}
 
-cron.schedule('*/2 * * * *', () => {
-  updateIndices().catch((error) => console.error('Erreur globale updateIndices:', error));
-}, { timezone: 'Europe/Paris' });
-
-cron.schedule('*/2 * * * *', () => {
-  checkAlerts().catch((error) => console.error('Erreur globale checkAlerts:', error));
-}, { timezone: 'Europe/Paris' });
-
-cron.schedule('*/2 * * * *', () => {
-  updatePortefeuilleLignes().catch((error) => console.error('Erreur globale updatePortefeuilleLignes:', error));
-}, { timezone: 'Europe/Paris' });
+planifierJob(updatePrices, 'updatePrices');
+planifierJob(updateIndices, 'updateIndices');
+planifierJob(checkAlerts, 'checkAlerts');
+planifierJob(updatePortefeuilleLignes, 'updatePortefeuilleLignes');

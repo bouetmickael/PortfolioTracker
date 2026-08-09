@@ -588,7 +588,8 @@ body {
   background: var(--bg-secondary);
 }
 
-.valeur-drag-handle {
+.valeur-drag-handle,
+.portefeuille-position-drag-handle {
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -603,7 +604,8 @@ body {
   touch-action: none;
 }
 
-.valeur-drag-handle:active {
+.valeur-drag-handle:active,
+.portefeuille-position-drag-handle:active {
   cursor: grabbing;
 }
 
@@ -899,25 +901,11 @@ body {
 
 /* Poignee de glisser-depose dediee (reordonnancement des positions au sein
    du portefeuille actif, meme demande utilisateur que pour les valeurs
-   suivies) - meme motif que .valeur-drag-handle : taille fixe, touch-
-   action: none pour ne pas intercepter le scroll tactile de la page (le
-   reste de la carte reste cliquable/scrollable normalement, voir
-   BUSINESS_RULES.md/DESIGN.md § Liste des valeurs suivies pour la meme
-   contrainte deja resolue sur .valeur-row). */
-.portefeuille-position-drag-handle {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  color: var(--text-secondary);
-  cursor: grab;
-  touch-action: none;
-}
-
-.portefeuille-position-drag-handle:active {
-  cursor: grabbing;
-}
+   suivies) - regles partagees avec .valeur-drag-handle (voir plus haut dans
+   ce fichier) : taille fixe, touch-action: none pour ne pas intercepter le
+   scroll tactile de la page (le reste de la carte reste cliquable/
+   scrollable normalement, voir BUSINESS_RULES.md/DESIGN.md § Liste des
+   valeurs suivies pour la meme contrainte deja resolue sur .valeur-row). */
 
 .portefeuille-position-nom {
   flex: 1;
