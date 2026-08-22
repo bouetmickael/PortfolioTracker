@@ -349,9 +349,23 @@ function libellePartage(section) {
   return section.partagee ? 'Section partagee' : 'Partager la section';
 }
 
+// Seule note inseree dans le DOM via innerHTML plutot que textContent
+// (voir createAlerteCard ci-dessous) : echappement local, le reste du
+// projet insere deja des donnees utilisateur non echappees (ticker, nom
+// de valeur) sans avoir eu besoin de cet helper jusqu'ici.
+function escapeHtml(texte) {
+  const div = document.createElement('div');
+  div.textContent = texte;
+  return div.innerHTML;
+}
+
 function createAlerteCard(id, alerte) {
   const div = document.createElement('div');
   div.className = 'alerte-card';
+  div.tabIndex = 0;
+  div.setAttribute('role', 'button');
+  div.title = 'Modifier l\'alerte';
+  div.onclick = () => ouvrirEditionAlerte(alerte);
 
   const seuils = [];
   if (alerte.seuilHaut) seuils.push(`Haut: ${formatCours(alerte.seuilHaut)}`);
@@ -363,13 +377,16 @@ function createAlerteCard(id, alerte) {
   // lire le texte "Declenchee a hh:mm"/"Jamais declenchee" de chacune.
   const pastille = alerte.derniereAlerte ? '<span class="badge-notif-dot" title="Alerte declenchee"></span>' : '';
 
+  const note = alerte.note ? `<div class="alerte-note">${escapeHtml(alerte.note)}</div>` : '';
+
   div.innerHTML = `
     <div class="alerte-info">
       <div class="alerte-ticker">${pastille}${alerte.ticker}</div>
       <div class="alerte-seuils">${seuils.join(' - ')}</div>
+      ${note}
       <div class="alerte-derniere">${texteDerniereAlerte(alerte)}</div>
     </div>
-    <button class="btn-icon-small btn-icon-xs" onclick="supprimerAlerte('${id}')" title="Supprimer" aria-label="Supprimer">
+    <button class="btn-icon-small btn-icon-xs" onclick="event.stopPropagation(); supprimerAlerte('${id}')" title="Supprimer" aria-label="Supprimer">
       <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
     </button>
   `;
@@ -1163,11 +1180,11 @@ async function persisterOrdreSectionPartagee(section, valeurIds) {
   await envoyerReorder('/api/sections/reorder', { sections: [{ id: section.id, valeurIds }] }, ' section partagee');
 }
 
-async function creerAlerteAPI(ticker, seuilHaut, seuilBas) {
+async function creerAlerteAPI(ticker, seuilHaut, seuilBas, note) {
   return executerAction(async () => {
     const res = await apiFetch('/api/alertes', {
       method: 'POST',
-      body: JSON.stringify({ ticker, seuilHaut: seuilHaut || null, seuilBas: seuilBas || null })
+      body: JSON.stringify({ ticker, seuilHaut: seuilHaut || null, seuilBas: seuilBas || null, note: note || null })
     });
 
     if (!res.ok) {
@@ -1181,10 +1198,47 @@ async function creerAlerteAPI(ticker, seuilHaut, seuilBas) {
   }, 'Erreur creation alerte');
 }
 
+async function modifierAlerteAPI(id, seuilHaut, seuilBas, note) {
+  return executerAction(async () => {
+    const res = await apiFetch(`/api/alertes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ seuilHaut: seuilHaut || null, seuilBas: seuilBas || null, note: note || null })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur modification alerte');
+    }
+
+    await chargerAlertes();
+    showToast('Alerte modifiee', 'success');
+    return true;
+  }, 'Erreur modification alerte');
+}
+
+// Meme modale que la creation (#modalCreateAlerte), utilisee en mode
+// edition lorsque alerteEnEdition est renseigne - voir openAlerteModal
+// (mode creation) et ouvrirEditionAlerte (mode edition) ci-dessous, qui
+// pilotent toutes deux le titre/libelle du bouton et remettent cette
+// variable a l'etat correspondant a l'ouverture.
+let alerteEnEdition = null;
+
+function ouvrirEditionAlerte(alerte) {
+  alerteEnEdition = alerte.id;
+  document.getElementById('modalCreateAlerteTitre').textContent = 'Modifier l\'alerte';
+  document.getElementById('inputTickerAlerte').value = alerte.ticker;
+  document.getElementById('inputSeuilHaut').value = alerte.seuilHaut || '';
+  document.getElementById('inputSeuilBas').value = alerte.seuilBas || '';
+  document.getElementById('inputNoteAlerte').value = alerte.note || '';
+  document.getElementById('btnValiderAlerte').textContent = 'Enregistrer';
+  openModal('modalCreateAlerte');
+}
+
 async function creerAlerte() {
   const ticker = document.getElementById('inputTickerAlerte').value;
   const seuilHaut = parseFloat(document.getElementById('inputSeuilHaut').value);
   const seuilBas = parseFloat(document.getElementById('inputSeuilBas').value);
+  const note = document.getElementById('inputNoteAlerte').value.trim();
 
   if (!ticker) {
     showToast('Ticker requis', 'warning');
@@ -1196,12 +1250,16 @@ async function creerAlerte() {
     return;
   }
 
-  const success = await creerAlerteAPI(ticker, seuilHaut, seuilBas);
+  const success = alerteEnEdition
+    ? await modifierAlerteAPI(alerteEnEdition, seuilHaut, seuilBas, note)
+    : await creerAlerteAPI(ticker, seuilHaut, seuilBas, note);
 
   if (success) {
     closeAllModals();
     document.getElementById('inputSeuilHaut').value = '';
     document.getElementById('inputSeuilBas').value = '';
+    document.getElementById('inputNoteAlerte').value = '';
+    alerteEnEdition = null;
   }
 }
 
@@ -2154,7 +2212,13 @@ function closeAllModals() {
 }
 
 function openAlerteModal(ticker) {
+  alerteEnEdition = null;
+  document.getElementById('modalCreateAlerteTitre').textContent = 'Creer une alerte';
   document.getElementById('inputTickerAlerte').value = ticker;
+  document.getElementById('inputSeuilHaut').value = '';
+  document.getElementById('inputSeuilBas').value = '';
+  document.getElementById('inputNoteAlerte').value = '';
+  document.getElementById('btnValiderAlerte').textContent = 'Creer';
   openModal('modalCreateAlerte');
 }
 

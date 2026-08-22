@@ -17,11 +17,18 @@ function toAlertesArray(rows) {
     ticker: row.ticker,
     seuilHaut: row.seuil_haut,
     seuilBas: row.seuil_bas,
+    note: row.note,
     active: Boolean(row.active),
     dernierCoursAlerte: row.dernier_cours_alerte,
     derniereAlerte: row.derniere_alerte,
     creeLe: row.cree_le
   }));
+}
+
+function normalizeNote(note) {
+  if (typeof note !== 'string') return null;
+  const trimmed = note.trim();
+  return trimmed || null;
 }
 
 router.get('/', (req, res) => {
@@ -33,6 +40,7 @@ router.post('/', (req, res) => {
   const ticker = normalizeTicker(req.body.ticker);
   const seuilHaut = req.body.seuilHaut ? Number(req.body.seuilHaut) : null;
   const seuilBas = req.body.seuilBas ? Number(req.body.seuilBas) : null;
+  const note = normalizeNote(req.body.note);
 
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker requis' });
@@ -42,11 +50,31 @@ router.post('/', (req, res) => {
   }
 
   db.prepare(
-    `INSERT INTO alertes (user_id, ticker, seuil_haut, seuil_bas, active, dernier_cours_alerte, derniere_alerte, cree_le)
-     VALUES (?, ?, ?, ?, 1, NULL, NULL, ?)`
-  ).run(req.session.userId, ticker, seuilHaut, seuilBas, Date.now());
+    `INSERT INTO alertes (user_id, ticker, seuil_haut, seuil_bas, note, active, dernier_cours_alerte, derniere_alerte, cree_le)
+     VALUES (?, ?, ?, ?, ?, 1, NULL, NULL, ?)`
+  ).run(req.session.userId, ticker, seuilHaut, seuilBas, note, Date.now());
 
   res.status(201).json({ success: true });
+});
+
+router.put('/:id', (req, res) => {
+  const seuilHaut = req.body.seuilHaut ? Number(req.body.seuilHaut) : null;
+  const seuilBas = req.body.seuilBas ? Number(req.body.seuilBas) : null;
+  const note = normalizeNote(req.body.note);
+
+  if (!seuilHaut && !seuilBas) {
+    return res.status(400).json({ error: 'Au moins un seuil requis' });
+  }
+
+  const info = db
+    .prepare('UPDATE alertes SET seuil_haut = ?, seuil_bas = ?, note = ? WHERE user_id = ? AND id = ?')
+    .run(seuilHaut, seuilBas, note, req.session.userId, req.params.id);
+
+  if (info.changes === 0) {
+    return res.status(404).json({ error: 'Alerte introuvable' });
+  }
+
+  res.json({ success: true });
 });
 
 router.delete('/:id', (req, res) => {

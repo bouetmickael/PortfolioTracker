@@ -325,6 +325,47 @@ délibéré antérieur, non remis en cause).
   `server/jobs/alerts.js`), donc jusqu'à suppression/ajustement de
   l'alerte par l'utilisateur — pas une notification « lue/non lue » avec
   un état séparé à maintenir, un signal « ce seuil a été franchi ».
+  **Note optionnelle et édition d'une alerte** (session 2026-08-22,
+  demande explicite utilisateur). Une alerte peut porter une note libre
+  optionnelle (`alertes.note`, `server/db.js`), saisie dans le même
+  formulaire que les seuils (`#modalCreateAlerte`, nouveau champ
+  `<textarea id="inputNoteAlerte" class="input">` sous les deux champs de
+  seuil). Affichée sur la carte (`.alerte-note`, 10px, `--text`
+  (pas `--text-secondary` comme `.alerte-seuils`/`.alerte-derniere` : la
+  note est un contenu saisi par l'utilisateur, pas un texte d'aide),
+  `font-style: italic`, `white-space: pre-wrap` pour préserver les
+  retours à la ligne de la saisie), absente (pas de ligne vide) si non
+  renseignée. Reprise dans le corps de l'email envoyé au déclenchement
+  (`checkAlerts()`, `server/jobs/alerts.js`), sous la ligne « Cours
+  actuel : ... » — seul autre canal de présentation de la note au
+  moment précis où l'alerte se déclenche, la carte elle-même n'étant
+  visible que si l'utilisateur ouvre l'application.
+  La carte entière (`.alerte-card`, hors bouton `icon-trash`, qui
+  applique `event.stopPropagation()` pour ne pas déclencher l'ouverture
+  de la modale) est désormais cliquable (`cursor: pointer`, survol
+  `--bg-secondary` — même convention que `.valeur-row`/les tuiles
+  d'indices) et ouvre `#modalCreateAlerte` en **mode édition**
+  (`ouvrirEditionAlerte()`, `public/app.js`) : titre de la modale et
+  libellé du bouton de validation adaptés dynamiquement (« Modifier
+  l'alerte »/« Enregistrer » plutôt que « Créer une alerte »/« Créer » —
+  même mécanisme que `#modalAddValeurTitre`, voir § Valeurs suivies
+  dupliquées entre sections), champs pré-remplis avec les valeurs
+  actuelles de l'alerte (ticker restant en lecture seule, un ticker ne se
+  change pas). Validée par `PUT /api/alertes/:id`
+  (`server/routes/alertes.js`, même validation « au moins un seuil
+  requis » que la création), qui remplace les deux seuils et la note —
+  `dernier_cours_alerte`/`derniere_alerte` (anti-répétition, voir
+  ci-dessus) ne sont volontairement pas réinitialisés par une édition :
+  changer un seuil ne doit pas rouvrir la fenêtre à une notification
+  immédiate si le cours a déjà franchi l'ancien seuil sans avoir
+  redescendu en dessous. Le formulaire complet (icône cloche sur la
+  ligne d'une valeur suivie, `openAlerteModal()`) reste le seul point
+  d'entrée en **mode création** ; le mode placement d'une alerte
+  directement sur le graphique (voir § Alerte depuis le graphique
+  ci-dessus) crée toujours une alerte sans note (`creerAlerteAPI(ticker,
+  seuilHaut, seuilBas)`, note omise) — ajouter une note à une alerte
+  posée depuis le graphique se fait après coup, en rouvrant sa carte
+  depuis « Alertes actives ».
 - **Partage de section** (Session D de `BACKLOG.md`, voir
   `BUSINESS_RULES.md` § Partage de section pour les règles d'accès) :
   - Bouton `icon-share` dans l'en-tête de chaque section possédée ouvre

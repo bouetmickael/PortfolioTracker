@@ -132,3 +132,89 @@ test('une alerte marque toutes les occurrences de son ticker suivies dans plusie
   assert.equal(occurrences.length, 2);
   assert.ok(occurrences.every((v) => v.hasAlerte === true));
 });
+
+test('creer une alerte avec une note la restitue via GET /api/alertes', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alertes-note-creation@test.local');
+
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 200, note: '  Vendre si ca casse le support  ' })
+  });
+
+  const alertes = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json();
+  assert.equal(alertes[0].note, 'Vendre si ca casse le support');
+});
+
+test('creer une alerte sans note la restitue a null', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alertes-sans-note@test.local');
+
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 200 })
+  });
+
+  const alertes = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json();
+  assert.equal(alertes[0].note, null);
+});
+
+test('PUT /api/alertes/:id modifie les seuils et la note', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alertes-modif@test.local');
+
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 200 })
+  });
+  const [alerte] = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json();
+
+  const res = await fetch(`${baseUrl}/api/alertes/${alerte.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ seuilHaut: 210, seuilBas: 150, note: 'Nouvelle note' })
+  });
+  assert.equal(res.status, 200);
+
+  const [alerteModifiee] = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json();
+  assert.equal(alerteModifiee.seuilHaut, 210);
+  assert.equal(alerteModifiee.seuilBas, 150);
+  assert.equal(alerteModifiee.note, 'Nouvelle note');
+});
+
+test('PUT /api/alertes/:id sans aucun seuil est rejete', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alertes-modif-invalide@test.local');
+
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 200 })
+  });
+  const [alerte] = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json();
+
+  const res = await fetch(`${baseUrl}/api/alertes/${alerte.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({})
+  });
+  assert.equal(res.status, 400);
+});
+
+test('PUT /api/alertes/:id ne permet pas de modifier l alerte d un autre utilisateur', async () => {
+  const userA = await creerUtilisateur(baseUrl, 'alertes-modif-iso-a@test.local');
+  const userB = await creerUtilisateur(baseUrl, 'alertes-modif-iso-b@test.local');
+
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: userA.cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 200 })
+  });
+  const [alerte] = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: userA.cookie } })).json();
+
+  const res = await fetch(`${baseUrl}/api/alertes/${alerte.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Cookie: userB.cookie },
+    body: JSON.stringify({ seuilHaut: 999 })
+  });
+  assert.equal(res.status, 404);
+});

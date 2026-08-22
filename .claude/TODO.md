@@ -2772,3 +2772,73 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   correctifs appliques cette session sont strictement internes -
   optimisation de performance imperceptible, fusion CSS a rendu
   identique, extractions de fonctions).
+
+## 2026-08-22 — Session 62, note optionnelle sur une alerte + edition depuis "Alertes actives" (v1.10.9)
+
+- **Demande** : demande explicite utilisateur - pouvoir ajouter une note
+  optionnelle a une alerte, presentee lorsque l'alerte se declenche, et
+  pouvoir modifier le seuil et la note d'une alerte existante en
+  cliquant dessus depuis la section "Alertes actives".
+- **Serveur** (`server/db.js`) : colonne `alertes.note` (`TEXT`,
+  nullable), ajoutee au `CREATE TABLE` et par une migration
+  `ALTER TABLE ... ADD COLUMN` (`columnExists()`, meme convention que
+  les colonnes avant-bourse). La migration de recreation de table
+  vestigiale (`alertes.valeur_id`, tres anciennes bases) mise a jour en
+  consequence pour ne pas perdre `note` sur ce chemin legacy.
+- **Serveur** (`server/routes/alertes.js`) : `toAlertesArray()` expose
+  desormais `note`. `POST /` accepte et normalise `note` (trim, chaine
+  vide -> `null`). Nouvelle route `PUT /:id` (seuil haut, seuil bas,
+  note - meme validation "au moins un seuil requis" que la creation,
+  `WHERE user_id = ? AND id = ?` puis `info.changes === 0` -> 404 si
+  l'alerte n'appartient pas a l'utilisateur courant). `dernier_cours_
+  alerte`/`derniere_alerte` (anti-repetition) volontairement non
+  reinitialises par une edition.
+- **Serveur** (`server/jobs/alerts.js`) : `checkAlerts()` ajoute
+  `\n\nNote : <note>` au corps de l'email envoye au declenchement,
+  quand l'alerte porte une note.
+- **Client** (`public/index.html`) : `#modalCreateAlerte` gagne un
+  `<textarea id="inputNoteAlerte" class="input">` sous les deux champs
+  de seuil, et un `id="modalCreateAlerteTitre"`/`id="btnValiderAlerte"`
+  pour permettre un titre/libelle de bouton dynamiques (creation vs
+  edition - meme mecanisme que `#modalAddValeurTitre`).
+- **Client** (`public/app.js`) : `createAlerteCard()` rend desormais la
+  note (`.alerte-note`, texte echappe via un nouvel helper local
+  `escapeHtml()` - seule donnee utilisateur inseree via `innerHTML` dans
+  ce fichier, echappement local par prudence) et rend la carte entiere
+  cliquable (`div.onclick = () => ouvrirEditionAlerte(alerte)`), le
+  bouton `icon-trash` appliquant `event.stopPropagation()` pour ne pas
+  declencher l'edition. `ouvrirEditionAlerte(alerte)` (nouvelle
+  fonction) pre-remplit la modale et bascule titre/bouton en mode
+  edition ; `openAlerteModal(ticker)` (creation, inchangee dans son
+  declencheur) reinitialise explicitement ce meme etat en mode
+  creation. `creerAlerte()` distingue desormais creation (`POST`, via
+  `creerAlerteAPI()`, signature etendue avec `note`) et edition (`PUT`,
+  nouvelle fonction `modifierAlerteAPI()`) selon la variable de module
+  `alerteEnEdition`. Le mode placement d'une alerte depuis le graphique
+  (`confirmerPlacementAlerte()`) continue de creer sans note (aucun
+  changement de ce chemin).
+- **CSS** (`public/styles.css`) : `.alerte-card` cliquable
+  (`cursor: pointer`, survol `--bg-secondary` - meme convention que
+  `.valeur-row`) ; `.alerte-note` (10px, `--text`, `font-style: italic`,
+  `white-space: pre-wrap`) ; `textarea.input { resize: vertical; }`
+  (premiere `<textarea>` du projet a utiliser `.input`).
+- **Verification** : `npm install` (server/, `node_modules` absent au
+  demarrage de la session) puis `node --test test/*.test.js` (81/81, 6
+  tests ajoutes dans `alertes.test.js`/`alerts-job.test.js` - creation
+  avec/sans note, `PUT` modification seuils+note, `PUT` rejete sans
+  seuil, `PUT` isole par utilisateur, note reprise dans le corps de
+  l'email envoye par `checkAlerts()`). Demarrage reel du serveur local
+  (`GET /`/`GET /login.html`/`GET /app.js`/`GET /styles.css` -> 200) et
+  parcours API complet (register, creation d'une alerte avec note
+  contenant des espaces superflus -> trim verifie, `PUT` de
+  modification des seuils et de la note, `PUT` sans aucun seuil ->
+  400). Pas de parcours Playwright cette session (CDN Chart.js toujours
+  bloque par la politique reseau du bac a sable) - le clic sur la carte
+  n'interagit avec aucun mecanisme de rendu du graphique, seulement
+  l'ouverture d'une modale de formulaire deja existante.
+- **Documentation mise a jour** : `DESIGN.md` (§ Carte alerte, nouveau
+  point "Note optionnelle et edition d'une alerte"), `CHANGELOG.md`
+  1.10.9, `BACKLOG.md` (compteur porte a 1/5).
+- **Version** : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.10.8 -> 1.10.9 (`METHOD.md` §5.5, changement
+  observable par l'utilisateur).

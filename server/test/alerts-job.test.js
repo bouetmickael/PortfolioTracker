@@ -143,3 +143,32 @@ test("checkAlerts() enregistre le declenchement meme si l'envoi d'email echoue (
   assert.ok(alerte.derniereAlerte, 'derniereAlerte doit etre renseignee malgre l\'echec d\'envoi de l\'email');
   assert.equal(alerte.dernierCoursAlerte, 101.5);
 });
+
+test("checkAlerts() reprend la note de l'alerte dans le corps de l'email envoye", async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alerts-job-note@test.local');
+
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL' })
+  });
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 100, note: 'Penser a verifier les resultats trimestriels' })
+  });
+
+  const sendMailOriginal = mailer.sendMail;
+  let corpsEnvoye = null;
+  mailer.sendMail = async (destinataire, sujet, corps) => {
+    corpsEnvoye = corps;
+  };
+
+  try {
+    await checkAlerts();
+  } finally {
+    mailer.sendMail = sendMailOriginal;
+  }
+
+  assert.ok(corpsEnvoye.includes('Penser a verifier les resultats trimestriels'));
+});

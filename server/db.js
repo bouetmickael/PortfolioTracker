@@ -54,6 +54,7 @@ db.exec(`
     ticker TEXT NOT NULL,
     seuil_haut REAL,
     seuil_bas REAL,
+    note TEXT,
     active INTEGER NOT NULL DEFAULT 1,
     dernier_cours_alerte REAL,
     derniere_alerte INTEGER,
@@ -143,6 +144,13 @@ for (const table of ['valeurs', 'indices_marche']) {
       db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} REAL`);
     }
   }
+}
+
+// Migration : ajout de la note optionnelle sur une alerte - voir DESIGN.md
+// § Carte alerte. NULL par defaut (pas de note), affichee sur la carte
+// d'alerte et reprise dans l'email envoye au declenchement.
+if (!columnExists('alertes', 'note')) {
+  db.exec('ALTER TABLE alertes ADD COLUMN note TEXT');
 }
 
 const backfillSectionsParDefaut = db.transaction(() => {
@@ -246,13 +254,14 @@ if (columnExists('alertes', 'valeur_id')) {
         ticker TEXT NOT NULL,
         seuil_haut REAL,
         seuil_bas REAL,
+        note TEXT,
         active INTEGER NOT NULL DEFAULT 1,
         dernier_cours_alerte REAL,
         derniere_alerte INTEGER,
         cree_le INTEGER NOT NULL
       );
-      INSERT INTO alertes_new (id, user_id, ticker, seuil_haut, seuil_bas, active, dernier_cours_alerte, derniere_alerte, cree_le)
-        SELECT id, user_id, ticker, seuil_haut, seuil_bas, active, dernier_cours_alerte, derniere_alerte, cree_le FROM alertes;
+      INSERT INTO alertes_new (id, user_id, ticker, seuil_haut, seuil_bas, note, active, dernier_cours_alerte, derniere_alerte, cree_le)
+        SELECT id, user_id, ticker, seuil_haut, seuil_bas, note, active, dernier_cours_alerte, derniere_alerte, cree_le FROM alertes;
       DROP TABLE alertes;
       ALTER TABLE alertes_new RENAME TO alertes;
     `);

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.9
+
+- **Fonctionnalite** : une alerte peut desormais porter une note optionnelle
+  (ex. "Vendre si le cours passe sous ce seuil"), affichee sur sa carte dans
+  "Alertes actives" et reprise dans l'email envoye au declenchement (demande
+  explicite utilisateur).
+- **Fonctionnalite** : cliquer sur une carte d'alerte dans "Alertes actives"
+  ouvre desormais une modale permettant de modifier son seuil haut, son
+  seuil bas et sa note (demande explicite utilisateur).
+
 ## 1.10.8
 
 - **Correctif** : la reduction de moitie appliquee en v1.10.7 a la ligne

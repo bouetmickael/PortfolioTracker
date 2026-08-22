@@ -73,10 +73,11 @@ async function checkAlerts() {
       console.log(`Alerte declenchee : ${alerte.ticker} ${typeAlerte} pour ${alerte.user_email}`);
 
       try {
+        const note = alerte.note ? `\n\nNote : ${alerte.note}` : '';
         await mailer.sendMail(
           alerte.user_email,
           `Alerte ${typeAlerte} : ${alerte.ticker}`,
-          `Cours actuel : ${cours.toFixed(2)} EUR (seuil : ${seuil} EUR)`
+          `Cours actuel : ${cours.toFixed(2)} EUR (seuil : ${seuil} EUR)${note}`
         );
       } catch (error) {
         console.error(`Erreur envoi email alerte pour ${alerte.user_email}:`, error.message);

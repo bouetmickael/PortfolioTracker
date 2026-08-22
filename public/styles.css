@@ -781,6 +781,12 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.alerte-card:hover {
+  background: var(--bg-secondary);
 }
 
 .alerte-info {
@@ -804,6 +810,14 @@ body {
   font-size: 10px;
   line-height: 1.25;
   color: var(--text-secondary);
+}
+
+.alerte-note {
+  font-size: 10px;
+  line-height: 1.25;
+  color: var(--text);
+  font-style: italic;
+  white-space: pre-wrap;
 }
 
 /* PORTEFEUILLES (reconstitution du portefeuille reel : quantite detenue +
@@ -1106,6 +1120,10 @@ body {
 .input:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+textarea.input {
+  resize: vertical;
 }
 
 .help-text {

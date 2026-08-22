@@ -264,6 +264,20 @@
   création d'alerte doit donc rester restreinte aux valeurs de ma propre
   liste "Valeurs suivies", jamais aux indices ni aux sections partagées
   avec moi.
+- **Note optionnelle** : une alerte peut porter une note libre
+  (`alertes.note`, `TEXT` nullable), sans validation de contenu au-delà
+  du `trim()`/vide -> `null` côté serveur (`server/routes/alertes.js`).
+  Affichée sur la carte d'alerte et reprise dans l'email de
+  déclenchement — voir `DESIGN.md` § Carte alerte pour le détail visuel.
+- **Modification d'une alerte** (`PUT /api/alertes/:id`) : mêmes règles
+  de validation que la création (au moins un seuil requis), scopée par
+  `WHERE user_id = ? AND id = ?` — modifier l'alerte d'un autre
+  utilisateur échoue en 404, même isolation que la suppression
+  (`DELETE /api/alertes/:id`). Ne réinitialise jamais
+  `dernier_cours_alerte`/`derniere_alerte` (anti-répétition ci-dessus) :
+  changer un seuil ne doit pas rouvrir la fenêtre à une notification
+  immédiate si le cours a déjà franchi l'ancien seuil sans être
+  redescendu en dessous depuis.
 
 ## Indices de marché (données globales)
 

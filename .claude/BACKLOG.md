@@ -6,7 +6,35 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/5** — Session 61 (2026-08-09), Revue de dette technique n°10. Diff
+**1/5** — Session 62 (2026-08-22, v1.10.9), note optionnelle sur une
+alerte + édition depuis "Alertes actives" (demande explicite
+utilisateur). `alertes.note` (colonne `TEXT` nullable, migration
+`ALTER TABLE` — voir `server/db.js`), saisie/modifiable dans
+`#modalCreateAlerte` (nouveau `<textarea id="inputNoteAlerte">`),
+affichée sur la carte d'alerte (`.alerte-note`) et reprise dans l'email
+envoyé au déclenchement (`checkAlerts()`, `server/jobs/alerts.js`). La
+carte d'alerte entière est désormais cliquable (hors bouton
+`icon-trash`, `event.stopPropagation()`) et ouvre la même modale en
+mode édition (`ouvrirEditionAlerte()`, titre/bouton adaptés
+dynamiquement), validée par une nouvelle route `PUT /api/alertes/:id`
+(seuil haut, seuil bas, note — même validation "au moins un seuil
+requis" que la création ; 404 si l'alerte n'appartient pas à
+l'utilisateur). Voir `DESIGN.md` § Carte alerte pour le détail visuel.
+Vérifié par `node --test test/*.test.js` (81/81, 6 tests ajoutés :
+création avec/sans note, `PUT` modification seuils+note, `PUT` rejeté
+sans seuil, `PUT` isolé par utilisateur, note reprise dans le corps de
+l'email envoyé par `checkAlerts()`), un démarrage réel du serveur
+(`GET /`/`GET /login.html`/`GET /app.js`/`GET /styles.css` → 200) et un
+parcours API réel de bout en bout (register, création d'une alerte avec
+note, `PUT` de modification des seuils et de la note, vérification du
+rejet sans seuil) — pas de parcours Playwright cette session (CDN
+Chart.js toujours bloqué par la politique réseau du bac à sable), mais
+le nouveau clic sur la carte n'interagit avec aucun mécanisme de rendu
+du graphique, seulement l'ouverture d'une modale déjà existante.
+
+Compteur avant cette session :
+
+0/5 — Session 61 (2026-08-09), Revue de dette technique n°10. Diff
 cumulé depuis la clôture de la Revue n°9 (`e30e344` — voir `CLAUDE.md` §
 Historique des revues), couvrant les Sessions 54 à 60 (taux de
 plus/moins-value sur la période du graphique + nouvel onglet
