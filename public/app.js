@@ -1303,7 +1303,7 @@ async function openGraphique(ticker, nom = null, alertable = false) {
   // portrait).
   await selectionnerPeriode(ticker, dernierePeriodeGraphique, false);
 
-  document.querySelectorAll('.btn-periode').forEach((btn) => {
+  document.querySelectorAll('#modalGraphique .btn-periode').forEach((btn) => {
     btn.onclick = () => selectionnerPeriode(ticker, btn.dataset.period, true);
   });
 }
@@ -1315,7 +1315,7 @@ async function openGraphique(ticker, nom = null, alertable = false) {
 // rotation d'ecran - voir onOrientationChange, qui recharge toujours la
 // meme periode que celle deja affichee).
 async function selectionnerPeriode(ticker, period, persister) {
-  document.querySelectorAll('.btn-periode').forEach((btn) => {
+  document.querySelectorAll('#modalGraphique .btn-periode').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.period === period);
   });
   if (persister) {

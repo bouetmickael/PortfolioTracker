@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.10.10
+
+- **Correctif** : dans l'onglet "Portefeuilles", changer de portefeuille
+  pouvait laisser plusieurs boutons de la liste allumes en meme temps,
+  rendant impossible d'en selectionner un seul (retour utilisateur
+  explicite). Cause : les boutons pilule du selecteur de portefeuilles
+  et les boutons de periode du graphique partagent la meme classe CSS
+  `.btn-periode`, et le code du graphique appliquait son etat "actif"
+  sur `document.querySelectorAll('.btn-periode')` sans le restreindre a
+  sa propre modale - des qu'un graphique avait ete ouvert au moins une
+  fois, ce code retombait aussi sur les boutons de portefeuille.
+
 ## 1.10.9
 
 - **Fonctionnalite** : une alerte peut desormais porter une note optionnelle

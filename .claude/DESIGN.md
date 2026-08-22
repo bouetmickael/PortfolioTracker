@@ -929,7 +929,24 @@ délibéré antérieur, non remis en cause).
     pilule `.btn-periode` réutilisés — même gabarit que le sélecteur de
     période du graphique) : un bouton par portefeuille de l'utilisateur,
     plus un bouton `+ Nouveau` qui ouvre la modale prompt générique
-    (`showPrompt()`) pour nommer un nouveau portefeuille. Le premier
+    (`showPrompt()`) pour nommer un nouveau portefeuille. Son état actif
+    (`:class="{ active: p.id === $store.portfolio.portefeuilleSelectionneId }"`)
+    est piloté uniquement par Alpine, jamais par manipulation DOM directe
+    — **correctif session 2026-08-22** (retour utilisateur explicite :
+    changer de portefeuille laissait le bouton du précédent allumé, deux
+    boutons actifs simultanément, impossible de n'en sélectionner qu'un
+    seul). Cause réelle : `openGraphique()`/`selectionnerPeriode()`
+    (`public/app.js`, sélecteur de période du graphique) interrogeaient
+    `document.querySelectorAll('.btn-periode')` sans le restreindre à
+    `#modalGraphique` — comme ces boutons pilule partagent la même
+    classe CSS `.btn-periode`, ce code retombait aussi sur les boutons du
+    sélecteur de portefeuilles dès qu'un graphique avait été ouvert au
+    moins une fois : `btn.dataset.period === period` valant
+    `undefined === undefined` pour un bouton de portefeuille (qui n'a pas
+    de `data-period`), le toggle `active` les allumait tous. Les deux
+    requêtes sont désormais scopées à `#modalGraphique .btn-periode` — le
+    sélecteur de portefeuilles n'est plus jamais touché par le mécanisme
+    du graphique. Le premier
     portefeuille créé devient automatiquement le portefeuille actif ;
     tant qu'aucun portefeuille n'existe, un état vide (`.empty-state`,
     même gabarit que l'état vide de la liste des valeurs suivies)

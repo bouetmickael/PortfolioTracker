@@ -6,7 +6,33 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**1/5** — Session 62 (2026-08-22, v1.10.9), note optionnelle sur une
+**2/5** — Session 63 (2026-08-22, v1.10.10), correctif : deux boutons de
+portefeuille actifs simultanément (retour utilisateur explicite). Cause :
+`openGraphique()`/`selectionnerPeriode()` (`public/app.js`) interrogeaient
+`document.querySelectorAll('.btn-periode')` sans restreindre la
+recherche à `#modalGraphique` — les boutons pilule du sélecteur de
+portefeuilles (`.portefeuilles-selector`) partagent la même classe CSS
+`.btn-periode` que le sélecteur de période du graphique (réutilisation
+volontaire de gabarit, voir `DESIGN.md` § Portefeuilles), donc dès
+qu'un graphique avait été ouvert au moins une fois, ce code retombait
+aussi sur eux : `btn.dataset.period === period` valant
+`undefined === undefined` pour un bouton de portefeuille (pas de
+`data-period`), le toggle de la classe `active` les allumait tous.
+Les deux requêtes sont désormais scopées à `#modalGraphique
+.btn-periode`. Voir `DESIGN.md` § Portefeuilles pour le détail complet.
+Vérifié par `node --test test/*.test.js` (81/81, aucune régression —
+correctif purement client, aucun test serveur concerné), démarrage réel
+du serveur (`GET /`/`GET /login.html`/`GET /app.js`/`GET /styles.css`
+→ 200) — pas de parcours Playwright cette session (CDN Chart.js
+toujours bloqué par la politique réseau du bac à sable), analyse
+statique du mécanisme (les deux occurrences de
+`document.querySelectorAll('.btn-periode')` étaient les seules du
+fichier, confirmé par `grep`) suffisante à établir la cause et la
+correction sans ambiguïté.
+
+Compteur avant cette session :
+
+1/5 — Session 62 (2026-08-22, v1.10.9), note optionnelle sur une
 alerte + édition depuis "Alertes actives" (demande explicite
 utilisateur). `alertes.note` (colonne `TEXT` nullable, migration
 `ALTER TABLE` — voir `server/db.js`), saisie/modifiable dans

@@ -2842,3 +2842,63 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Version** : `server/package.json`/`server/package-lock.json`/
   `config.yaml` 1.10.8 -> 1.10.9 (`METHOD.md` §5.5, changement
   observable par l'utilisateur).
+
+## 2026-08-22 — Session 63, correctif : deux boutons de portefeuille actifs simultanement (v1.10.10)
+
+- **Demande** : retour utilisateur explicite - dans l'onglet
+  "Portefeuilles", changer de portefeuille laissait le bouton du
+  precedent allume, si bien que deux boutons du selecteur apparaissaient
+  actifs en meme temps et il devenait impossible de n'en selectionner
+  qu'un seul.
+- **Diagnostic** : le selecteur de portefeuilles
+  (`.portefeuilles-selector`, `public/index.html`) reutilise la classe
+  CSS `.btn-periode` (meme gabarit pilule que le selecteur de periode du
+  graphique, choix documente dans `DESIGN.md` § Portefeuilles), et pilote
+  son etat actif exclusivement via Alpine
+  (`:class="{ active: p.id === $store.portfolio.portefeuilleSelectionneId }"`).
+  Ce binding declaratif est correct en lui-meme, mais
+  `openGraphique()`/`selectionnerPeriode()` (`public/app.js`, sélecteur
+  de periode du graphique dans `#modalGraphique`) executaient
+  `document.querySelectorAll('.btn-periode')` sans le restreindre a leur
+  propre modale - une requete globale au document entier, qui remonte
+  donc aussi les boutons du selecteur de portefeuilles (Alpine ne
+  retire pas un element du DOM quand `x-show` le masque, seulement son
+  affichage CSS). `selectionnerPeriode()` execute ensuite
+  `btn.classList.toggle('active', btn.dataset.period === period)` sur
+  chaque bouton trouve : pour un bouton de portefeuille, qui n'a pas
+  d'attribut `data-period`, cette comparaison vaut
+  `undefined === undefined` -> `true` pour peu que `period` lui-meme
+  soit `undefined` (ce qui arrivait via le second bug : `openGraphique()`
+  assignait aussi `btn.onclick = () => selectionnerPeriode(ticker,
+  btn.dataset.period, true)` a tous les `.btn-periode` du document,
+  ajoutant donc un gestionnaire `onclick` parasite sur les boutons de
+  portefeuille en plus de leur `@click` Alpine deja en place ; cliquer
+  dessus declenchait alors `selectionnerPeriode(ticker, undefined,
+  true)`, qui allumait la classe `active` sur tous les boutons de
+  portefeuille a la fois). Reproduit uniquement apres avoir deja ouvert
+  au moins un graphique depuis l'onglet Portefeuilles (le mecanisme
+  parasite ne s'installe qu'a ce moment-la) - explique pourquoi le bug
+  n'etait pas systematique des la premiere utilisation de l'onglet.
+- **Correctif** (`public/app.js`) : les deux occurrences de
+  `document.querySelectorAll('.btn-periode')` (assignation des
+  gestionnaires de clic dans `openGraphique()`, toggle de la classe
+  `active` dans `selectionnerPeriode()`) sont desormais scopees a
+  `#modalGraphique .btn-periode` - seuls les 5 boutons de periode du
+  graphique (1J/1S/1M/1A/Max) sont concernes, plus aucun effet de bord
+  sur le selecteur de portefeuilles ni sur tout futur composant qui
+  reutiliserait `.btn-periode`.
+- **Verification** : `node --test test/*.test.js` (81/81, aucune
+  regression - correctif purement client, aucune route serveur
+  concernee). Demarrage reel du serveur local (`GET /`/`GET
+  /login.html`/`GET /app.js`/`GET /styles.css` -> 200). Pas de parcours
+  Playwright cette session (CDN Chart.js toujours bloque par la
+  politique reseau du bac a sable) : `grep` confirme que ces deux
+  occurrences etaient les seules du fichier a interroger `.btn-periode`
+  sans le scoper, la correction est donc exhaustive sur le mecanisme
+  identifie.
+- **Documentation mise a jour** : `DESIGN.md` (§ Portefeuilles, point
+  "Sélecteur de portefeuilles" complete), `CHANGELOG.md` 1.10.10,
+  `BACKLOG.md` (compteur porte a 2/5).
+- **Version** : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.10.9 -> 1.10.10 (`METHOD.md` §5.5, changement
+  observable par l'utilisateur).
