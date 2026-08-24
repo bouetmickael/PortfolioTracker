@@ -2902,3 +2902,70 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Version** : `server/package.json`/`server/package-lock.json`/
   `config.yaml` 1.10.9 -> 1.10.10 (`METHOD.md` §5.5, changement
   observable par l'utilisateur).
+
+## 2026-08-24 — Session 64, correctif : taux "Sur la periode" errone en periode 1J (v1.10.11)
+
+- **Demande** : retour utilisateur explicite, capture d'ecran a l'appui
+  (graphique en periode 1J d'un ETF nettement en baisse par rapport a la
+  cloture de la veille - premier point de la journee vers 7.76 EUR,
+  dernier point vers 7.79 EUR, ligne "Cloture veille" visible a 7.82 EUR)
+  : l'indicateur "Sur la periode" affichait "+0.03 EUR (+0.39%)", une
+  petite variation positive, alors qu'il aurait du refleter une baisse
+  nette par rapport a la cloture de la veille - la meme variation deja
+  correctement affichee sur la liste des valeurs suivies pour cette
+  meme valeur.
+- **Diagnostic** : `calculerVariationPeriode()` (`public/app.js`)
+  comparait systematiquement le dernier cours exploitable de la periode
+  chargee au **premier point de cette meme serie** (`valeursValides[0]`),
+  quelle que soit la periode. En periode 1J, ce premier point est le
+  premier point de la serie intraday retournee par Yahoo Finance
+  (`interval` fin, ex. par minute) - qui ne correspond pas necessairement
+  au cours d'ouverture reel du marche (ex. absence de transaction juste
+  a l'ouverture, ou fenetre de donnees ne demarrant pas exactement a
+  l'heure d'ouverture). La variation du jour affichee ailleurs dans
+  l'application (liste des valeurs suivies, tuiles d'indices, calculee
+  cote serveur par `pctChange(price, previousClose)` dans
+  `server/jobs/prices.js`) se base au contraire sur `previousClose` (la
+  cloture de la veille) - une reference differente, deja recue par le
+  client via `GET /api/chart/:ticker` (`result.previousClose`) et deja
+  utilisee par le graphique pour tracer la ligne "Cloture veille" (voir
+  `DESIGN.md`), mais jamais utilisee par `calculerVariationPeriode()`
+  jusqu'ici.
+- **Correctif** (`public/app.js`) : `calculerVariationPeriode(prices,
+  previousClose, period)`/`afficherVariationPeriode(prices,
+  previousClose, period)` recoivent desormais `previousClose` et
+  `period` en parametres (transmis depuis `chargerGraphique()`, qui les
+  possede deja tous les deux). En periode `1J`, si `previousClose` est
+  disponible (non nul), le point de depart devient `previousClose` au
+  lieu du premier point de la serie - alignant ce taux sur la meme
+  reference que la variation du jour affichee ailleurs. Les autres
+  periodes (1S/1M/1A/Max) conservent exactement le comportement
+  precedent (premier point de la fenetre chargee), faute de reference
+  "cloture de la veille" equivalente sur ces echelles de temps plus
+  larges - correctif volontairement scope a la seule periode 1J plutot
+  qu'un changement general du mode de calcul.
+- **Verification** : `npm install` (server/, `node_modules` absent au
+  demarrage de la session, meme anomalie d'environnement deja rencontree
+  aux sessions precedentes) puis `node --test test/*.test.js` (81/81,
+  aucune regression - correctif purement client, aucun test serveur
+  concerne). Demarrage reel du serveur local (`GET /`/`GET /login.html`/
+  `GET /app.js`/`GET /styles.css` -> 200). Verification programmatique
+  dediee : extraction et execution directe de
+  `calculerVariationPeriode()` avec les valeurs exactes de la capture
+  d'ecran fournie (premier point de serie 7.76, dernier point 7.79,
+  `previousClose` 7.82) - ancien comportement reproduit (+0.39%, signe
+  errone), nouveau comportement conforme au sens attendu (-0.38%, signe
+  correct) ; comportement des periodes non-1J verifie inchange sur le
+  meme jeu de donnees, et cas `previousClose` absent verifie retomber
+  sur l'ancien comportement (repli explicite). Pas de parcours
+  Playwright cette session (CDN Chart.js toujours bloque par la
+  politique reseau du bac a sable) - correctif limite a une fonction de
+  calcul pure (aucun mecanisme de rendu ni interaction utilisateur
+  directe modifie).
+- **Documentation mise a jour** : `DESIGN.md` (§ Sélecteur de période
+  (graphique), point "Taux de plus/moins-value sur la période du
+  graphique" complete), `CHANGELOG.md` 1.10.11, `BACKLOG.md` (compteur
+  porte a 3/5).
+- **Version** : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.10.10 -> 1.10.11 (`METHOD.md` §5.5, changement
+  observable par l'utilisateur).

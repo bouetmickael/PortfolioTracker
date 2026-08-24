@@ -1696,16 +1696,30 @@ let graphiqueDonneesCompletes = null;
 let plageVisible = { debut: 0, fin: 0 };
 
 // Taux de plus/moins-value sur la periode de graphique actuellement chargee
-// (bouton 1J/1S/1M/1A/Max), du premier au dernier point exploitable de
-// `prices` - jamais recalcule pendant un pincement (voir § ZOOM PAR
-// PINCEMENT ci-dessus) : reste rattache a la periode selectionnee, pas a la
-// fenetre visible momentanement obtenue par zoom, coherent avec le fait que
-// les boutons de periode restent le seul moyen de "reinitialiser" un zoom.
-function calculerVariationPeriode(prices) {
+// (bouton 1J/1S/1M/1A/Max) - jamais recalcule pendant un pincement (voir §
+// ZOOM PAR PINCEMENT ci-dessus) : reste rattache a la periode selectionnee,
+// pas a la fenetre visible momentanement obtenue par zoom, coherent avec le
+// fait que les boutons de periode restent le seul moyen de "reinitialiser"
+// un zoom.
+// En periode 1J, le point de depart est `previousClose` (cloture de la
+// veille, meme reference que la variation du jour affichee sur la liste des
+// valeurs suivies/les tuiles d'indices) plutot que le premier point de la
+// serie intraday - correctif session 64, retour utilisateur explicite : le
+// premier point d'une serie a la minute ne correspond pas forcement au cours
+// d'ouverture (ex. absence de transaction juste a l'ouverture), ce qui
+// desynchronisait ce taux de la variation du jour affichee ailleurs dans
+// l'application pour la meme valeur. Sur les autres periodes (1S/1M/1A/Max),
+// pas de reference "cloture de la veille" equivalente : le premier point
+// exploitable de la fenetre chargee reste le seul point de depart possible.
+function calculerVariationPeriode(prices, previousClose, period) {
   const valeursValides = prices.filter((p) => p !== null && p !== undefined);
-  if (valeursValides.length < 2) return null;
+  const utiliserPreviousClose = period === '1J' && !!previousClose;
 
-  const depart = valeursValides[0];
+  if (utiliserPreviousClose ? valeursValides.length < 1 : valeursValides.length < 2) {
+    return null;
+  }
+
+  const depart = utiliserPreviousClose ? previousClose : valeursValides[0];
   const arrivee = valeursValides[valeursValides.length - 1];
   const eur = arrivee - depart;
   const pct = depart ? (eur / depart) * 100 : 0;
@@ -1713,9 +1727,9 @@ function calculerVariationPeriode(prices) {
   return { eur, pct };
 }
 
-function afficherVariationPeriode(prices) {
+function afficherVariationPeriode(prices, previousClose, period) {
   const el = document.getElementById('graphiquePeriodeVariation');
-  const variation = calculerVariationPeriode(prices);
+  const variation = calculerVariationPeriode(prices, previousClose, period);
 
   if (!variation) {
     el.hidden = true;
@@ -1747,7 +1761,7 @@ async function chargerGraphique(ticker, period) {
     const volumes = data.map((d) => d.volume || 0);
     const previousClose = result.previousClose;
 
-    afficherVariationPeriode(prices);
+    afficherVariationPeriode(prices, previousClose, period);
 
     const themeSombre = getTheme() === 'dark';
     const couleurTexte = themeSombre ? '#9aa0a6' : '#5f6368';

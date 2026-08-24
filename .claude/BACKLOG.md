@@ -6,7 +6,44 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**2/5** — Session 63 (2026-08-22, v1.10.10), correctif : deux boutons de
+**3/5** — Session 64 (2026-08-24, v1.10.11), correctif : le taux de
+plus/moins-value "Sur la periode" affiche au-dessus du graphique etait
+errone en periode 1J (retour utilisateur explicite, capture d'ecran a
+l'appui — cas reel : valeur nettement en baisse par rapport a la cloture
+de la veille, mais l'indicateur affichait une petite variation positive).
+Cause : `calculerVariationPeriode()` (`public/app.js`) comparait
+systematiquement le dernier cours au **premier point de la serie
+intraday** chargee (`prices[0]`), qui ne correspond pas forcement au
+cours d'ouverture reel (ex. absence de transaction juste a l'ouverture,
+ou fenetre de donnees Yahoo Finance ne demarrant pas exactement a
+l'ouverture du marche) — contrairement a la variation du jour deja
+affichee correctement sur la liste des valeurs suivies et les tuiles
+d'indices, qui se base sur `previousClose` (cloture de la veille, deja
+recue par `GET /api/chart/:ticker` et deja utilisee pour la ligne
+"Cloture veille" du graphique, voir `DESIGN.md`). En periode 1J
+uniquement, `calculerVariationPeriode()` utilise desormais
+`previousClose` comme point de depart quand il est disponible ; les
+autres periodes (1S/1M/1A/Max) conservent le comportement precedent
+(premier point de la fenetre chargee), faute de reference "cloture de la
+veille" equivalente sur ces echelles de temps. Voir `DESIGN.md` § Taux de
+plus/moins-value sur la periode du graphique pour le detail complet.
+Verifie par `node --test test/*.test.js` (81/81, aucune regression —
+correctif purement client, aucun test serveur concerne), un demarrage
+reel du serveur (`GET /`/`GET /login.html`/`GET /app.js`/
+`GET /styles.css` → 200) et une verification programmatique dediee
+(execution directe de `calculerVariationPeriode()` extrait du fichier
+avec les valeurs exactes de la capture d'ecran fournie par
+l'utilisateur — premier point de serie 7.76, dernier point 7.79,
+`previousClose` 7.82 : ancien resultat +0.39% confirme reproduit,
+nouveau resultat -0.38% conforme au sens attendu ; periodes non-1J
+verifiees inchangees sur le meme jeu de donnees) — pas de parcours
+Playwright cette session (CDN Chart.js toujours bloque par la politique
+reseau du bac a sable), correctif limite a une fonction de calcul pure
+sans mecanisme de rendu ni interaction utilisateur directe.
+
+Compteur avant cette session :
+
+2/5 — Session 63 (2026-08-22, v1.10.10), correctif : deux boutons de
 portefeuille actifs simultanément (retour utilisateur explicite). Cause :
 `openGraphique()`/`selectionnerPeriode()` (`public/app.js`) interrogeaient
 `document.querySelectorAll('.btn-periode')` sans restreindre la

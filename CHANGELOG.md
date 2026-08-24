@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.10.11
+
+- **Correctif** : le taux de plus/moins-value "Sur la periode" affiche
+  au-dessus du graphique en periode 1J (1 jour) etait errone (retour
+  utilisateur explicite, capture d'ecran a l'appui) - il comparait le
+  dernier cours au tout premier point de la serie intraday (qui ne
+  correspond pas forcement au cours d'ouverture, ex. absence de
+  transaction juste a l'ouverture) au lieu de le comparer a la cloture
+  de la veille, la meme reference que la variation du jour deja affichee
+  correctement sur la liste des valeurs suivies et les tuiles d'indices.
+  En periode 1J, le point de depart est desormais `previousClose` (deja
+  recu depuis `GET /api/chart/:ticker`, deja utilise pour la ligne
+  "Cloture veille" du graphique) ; les autres periodes (1S/1M/1A/Max)
+  conservent le comportement precedent (premier point de la fenetre
+  chargee), pour lesquelles il n'existe pas de reference "cloture de la
+  veille" equivalente.
+
 ## 1.10.10
 
 - **Correctif** : dans l'onglet "Portefeuilles", changer de portefeuille

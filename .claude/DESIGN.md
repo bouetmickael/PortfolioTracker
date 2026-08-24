@@ -592,7 +592,7 @@ délibéré antérieur, non remis en cause).
   **Taux de plus/moins-value sur la période du graphique** (session
   2026-08-06, demande explicite utilisateur). Sous le sélecteur de
   période (`#graphiquePeriodeVariation`), un indicateur affiche l'écart
-  entre le premier et le dernier cours exploitable de la période
+  entre un point de départ et le dernier cours exploitable de la période
   actuellement chargée (`graphiqueDonneesCompletes.prices`, avant tout
   pincement — voir § Zoom par pincement ci-dessus), en euros et en
   pourcentage (ex. « Sur la période : +12.34 EUR (+5.67%) »), coloré
@@ -600,11 +600,27 @@ délibéré antérieur, non remis en cause).
   `.valeur-variation`. Recalculé à chaque chargement du graphique
   (ouverture, changement de période) via `afficherVariationPeriode()`
   (`public/app.js`), masqué (`hidden`) si la période ne compte pas au
-  moins deux points exploitables. Reste rattaché à la période
-  sélectionnée par les boutons pilule, jamais recalculé pendant un
+  moins un point exploitable avec `previousClose` connu (1J), ou deux
+  points exploitables (autres périodes). Reste rattaché à la
+  période sélectionnée par les boutons pilule, jamais recalculé pendant un
   pincement (`redessinerPlageVisible()` ne l'appelle pas) : cohérent avec
   le fait que les boutons de période restent le seul moyen de
   « réinitialiser » une fenêtre obtenue par zoom, voir ci-dessus.
+  **Point de départ corrigé pour la période 1J (session 2026-08-24,
+  retour utilisateur explicite, capture d'écran à l'appui)** : le point
+  de départ était jusqu'ici toujours le premier point exploitable de la
+  série chargée (`prices[0]`), ce qui donnait un taux erroné en période
+  1J — le premier point d'une série intraday ne correspond pas forcément
+  au cours d'ouverture réel (ex. absence de transaction juste à
+  l'ouverture), désynchronisant ce taux de la variation du jour déjà
+  affichée correctement ailleurs (liste des valeurs suivies, tuiles
+  d'indices), qui se base sur `previousClose`. En période 1J
+  uniquement, le point de départ est désormais `previousClose` (déjà
+  reçu par `GET /api/chart/:ticker`, déjà utilisé pour la ligne
+  « Clôture veille » ci-dessous) quand il est disponible ; les autres
+  périodes (1S/1M/1A/Max) conservent le premier point de la fenêtre
+  chargée comme point de départ, faute de référence « clôture de la
+  veille » équivalente sur ces échelles de temps.
 - **Alerte depuis le graphique** (session 2026-07-25, demande explicite
   utilisateur, inspirée du geste de glisser-déposer de TradingView) :
   sur le graphique d'une valeur de ma propre liste "Valeurs suivies"
