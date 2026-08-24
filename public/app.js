@@ -1711,9 +1711,15 @@ let plageVisible = { debut: 0, fin: 0 };
 // l'application pour la meme valeur. Sur les autres periodes (1S/1M/1A/Max),
 // pas de reference "cloture de la veille" equivalente : le premier point
 // exploitable de la fenetre chargee reste le seul point de depart possible.
+// Le code de periode interne pour "1 jour" est '1D' (voir
+// PERIODES_GRAPHIQUE_VALIDES/data-period), pas '1J' (qui n'est que le
+// libelle affiche sur le bouton) - correctif same-day session 64, la
+// premiere version de ce correctif comparait `period === '1J'`, une
+// condition qui ne correspondait jamais a la valeur reellement recue et
+// laissait donc le bug initial intact malgre le code ajoute.
 function calculerVariationPeriode(prices, previousClose, period) {
   const valeursValides = prices.filter((p) => p !== null && p !== undefined);
-  const utiliserPreviousClose = period === '1J' && !!previousClose;
+  const utiliserPreviousClose = period === '1D' && !!previousClose;
 
   if (utiliserPreviousClose ? valeursValides.length < 1 : valeursValides.length < 2) {
     return null;

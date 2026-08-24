@@ -41,6 +41,21 @@ Playwright cette session (CDN Chart.js toujours bloque par la politique
 reseau du bac a sable), correctif limite a une fonction de calcul pure
 sans mecanisme de rendu ni interaction utilisateur directe.
 
+**Correctif same-day (v1.10.12)** : retour utilisateur explicite - le
+correctif ci-dessus ne changeait en realite rien a l'affichage, la
+meme incoherence persistait entre la liste des valeurs suivies et le
+graphique intraday. Cause reelle : la condition ajoutee testait
+`period === '1J'`, mais le code de periode interne reellement transmis
+a `calculerVariationPeriode()` pour "1 jour" est `'1D'` (voir
+`PERIODES_GRAPHIQUE_VALIDES`/`data-period="1D"` sur le bouton, `'1J'`
+n'etant que le libelle affiche sur ce bouton) - la condition ne
+correspondait donc jamais et le bug d'origine (comparaison au premier
+point de la serie plutot qu'a `previousClose`) restait intact malgre le
+code ajoute a la session precedente. Corrige en `period === '1D'`.
+Reverifie avec le meme jeu de donnees que ci-dessus, cette fois avec le
+vrai code de periode `'1D'` : resultat -0.38% desormais bien produit.
+`node --test test/*.test.js` (81/81) toujours vert.
+
 Compteur avant cette session :
 
 2/5 — Session 63 (2026-08-22, v1.10.10), correctif : deux boutons de

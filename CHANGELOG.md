@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.12
+
+- **Correctif** : le correctif v1.10.11 (taux "Sur la periode" errone en
+  periode 1J) ne fonctionnait en realite pas - il comparait `period ===
+  '1J'`, mais le code de periode reellement transmis en interne pour "1
+  jour" est `'1D'` (`'1J'` n'est que le libelle affiche sur le bouton),
+  une condition qui ne correspondait donc jamais et laissait le bug
+  d'origine intact malgre le code ajoute (retour utilisateur explicite :
+  toujours la meme valeur incorrecte constatee apres le correctif
+  precedent). Condition corrigee en `period === '1D'`.
+
 ## 1.10.11
 
 - **Correctif** : le taux de plus/moins-value "Sur la periode" affiche

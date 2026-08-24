@@ -2969,3 +2969,49 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Version** : `server/package.json`/`server/package-lock.json`/
   `config.yaml` 1.10.10 -> 1.10.11 (`METHOD.md` §5.5, changement
   observable par l'utilisateur).
+
+### Correctif same-day - le correctif ci-dessus ne fonctionnait pas reellement (v1.10.12)
+
+- **Demande** : retour utilisateur explicite ("Je n'ai toujours pas la
+  meme valeur entre la page de suivi et le graphique intraday") -
+  l'incoherence persistait a l'identique apres le correctif v1.10.11
+  cense la resoudre.
+- **Diagnostic** : le correctif v1.10.11 ajoutait la condition `period
+  === '1J'` dans `calculerVariationPeriode()` pour utiliser
+  `previousClose` comme point de depart en periode 1 jour. Mais le code
+  de periode reellement transmis en interne pour "1 jour" est `'1D'`
+  (voir `PERIODES_GRAPHIQUE_VALIDES` et `data-period="1D"` sur le
+  bouton, `public/index.html` ligne 615) - `'1J'` n'est que le **libelle
+  affiche** sur ce bouton ("1J" pour "1 Jour"), jamais la valeur passee
+  a `chargerGraphique()`/`selectionnerPeriode()`. La condition ajoutee a
+  la session precedente ne correspondait donc **jamais**, et le code mort
+  qui en resultait laissait le bug d'origine (comparaison au premier
+  point de la serie intraday plutot qu'a `previousClose`) parfaitement
+  intact malgre l'apparence d'un correctif applique. Erreur commise lors
+  de la redaction du correctif precedent : deduction du code de periode
+  interne a partir du libelle du bouton ("1J") plutot que verification
+  directe de la valeur transmise par `chargerGraphique()`/`data-period`.
+- **Correctif** (`public/app.js`) : la seule occurrence de `period ===
+  '1J'` dans `calculerVariationPeriode()` corrigee en `period === '1D'`.
+  Commentaire adjacent complete pour expliciter la distinction entre le
+  libelle affiche sur le bouton et le code de periode interne, afin
+  d'eviter la meme erreur a l'avenir.
+- **Verification** : reexecution de la meme verification programmatique
+  que pour le correctif v1.10.11 (extraction et execution directe de
+  `calculerVariationPeriode()` avec les valeurs de la capture d'ecran -
+  premier point de serie 7.76, dernier point 7.79, `previousClose`
+  7.82), cette fois avec le **vrai** code de periode `'1D'` au lieu de
+  `'1J'` : resultat -0.38% desormais effectivement produit (le
+  correctif precedent, reexecute avec `'1J'`, confirme bien reproduire
+  l'ancien bug +0.39% - preuve que la condition ne se declenchait
+  jamais). `node --test test/*.test.js` (81/81, aucune regression).
+  Demarrage reel du serveur local (`GET /`/`GET /login.html`/
+  `GET /app.js`/`GET /styles.css` -> 200). Pas de parcours Playwright
+  cette session (CDN Chart.js toujours bloque par la politique reseau
+  du bac a sable) - meme portee de verification que le correctif
+  precedent, correctif limite a une fonction de calcul pure.
+- **Documentation mise a jour** : `CHANGELOG.md` 1.10.12, `BACKLOG.md`
+  (note same-day ajoutee a l'entree du compteur Session 64).
+- **Version** : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.10.11 -> 1.10.12 (`METHOD.md` §5.5, changement
+  observable par l'utilisateur).
