@@ -825,6 +825,32 @@ function totalLatentePct() {
   return cout ? (totalLatenteEur() / cout) * 100 : 0;
 }
 
+// Cloture de la veille derivee de cours/variation : aucune colonne
+// previousClose n'est stockee pour une position de portefeuille, meme
+// derivation que celle deja utilisee en pratique par la liste "Valeurs
+// suivies" (variation calculee cote serveur via pctChange(price,
+// previousClose), voir server/jobs/prices.js).
+function coursVeille(position) {
+  return position.variation ? position.cours / (1 + position.variation / 100) : position.cours;
+}
+
+function variationJourEur(position) {
+  return (position.cours - coursVeille(position)) * position.quantite;
+}
+
+function totalVariationJourEur() {
+  return Alpine.store('portfolio').portefeuillePositions.reduce((acc, p) => acc + variationJourEur(p), 0);
+}
+
+function totalValeurVeillePortefeuille() {
+  return Alpine.store('portfolio').portefeuillePositions.reduce((acc, p) => acc + coursVeille(p) * p.quantite, 0);
+}
+
+function totalVariationJourPct() {
+  const valeurVeille = totalValeurVeillePortefeuille();
+  return valeurVeille ? (totalVariationJourEur() / valeurVeille) * 100 : 0;
+}
+
 async function chargerPortefeuilles() {
   try {
     const res = await apiFetch('/api/portefeuilles');

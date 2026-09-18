@@ -386,6 +386,10 @@
             <span x-text="formatCours(totalValeurPortefeuille())"></span>
           </div>
           <div class="portefeuille-resume-ligne">
+            <span>Variation du jour</span>
+            <span :class="totalVariationJourEur() >= 0 ? 'success' : 'danger'" x-text="formatSigneCours(totalVariationJourEur()) + ' (' + formatVariation(totalVariationJourPct()) + ')'"></span>
+          </div>
+          <div class="portefeuille-resume-ligne">
             <span>Plus/moins-value latente</span>
             <span :class="totalLatenteEur() >= 0 ? 'success' : 'danger'" x-text="formatSigneCours(totalLatenteEur()) + ' (' + formatVariation(totalLatentePct()) + ')'"></span>
           </div>

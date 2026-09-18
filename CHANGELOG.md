@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.10.13
+
+- **Nouveau** : dans l'onglet "Portefeuilles", le resume du portefeuille
+  actif affiche desormais aussi la variation du jour (plus/moins-value
+  realisee depuis la cloture de la veille), en euros et en pourcentage,
+  en plus de la plus/moins-value latente deja affichee (par rapport au
+  prix de revient a l'achat) - deux notions distinctes qui cohabitent
+  plutot que de se substituer l'une a l'autre. Calculee a partir du
+  champ `variation` deja renvoye par position
+  (`GET /api/portefeuilles/:id/positions`, deja alimente cote serveur
+  par `updatePortefeuilleLignes()` avec la meme formule que la variation
+  du jour des "Valeurs suivies") : la cloture de la veille de chaque
+  position se derive de `cours`/`variation` (aucune colonne
+  `previousClose` stockee), le gain/perte du jour d'une position est
+  `quantite * (cours - cloture_veille)`, et le total du portefeuille
+  rapporte la somme de ces montants a la valeur totale de la veille
+  (jamais au cout d'achat).
+
 ## 1.10.12
 
 - **Correctif** : le correctif v1.10.11 (taux "Sur la periode" errone en

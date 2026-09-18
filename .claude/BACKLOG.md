@@ -6,6 +6,55 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
+**4/5** — Session 65 (2026-09-18, v1.10.13), fonctionnalité : variation
+du jour d'un portefeuille (demande explicite utilisateur). L'onglet
+"Portefeuilles" n'affichait jusqu'ici que la plus/moins-value **latente**
+du portefeuille (par rapport au prix de revient à l'achat, jamais
+recalculé). Nouvelle ligne dans le résumé du portefeuille actif
+(`.portefeuille-resume`, `public/index.html`) : plus/moins-value
+**réalisée sur la journée en cours**, en euros et en pourcentage — deux
+notions distinctes qui cohabitent (« Variation du jour » vs
+« Plus/moins-value latente »), pas fusionnées. Calculée côté client
+(`public/app.js`) à partir du champ `variation` déjà renvoyé par chaque
+position (`GET /api/portefeuilles/:id/positions`, déjà alimenté côté
+serveur par `updatePortefeuilleLignes()` avec la même formule
+`pctChange(price, previousClose)` que `valeurs.variation` — aucune
+nouvelle donnée serveur nécessaire, voir `BUSINESS_RULES.md` § Intégrité
+des cours). Aucune colonne `previousClose` n'étant stockée pour une
+position de portefeuille, la clôture de la veille se dérive de
+`cours`/`variation` (`coursVeille()`, nouvelle fonction) ; le gain/perte
+du jour d'une position est `quantite * (cours - coursVeille)`
+(`variationJourEur()`) ; le total du portefeuille
+(`totalVariationJourEur()`) rapporte cette somme à la valeur totale de
+la **veille** (`totalValeurVeillePortefeuille()`, somme des
+`coursVeille * quantite`), jamais au coût d'achat — une variation du
+jour se compare toujours à la veille — d'où `totalVariationJourPct()`,
+distincte de `totalLatentePct()` (non modifiée). Cas défensifs (portefeuille
+vide, position dont `variation` vaut 0 faute de première mise à jour du
+job) gérés sans `NaN`/division par zéro, même logique de garde que
+`totalLatentePct()` (`valeurVeille ? ... : 0`). Voir `DESIGN.md` §
+Portefeuilles → « Résumé du portefeuille » pour le détail visuel.
+Vérifié par `node --test test/*.test.js` (81/81, aucune régression —
+fonctionnalité purement client, aucun test serveur concerné), un
+démarrage réel du serveur (`GET /`/`GET /login.html`/`GET /app.js`/
+`GET /styles.css` → 200) et une vérification programmatique dédiée
+(extraction et exécution directe de `coursVeille()`/`variationJourEur()`/
+`totalVariationJourEur()`/`totalValeurVeillePortefeuille()`/
+`totalVariationJourPct()` sur un jeu de positions construit à la main :
+portefeuille vide → 0/0 sans erreur ; position à `variation: 0` → gain
+du jour nul, `coursVeille` replié sur `cours` ; position en hausse de
+5% (cours 105, quantité 10) → `coursVeille` 100, gain +50 EUR ; position
+en baisse de -2% (cours 98, quantité 5) → `coursVeille` 100, perte -10
+EUR ; total du portefeuille sur ces deux positions → +40 EUR, valeur
+totale de la veille 1500 EUR, soit +2.6666...% — conforme au calcul
+arithmétique attendu) — pas de parcours Playwright cette session (CDN
+Chart.js toujours bloqué par la politique réseau du bac à sable),
+fonctionnalité limitée à des fonctions de calcul pures et une nouvelle
+ligne de texte dans un template Alpine déjà existant, sans nouveau
+mécanisme de rendu ni interaction utilisateur.
+
+Compteur avant cette session :
+
 **3/5** — Session 64 (2026-08-24, v1.10.11), correctif : le taux de
 plus/moins-value "Sur la periode" affiche au-dessus du graphique etait
 errone en periode 1J (retour utilisateur explicite, capture d'ecran a

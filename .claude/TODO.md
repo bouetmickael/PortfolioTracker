@@ -3015,3 +3015,80 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Version** : `server/package.json`/`server/package-lock.json`/
   `config.yaml` 1.10.11 -> 1.10.12 (`METHOD.md` §5.5, changement
   observable par l'utilisateur).
+
+## 2026-09-18 — Session 65, variation du jour d'un portefeuille (v1.10.13)
+
+- **Demande** : fonctionnalite du backlog. L'onglet "Portefeuilles"
+  n'affichait jusqu'ici que la plus/moins-value **latente** du
+  portefeuille (par rapport au prix de revient a l'achat, jamais
+  recalcule - `totalLatenteEur()`/`totalLatentePct()`, `public/app.js`).
+  Demande : afficher en plus la plus/moins-value **realisee sur la
+  journee en cours** (variation du jour), en euros et en pourcentage -
+  deux notions distinctes a faire cohabiter, pas a fusionner : la
+  latente reste "ai-je gagne ou perdu depuis l'achat", la nouvelle
+  metrique est "qu'est-ce que ce portefeuille a fait aujourd'hui".
+- **Implementation** : chaque position (`portefeuille_lignes`, exposee
+  par `GET /api/portefeuilles/:id/positions` via `toPositionJson()`,
+  `server/portefeuilles.js`) porte deja un champ `variation` (la
+  variation du jour en pourcentage du ticker, deja calculee cote serveur
+  par `updatePortefeuilleLignes()`, `server/jobs/prices.js`, avec la
+  meme formule `pctChange(price, previousClose)` que
+  `valeurs.variation` de la liste "Valeurs suivies") - donnee reelle
+  issue de Yahoo Finance deja disponible, aucune nouvelle colonne
+  serveur ni nouvel appel reseau necessaire (voir `BUSINESS_RULES.md` §
+  Integrite des cours). Aucune colonne `previousClose` n'etant stockee
+  pour une position de portefeuille, la cloture de la veille se derive
+  de `cours`/`variation` : cinq nouvelles fonctions dans
+  `public/app.js`, juste apres `totalLatentePct()` (ne touchent pas aux
+  fonctions de latente existantes) :
+  - `coursVeille(position)` : `cours / (1 + variation/100)`, repliee sur
+    `cours` si `variation` est falsy (position dont le ticker n'a pas
+    encore ete mis a jour par le job - pas de division par zero, `1 +
+    0/100` vaut `1`).
+  - `variationJourEur(position)` : `quantite * (cours - coursVeille)`.
+  - `totalVariationJourEur()` : somme de `variationJourEur()` sur
+    `portefeuillePositions`.
+  - `totalValeurVeillePortefeuille()` : somme de `coursVeille * quantite`
+    sur `portefeuillePositions` - la reference du pourcentage du
+    portefeuille est la valeur totale de la **veille**, jamais le cout
+    d'achat (`totalCoutPortefeuille()`, non touchee) : une variation du
+    jour se compare toujours a la veille.
+  - `totalVariationJourPct()` : `totalVariationJourEur() /
+    totalValeurVeillePortefeuille() * 100`, meme garde defensive que
+    `totalLatentePct()` (`valeurVeille ? ... : 0`) contre la division
+    par zero d'un portefeuille vide.
+  Nouvelle ligne dans `.portefeuille-resume`
+  (`public/index.html`) : « Variation du jour », inseree avant « Plus/
+  moins-value latente » (deja existante, non modifiee), meme gabarit
+  (`.portefeuille-resume-ligne`, `formatSigneCours()`/`formatVariation()`
+  reutilises tels quels), coloration `--success`/`--danger` selon le
+  signe (meme convention que `.valeur-variation`). Le libelle distingue
+  explicitement les deux notions plutot que de les nommer de facon
+  ambigue.
+- **Verification** : `npm install` (`server/`, `node_modules` absent au
+  demarrage de la session, meme anomalie d'environnement deja rencontree
+  aux sessions precedentes) puis `node --test test/*.test.js` (81/81,
+  aucune regression - fonctionnalite purement client, aucune route
+  serveur concernee, le champ `variation` etait deja expose). Demarrage
+  reel du serveur local (`GET /`/`GET /login.html`/`GET /app.js`/
+  `GET /styles.css` -> 200). Verification programmatique dediee :
+  extraction et execution directe des cinq nouvelles fonctions sur un
+  jeu de positions construit a la main - portefeuille vide -> 0 EUR/0%
+  sans erreur ; position a `variation: 0` -> `coursVeille` replie sur
+  `cours`, gain du jour nul ; position en hausse de 5% (cours 105,
+  quantite 10) -> `coursVeille` 100, gain +50 EUR ; position en baisse
+  de -2% (cours 98, quantite 5) -> `coursVeille` 100, perte -10 EUR ;
+  total du portefeuille sur ces deux positions -> +40 EUR, valeur totale
+  de la veille 1500 EUR, soit +2.6666...% (verifie egal au calcul
+  arithmetique direct `40/1500*100`). Pas de parcours Playwright cette
+  session (CDN Chart.js toujours bloque par la politique reseau du bac a
+  sable) - fonctionnalite limitee a des fonctions de calcul pures et une
+  nouvelle ligne de texte dans un template Alpine deja existant (meme
+  mecanisme reactif que la ligne « Plus/moins-value latente » juste en
+  dessous), sans nouveau mecanisme de rendu ni interaction utilisateur.
+- **Documentation mise a jour** : `DESIGN.md` (§ Portefeuilles -> «
+  Resume du portefeuille » complete), `CHANGELOG.md` 1.10.13,
+  `BACKLOG.md` (compteur porte a 4/5).
+- **Version** : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.10.12 -> 1.10.13 (`METHOD.md` §5.5, changement
+  observable par l'utilisateur).

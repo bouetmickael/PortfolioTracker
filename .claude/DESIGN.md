@@ -978,10 +978,30 @@ délibéré antérieur, non remis en cause).
     formulée à ce jour, la liste des portefeuilles d'un utilisateur reste
     de toute façon courte en usage personnel.
   - Résumé du portefeuille (`.portefeuille-resume`) : valeur totale
-    (somme `cours × quantité` de toutes les positions) et plus/moins-value
-    latente totale en euros et en pourcentage (somme des plus/moins-values
-    par position, rapportée au coût total investi), coloré
-    `--success`/`--danger`.
+    (somme `cours × quantité` de toutes les positions), **variation du
+    jour** (session 2026-09-18, demande explicite utilisateur), puis
+    plus/moins-value latente totale — deux notions distinctes qui
+    cohabitent plutôt que de se substituer l'une à l'autre. La variation
+    du jour ("qu'est-ce que ce portefeuille a fait aujourd'hui") se base
+    sur le champ `variation` déjà renvoyé par chaque position
+    (`GET /api/portefeuilles/:id/positions`, alimenté côté serveur par
+    `updatePortefeuilleLignes()` avec la même formule
+    `pctChange(price, previousClose)` que `valeurs.variation` — aucune
+    nouvelle donnée serveur). Aucune colonne `previousClose` n'étant
+    stockée pour une position, la clôture de la veille se dérive de
+    `cours`/`variation` (`coursVeille()`, `public/app.js`) ; le
+    gain/perte du jour d'une position est `quantité × (cours −
+    coursVeille)` (`variationJourEur()`), et le total du portefeuille
+    (`totalVariationJourEur()`/`totalVariationJourPct()`) rapporte cette
+    somme à la valeur totale de la **veille**
+    (`totalValeurVeillePortefeuille()`), jamais au coût d'achat — une
+    variation du jour se compare toujours à la veille, contrairement à
+    la plus/moins-value latente ("ai-je gagné ou perdu depuis l'achat"),
+    qui reste rapportée au coût total investi
+    (`totalCoutPortefeuille()`, inchangée). Les deux lignes partagent le
+    même gabarit (`.portefeuille-resume-ligne`, euros et pourcentage,
+    coloré `--success`/`--danger` selon le signe — même convention que
+    `.valeur-variation`).
   - Chaque position (`.portefeuille-position-card`, une carte par valeur
     détenue, cliquable pour ouvrir son graphique — comme `.valeur-row`) :
     poignée de glisser-déposer dédiée en tête d'en-tête (session
