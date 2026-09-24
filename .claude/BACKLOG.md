@@ -6,6 +6,26 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
+**5/5** — Session 66 (2026-09-24, v1.10.14), correctif : l'objet des
+emails d'alerte affichait le ticker brut de la valeur (ex. "Alerte
+BASSE : ACA.PA") au lieu de son nom lisible (retour utilisateur
+explicite). `checkAlerts()` (`server/jobs/alerts.js`) récupère
+désormais aussi le nom de la valeur via une sous-requête corrélée sur
+`valeurs` (même mécanisme que la sous-requête déjà utilisée pour le
+`cours`), et l'utilise dans l'objet du mail (« Alerte BASSE : Credit
+Agricole ») avec repli sur le ticker si aucun nom n'a été saisi à
+l'ajout de la valeur — même convention de repli que la liste des
+valeurs suivies (voir `DESIGN.md` § Liste des valeurs suivies, "ticker
+en repli si le nom est absent"). Corps de l'email inchangé (ne
+mentionnait déjà pas le ticker). Vérifié par `node --test
+test/*.test.js` (83/83, 2 tests ajoutés : objet du mail avec nom
+saisi, objet du mail replié sur le ticker quand le nom est vide) et un
+démarrage réel du serveur (`GET /`/`GET /login.html` → 200). Compteur
+atteignant 5/5, la session suivante déclenche le cycle de revue de
+dette technique obligatoire (`METHOD.md` §0.2).
+
+Compteur avant cette session :
+
 **4/5** — Session 65 (2026-09-18, v1.10.13), fonctionnalité : variation
 du jour d'un portefeuille (demande explicite utilisateur). L'onglet
 "Portefeuilles" n'affichait jusqu'ici que la plus/moins-value **latente**

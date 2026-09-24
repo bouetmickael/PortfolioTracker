@@ -172,3 +172,61 @@ test("checkAlerts() reprend la note de l'alerte dans le corps de l'email envoye"
 
   assert.ok(corpsEnvoye.includes('Penser a verifier les resultats trimestriels'));
 });
+
+test("checkAlerts() utilise le nom de la valeur (pas le ticker) dans l'objet de l'email envoye", async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alerts-job-nom@test.local');
+
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', nom: 'Apple Inc.' })
+  });
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 100 })
+  });
+
+  const sendMailOriginal = mailer.sendMail;
+  let sujetEnvoye = null;
+  mailer.sendMail = async (destinataire, sujet) => {
+    sujetEnvoye = sujet;
+  };
+
+  try {
+    await checkAlerts();
+  } finally {
+    mailer.sendMail = sendMailOriginal;
+  }
+
+  assert.equal(sujetEnvoye, 'Alerte HAUTE : Apple Inc.');
+});
+
+test("checkAlerts() replie sur le ticker dans l'objet de l'email quand la valeur n'a pas de nom saisi", async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alerts-job-sans-nom@test.local');
+
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL' })
+  });
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 100 })
+  });
+
+  const sendMailOriginal = mailer.sendMail;
+  let sujetEnvoye = null;
+  mailer.sendMail = async (destinataire, sujet) => {
+    sujetEnvoye = sujet;
+  };
+
+  try {
+    await checkAlerts();
+  } finally {
+    mailer.sendMail = sendMailOriginal;
+  }
+
+  assert.equal(sujetEnvoye, 'Alerte HAUTE : AAPL');
+});

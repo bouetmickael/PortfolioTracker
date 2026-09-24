@@ -3092,3 +3092,44 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Version** : `server/package.json`/`server/package-lock.json`/
   `config.yaml` 1.10.12 -> 1.10.13 (`METHOD.md` §5.5, changement
   observable par l'utilisateur).
+
+## 2026-09-24 — Session 66, correctif : nom de la valeur dans l'objet des emails d'alerte (v1.10.14)
+
+- **Demande** : retour utilisateur explicite - dans les emails d'alerte,
+  l'objet affiche par exemple "Alerte BASSE : ACA.PA" (le ticker Yahoo
+  Finance brut, peu lisible), l'utilisateur souhaite y voir le nom de la
+  valeur a la place.
+- **Diagnostic** : `checkAlerts()` (`server/jobs/alerts.js`) construisait
+  l'objet du mail avec `alerte.ticker` directement
+  (`` `Alerte ${typeAlerte} : ${alerte.ticker}` ``) - la requete SQL
+  alimentant la boucle ne recuperait que `cours` via une sous-requete
+  correlee sur `valeurs`, jamais `nom`.
+- **Correctif** (`server/jobs/alerts.js`) : ajout d'une seconde
+  sous-requete correlee dans le `SELECT` principal (meme motif que celle
+  deja utilisee pour `cours` - `SELECT valeurs.nom FROM valeurs WHERE
+  valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker
+  LIMIT 1`), qui ramene `nom` sur chaque ligne. L'objet du mail utilise
+  desormais `alerte.nom || alerte.ticker` (repli sur le ticker si aucun
+  nom n'a ete saisi a l'ajout de la valeur - `valeurs.nom` est
+  `NOT NULL DEFAULT ''`, voir `server/routes/valeurs.js` -
+  `(req.body.nom || '').trim()` - jamais `NULL`, donc le repli
+  `||` fonctionne aussi bien sur une chaine vide) - meme convention que
+  le reste de l'interface (voir `DESIGN.md` § Liste des valeurs
+  suivies, "ticker en repli si le nom est absent"). Le corps de l'email
+  n'est pas modifie (il ne mentionnait deja pas le ticker, seulement le
+  cours et le seuil).
+- **Verification** : `node --test test/*.test.js` (83/83, 2 tests
+  ajoutes dans `server/test/alerts-job.test.js` - objet exact `Alerte
+  HAUTE : Apple Inc.` quand la valeur a ete ajoutee avec
+  `nom: 'Apple Inc.'`, objet exact `Alerte HAUTE : AAPL` quand aucun nom
+  n'a ete saisi a l'ajout). Demarrage reel du serveur local
+  (`GET /`/`GET /login.html` -> 200). Pas de parcours Playwright cette
+  session (correctif limite a une requete SQL et une ligne de
+  construction de chaine, aucun mecanisme de rendu ni interaction
+  utilisateur).
+- **Documentation mise a jour** : `CHANGELOG.md` 1.10.14, `BACKLOG.md`
+  (compteur porte a 5/5 - la session suivante declenche le cycle de
+  revue de dette technique obligatoire, `METHOD.md` §0.2).
+- **Version** : `server/package.json`/`server/package-lock.json`/
+  `config.yaml` 1.10.13 -> 1.10.14 (`METHOD.md` §5.5, changement
+  observable par l'utilisateur).

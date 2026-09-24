@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.10.14
+
+- **Correctif** : l'objet des emails d'alerte affichait le ticker brut de
+  la valeur (ex. "Alerte BASSE : ACA.PA") plutot que son nom lisible
+  (retour utilisateur explicite). `checkAlerts()`
+  (`server/jobs/alerts.js`) recupere desormais aussi le nom de la valeur
+  (meme sous-requete correlee que pour le cours) et l'utilise dans
+  l'objet du mail (ex. "Alerte BASSE : Credit Agricole"), avec repli sur
+  le ticker si aucun nom n'a ete saisi a l'ajout de la valeur - meme
+  convention que le reste de l'interface (liste des valeurs suivies).
+  Le corps de l'email est inchange.
+
 ## 1.10.13
 
 - **Nouveau** : dans l'onglet "Portefeuilles", le resume du portefeuille

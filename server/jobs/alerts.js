@@ -21,7 +21,10 @@ async function checkAlerts() {
       `SELECT alertes.*, users.email AS user_email,
          (SELECT valeurs.cours FROM valeurs
           WHERE valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker
-          LIMIT 1) AS cours
+          LIMIT 1) AS cours,
+         (SELECT valeurs.nom FROM valeurs
+          WHERE valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker
+          LIMIT 1) AS nom
        FROM alertes
        JOIN users ON users.id = alertes.user_id
        WHERE alertes.active = 1
@@ -73,10 +76,16 @@ async function checkAlerts() {
       console.log(`Alerte declenchee : ${alerte.ticker} ${typeAlerte} pour ${alerte.user_email}`);
 
       try {
+        // Nom lisible de la valeur plutot que son ticker brut dans l'objet
+        // du mail (retour utilisateur du 2026-09-24, ex. "ACA.PA" illisible
+        // au premier coup d'oeil) - meme repli que le reste de l'UI quand
+        // aucun nom n'a ete saisi a l'ajout (voir DESIGN.md § Liste des
+        // valeurs suivies, "ticker en repli si le nom est absent").
+        const nomAffiche = alerte.nom || alerte.ticker;
         const note = alerte.note ? `\n\nNote : ${alerte.note}` : '';
         await mailer.sendMail(
           alerte.user_email,
-          `Alerte ${typeAlerte} : ${alerte.ticker}`,
+          `Alerte ${typeAlerte} : ${nomAffiche}`,
           `Cours actuel : ${cours.toFixed(2)} EUR (seuil : ${seuil} EUR)${note}`
         );
       } catch (error) {
