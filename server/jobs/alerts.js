@@ -5,30 +5,32 @@ const db = require('../db');
 const mailer = require('../mailer');
 const { traiterEnParallele } = require('./parallel');
 
+// Fragment de correlation partage par les trois usages ci-dessous (les deux
+// sous-requetes cours/nom et le EXISTS) : une seule condition a maintenir
+// plutot que trois copies litterales identiques.
+const VALEUR_CORRESPONDANTE = 'valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker';
+
 async function checkAlerts() {
   console.log('Demarrage verification alertes');
 
-  // Sous-requete correlee plutot qu'une jointure sur valeurs + GROUP BY : une
-  // meme valeur peut desormais etre suivie dans plusieurs sections (voir
+  // Sous-requetes correlees plutot qu'une jointure sur valeurs + GROUP BY :
+  // une meme valeur peut desormais etre suivie dans plusieurs sections (voir
   // BUSINESS_RULES.md § Valeurs suivies), donc une jointure sur le ticker
   // matcherait plusieurs lignes valeurs pour une seule alerte. Un GROUP BY
   // les regrouperait en un seul resultat, mais reposerait alors sur un
   // invariant non garanti par la requete elle-meme (que toutes les
-  // occurrences d'un ticker partagent le meme cours) ; la sous-requete
-  // exprime directement "un cours par ticker" sans en dependre.
+  // occurrences d'un ticker partagent le meme cours/nom) ; chaque
+  // sous-requete exprime directement "une valeur par ticker" sans en
+  // dependre.
   const rows = db
     .prepare(
       `SELECT alertes.*, users.email AS user_email,
-         (SELECT valeurs.cours FROM valeurs
-          WHERE valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker
-          LIMIT 1) AS cours,
-         (SELECT valeurs.nom FROM valeurs
-          WHERE valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker
-          LIMIT 1) AS nom
+         (SELECT valeurs.cours FROM valeurs WHERE ${VALEUR_CORRESPONDANTE} LIMIT 1) AS cours,
+         (SELECT valeurs.nom FROM valeurs WHERE ${VALEUR_CORRESPONDANTE} LIMIT 1) AS nom
        FROM alertes
        JOIN users ON users.id = alertes.user_id
        WHERE alertes.active = 1
-         AND EXISTS(SELECT 1 FROM valeurs WHERE valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker)`
+         AND EXISTS(SELECT 1 FROM valeurs WHERE ${VALEUR_CORRESPONDANTE})`
     )
     .all();
 

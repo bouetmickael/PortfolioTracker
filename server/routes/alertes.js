@@ -31,6 +31,16 @@ function normalizeNote(note) {
   return trimmed || null;
 }
 
+// Partage entre POST / et PUT /:id (creation et edition d'une alerte) :
+// meme forme de seuils/note a lire depuis le corps de la requete.
+function parseSeuilsEtNote(body) {
+  return {
+    seuilHaut: body.seuilHaut ? Number(body.seuilHaut) : null,
+    seuilBas: body.seuilBas ? Number(body.seuilBas) : null,
+    note: normalizeNote(body.note)
+  };
+}
+
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM alertes WHERE user_id = ?').all(req.session.userId);
   res.json(toAlertesArray(rows));
@@ -38,9 +48,7 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const ticker = normalizeTicker(req.body.ticker);
-  const seuilHaut = req.body.seuilHaut ? Number(req.body.seuilHaut) : null;
-  const seuilBas = req.body.seuilBas ? Number(req.body.seuilBas) : null;
-  const note = normalizeNote(req.body.note);
+  const { seuilHaut, seuilBas, note } = parseSeuilsEtNote(req.body);
 
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker requis' });
@@ -58,9 +66,7 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const seuilHaut = req.body.seuilHaut ? Number(req.body.seuilHaut) : null;
-  const seuilBas = req.body.seuilBas ? Number(req.body.seuilBas) : null;
-  const note = normalizeNote(req.body.note);
+  const { seuilHaut, seuilBas, note } = parseSeuilsEtNote(req.body);
 
   if (!seuilHaut && !seuilBas) {
     return res.status(400).json({ error: 'Au moins un seuil requis' });

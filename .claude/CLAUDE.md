@@ -1481,3 +1481,134 @@ variables d'environnement, vérification).
   - Correctifs reportés des revues n°1 à n°9 toujours non traités (liste
     inchangée, voir Revues n°1 à n°9 ci-dessus) — aucun n'a été adressé
     cette session.
+
+### 2026-09-26 — Revue n°11
+
+- **Portée** : diff cumulé depuis la clôture de la Revue n°10 (commit
+  `cafb207`, « Session 61 - technical debt review n10 ») jusqu'à `HEAD`
+  (`9947a96`), soit `git diff cafb207..HEAD -- server/ public/
+  ':!public/vendor'` — borne vérifiée par `git log` en début de session
+  (conforme au prompt initial, aucune correction de portée nécessaire,
+  comme pour les Revues n°7/n°8/n°9). Couvre les Sessions 62 à 66 : note
+  optionnelle sur une alerte + édition depuis « Alertes actives » (62,
+  v1.10.9), correctif deux boutons de portefeuille actifs simultanément
+  (63, v1.10.10), correctif du taux « Sur la période » en période 1J +
+  correctif same-day (64, v1.10.11/v1.10.12), variation du jour d'un
+  portefeuille (65, v1.10.13), correctif du nom de la valeur dans l'objet
+  des emails d'alerte (66, v1.10.14). Outillage utilisé : `/simplify` (4
+  agents de revue en parallèle : réutilisation, simplification,
+  efficacité, altitude).
+- **Correctifs appliqués** (risque faible, comportement strictement
+  inchangé — aucun changement observable par l'utilisateur, donc pas
+  d'incrément de version pour ce cycle, voir `METHOD.md` §5.5 —, vérifiés
+  par tests unitaires (`node --test test/*.test.js`, 83/83 avant et
+  après), un démarrage réel du serveur (`GET /`/`GET /login.html` → 200)
+  et une comparaison programmatique dédiée du nouveau calcul de
+  `totalVariationJourEur()` contre l'ancien sur 4 jeux de positions,
+  portefeuille vide inclus ; pas de parcours Playwright cette session,
+  aucun des correctifs appliqués ne touchant un mécanisme de rendu ou une
+  interaction utilisateur directe — les deux seuls candidats qui en
+  auraient touché une (fusion des modales de création/édition d'alerte,
+  hook dédié pour `.btn-periode`) ont été reportés pour cette raison,
+  voir ci-dessous) :
+  - `VALEUR_CORRESPONDANTE` (`server/jobs/alerts.js`), constante
+    partagée par les trois occurrences de la condition de corrélation
+    `valeurs.user_id = alertes.user_id AND valeurs.ticker =
+    alertes.ticker` dans la requête de `checkAlerts()` (les deux
+    sous-requêtes `cours`/`nom` — cette dernière ajoutée en Session 66 —
+    et le `EXISTS(...)` du `WHERE`) — remplace trois copies littérales
+    identiques par une seule. Signalé indépendamment par les 4 agents
+    (réutilisation, simplification, efficacité, altitude) pour la paire
+    `cours`/`nom` ; SQL généré strictement identique avant/après (vérifié
+    par comparaison de chaîne). Volontairement **pas** de fusion en une
+    seule sous-requête via `JOIN`/`GROUP BY` malgré la suggestion en ce
+    sens de 3 des 4 agents : le commentaire adjacent documente déjà
+    depuis l'introduction de cette requête (Revue n°6) pourquoi un tel
+    `JOIN` a été explicitement écarté pour `cours` (repose sur un
+    invariant non garanti par la requête elle-même qu'une seule ligne
+    `valeurs` par ticker existe) — le même risque s'applique à `nom` (un
+    utilisateur peut en théorie nommer différemment deux occurrences
+    d'un même ticker dans deux sections, contrairement à `cours`
+    resynchronisé par le job de prix), et l'agent efficacité a lui-même
+    noté que le gain réel est négligeable à l'échelle de ce projet
+    (quelques dizaines d'alertes, sous-requêtes indexées via la
+    contrainte `UNIQUE(user_id, ticker, section_id)`) — même prudence
+    que celle déjà documentée pour cette requête.
+  - `totalVariationJourEur()` (`public/app.js`, Session 65) réécrite
+    comme différence de deux totaux déjà calculés
+    (`totalValeurPortefeuille() - totalValeurVeillePortefeuille()`,
+    identité algébrique `somme((cours - coursVeille) × quantité) ==
+    somme(cours × quantité) - somme(coursVeille × quantité)`) au lieu
+    d'un troisième `reduce()` indépendant sur `portefeuillePositions` —
+    même forme que `totalLatenteEur()` juste au-dessus dans le même
+    fichier, signalé par l'agent réutilisation. Résultat vérifié
+    strictement identique par comparaison programmatique ancien/nouveau
+    sur 4 jeux de positions (portefeuille vide, position à variation
+    nulle, positions mixtes hausse/baisse, valeurs décimales) — écarts
+    uniquement de l'ordre de l'arrondi flottant (`< 1e-9`).
+  - `parseSeuilsEtNote(body)` (`server/routes/alertes.js`), remplace
+    trois lignes dupliquées à l'identique entre `POST /` et `PUT /:id`
+    (lecture de `seuilHaut`/`seuilBas`/`note` depuis le corps de la
+    requête) — introduites côté `PUT` en Session 62 lors de l'ajout de
+    l'édition d'une alerte. Signalé par l'agent simplification. La
+    validation « au moins un seuil requis », qui suit un motif similaire
+    mais reste une ligne unique par route avec un comportement propre à
+    chaque poursuite (`return` différent), n'a volontairement pas été
+    extraite plus loin — gain marginal pour l'indirection ajoutée.
+- **Correctifs reportés** (plus profonds ou risqués, à traiter dans une
+  session dédiée future, pas dans ce cycle) :
+  - `openAlerteModal()`/`ouvrirEditionAlerte()` (`public/app.js`,
+    Sessions 62/2026-07-25) réimplémentent le même squelette de
+    remplissage de `#modalCreateAlerte` (titre de la modale, champs
+    ticker/seuilHaut/seuilBas/note, libellé du bouton de validation),
+    ne différant que par les valeurs injectées (vide/ticker vs.
+    `alerte.*`) et deux paires de chaînes littérales. Signalé
+    indépendamment par les agents réutilisation et simplification, qui
+    proposent tous deux un helper unique paramétré (ex.
+    `remplirModaleAlerte({...})`). Touche le mécanisme de remplissage
+    d'une modale de formulaire utilisée par une interaction directe
+    (création ET édition d'une alerte) — même catégorie de prudence déjà
+    appliquée à `showPrompt()`/`showConfirm()` (Revue n°2, fusionnées
+    seulement en Session 30 avec vérification Playwright dédiée) : à
+    traiter avec un test manuel/Playwright dédié plutôt qu'en correctif
+    à l'aveugle ce cycle.
+  - `.btn-periode` (`public/app.js`/`public/index.html`) reste une classe
+    CSS partagée utilisée aussi comme sélecteur JS pour deux composants
+    indépendants (sélecteur de période du graphique, sélecteur de
+    portefeuilles) — le correctif de la Session 63 (deux boutons de
+    portefeuille actifs simultanément) a scopé les requêtes du graphique
+    à `#modalGraphique .btn-periode` plutôt que d'introduire un hook JS
+    dédié indépendant du style visuel partagé (ex. attribut
+    `data-graphique-periode` ou seconde classe `.graphique-periode-btn`).
+    Signalé par l'agent altitude comme un correctif au bon niveau
+    immédiat mais qui ne retire pas la cause structurelle (un futur
+    composant réutilisant `.btn-periode` dans un conteneur générique
+    similaire pourrait reproduire le même bug). Touche un mécanisme déjà
+    à l'origine de deux bugs réels sur une interaction utilisateur
+    directe (sélection de période/portefeuille) — à traiter avec un test
+    manuel/Playwright dédié plutôt qu'en correctif à risque faible ce
+    cycle.
+  - `coursVeille()` (`public/app.js`, Session 65) reconstruit
+    `previousClose` d'une position de portefeuille par inversion de la
+    formule de variation en pourcentage côté client, alors que le
+    serveur dispose de cette valeur au moment où il calcule `variation`
+    via `pctChange()` (`server/jobs/prices.js`) avant de la jeter.
+    Signalé par l'agent altitude, qui a vérifié (et corrigé une prémisse
+    erronée du prompt de revue au passage) qu'il n'y a en réalité pas de
+    perte de précision par arrondi — `pctChange()` stocke la valeur
+    flottante brute en base, `toFixed()` n'étant utilisé que dans un
+    `console.log()` — donc la préoccupation réelle est architecturale
+    (incohérence avec le précédent déjà établi par « Clôture de la
+    veille sur le graphique », qui expose `previousClose` directement
+    depuis le serveur plutôt que de le reconstruire côté client) plutôt
+    qu'un bug de précision. Corrigerait la cause en ajoutant une colonne
+    `cours_veille` à `portefeuille_lignes` via le même motif de
+    migration déjà établi (`avant_bourse_cours`/`avant_bourse_variation`
+    sur `valeurs`/`indices_marche`) — mais reste une migration de schéma
+    SQLite, catégorie de changement systématiquement traitée à part
+    depuis la Revue n°7 (risque disproportionné pour un correctif de
+    dette technique à ce cycle, à valider séparément avec sa propre
+    vérification dédiée).
+  - Correctifs reportés des revues n°1 à n°10 toujours non traités (liste
+    inchangée, voir Revues n°1 à n°10 ci-dessus) — aucun n'a été adressé
+    cette session.

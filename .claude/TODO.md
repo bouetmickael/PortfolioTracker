@@ -3133,3 +3133,82 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Version** : `server/package.json`/`server/package-lock.json`/
   `config.yaml` 1.10.13 -> 1.10.14 (`METHOD.md` §5.5, changement
   observable par l'utilisateur).
+
+## 2026-09-26 — Session 67, Revue de dette technique n°11
+
+- **Déclenchement** : compteur `BACKLOG.md` atteint 5/5 à l'issue de la
+  Session 66 (`METHOD.md` §0.2) - revue obligatoire plutôt qu'une
+  nouvelle fonctionnalité.
+- **Portée** : `git diff cafb207..HEAD -- server/ public/
+  ':!public/vendor'`, borne basse verifiee par `git log` (commit de
+  cloture de la Revue n°10, « Session 61 - technical debt review n10 »).
+  Couvre les Sessions 62 a 66 (v1.10.9 a v1.10.14). Outillage : skill
+  `/simplify`, 4 agents Agent tool lances en parallele (reutilisation,
+  simplification, efficacite, altitude), chacun avec le diff complet
+  (715 lignes) et sa seule consigne d'angle.
+- **Correctifs appliques** (verifies par `node --test test/*.test.js`,
+  83/83 avant et apres, un demarrage reel du serveur
+  (`GET /`/`GET /login.html` -> 200), et une comparaison programmatique
+  dediee ancien/nouveau pour le refactor de calcul - voir detail complet
+  dans `CLAUDE.md` § Historique des revues, Revue n°11) :
+  - `VALEUR_CORRESPONDANTE` (`server/jobs/alerts.js`) : constante
+    partagee remplacant trois copies litterales de la condition de
+    correlation `valeurs.user_id = alertes.user_id AND valeurs.ticker =
+    alertes.ticker` (sous-requetes `cours`/`nom` + `EXISTS`). Les 4
+    agents ont signale la duplication `cours`/`nom` (nom ajoutee en
+    Session 66) ; 3 des 4 ont suggere une fusion en une seule
+    sous-requete via `JOIN`/`GROUP BY`, ecartee deliberement (le
+    commentaire du code documente depuis la Revue n°6 pourquoi un `JOIN`
+    a ete evite ici - repose sur un invariant non garanti par la requete
+    - et le meme risque s'applique a `nom`, potentiellement different
+    entre deux occurrences d'un ticker contrairement a `cours`
+    resynchronise par le job de prix). SQL genere verifie identique par
+    comparaison de chaine avant/apres.
+  - `totalVariationJourEur()` (`public/app.js`) : reecrite en
+    `totalValeurPortefeuille() - totalValeurVeillePortefeuille()`
+    (identite algebrique) au lieu d'un troisieme `reduce()` sur
+    `portefeuillePositions`, meme forme que `totalLatenteEur()` deja
+    presente juste au-dessus. Verifie par comparaison programmatique
+    directe ancien/nouveau sur 4 jeux de positions (vide, variation
+    nulle, mixte hausse/baisse, decimales) : ecarts uniquement de
+    l'ordre de l'arrondi flottant (< 1e-9).
+  - `parseSeuilsEtNote(body)` (`server/routes/alertes.js`) : remplace
+    trois lignes dupliquees a l'identique entre `POST /` et `PUT /:id`
+    (lecture `seuilHaut`/`seuilBas`/`note`), introduites cote `PUT` en
+    Session 62.
+- **Correctifs evalues et explicitement ecartes** : `escapeHtml()`
+  (`public/app.js`, note d'alerte) - un agent a suggere de remplacer
+  l'echappement par une construction DOM programmatique
+  (`createElement`/`textContent`), mais le mecanisme actuel est
+  deliberement documente par son propre commentaire (seul point
+  d'insertion de donnee utilisateur libre via `innerHTML` du projet) et
+  touche le rendu direct d'une carte affichee a l'utilisateur - laisse
+  tel quel plutot que change a l'aveugle sans verification Playwright.
+- **Correctifs reportes** (voir `CLAUDE.md` § Historique des revues,
+  Revue n°11, pour le detail complet) :
+  - Fusion `openAlerteModal()`/`ouvrirEditionAlerte()`
+    (`public/app.js`) : meme squelette de remplissage de
+    `#modalCreateAlerte`, touche une interaction de formulaire directe -
+    meme categorie de prudence que `showPrompt()`/`showConfirm()`
+    (Revue n°2, fusionnees seulement en Session 30 avec Playwright).
+  - Hook JS dedie pour `.btn-periode` (`public/app.js`/
+    `public/index.html`) : le correctif de la Session 63 a scope les
+    requetes du graphique a `#modalGraphique .btn-periode` plutot que de
+    retirer la cause structurelle (classe CSS partagee utilisee comme
+    hook JS par deux composants independants) - deja a l'origine de deux
+    bugs reels, a traiter avec verification dediee.
+  - Colonne `cours_veille` persistee pour une position de portefeuille
+    (`server/db.js`/`server/jobs/prices.js`) : `coursVeille()`
+    reconstruit `previousClose` par inversion de formule cote client
+    plutot que d'exposer la valeur deja calculee cote serveur (pas de
+    perte de precision reelle verifiee, mais incoherence avec le
+    precedent « Cloture de la veille sur le graphique ») - necessiterait
+    une migration de schema SQLite, categorie systematiquement traitee a
+    part depuis la Revue n°7.
+  - Correctifs reportes des revues n°1 a n°10 toujours non traites
+    (liste inchangee) - aucun n'a ete adresse cette session.
+- **Documentation mise a jour** : `CLAUDE.md` § Historique des revues
+  (nouvelle section Revue n°11), `BACKLOG.md` (compteur reinitialise a
+  0/5).
+- **Version** : aucun increment - correctifs internes sans changement de
+  comportement observable par l'utilisateur (`METHOD.md` §5.5).

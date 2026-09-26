@@ -838,12 +838,16 @@ function variationJourEur(position) {
   return (position.cours - coursVeille(position)) * position.quantite;
 }
 
-function totalVariationJourEur() {
-  return Alpine.store('portfolio').portefeuillePositions.reduce((acc, p) => acc + variationJourEur(p), 0);
-}
-
 function totalValeurVeillePortefeuille() {
   return Alpine.store('portfolio').portefeuillePositions.reduce((acc, p) => acc + coursVeille(p) * p.quantite, 0);
+}
+
+// Difference de deux totaux deja calcules plutot qu'un troisieme reduce sur
+// portefeuillePositions (somme((cours - coursVeille) * quantite) ==
+// somme(cours * quantite) - somme(coursVeille * quantite)) - meme forme que
+// totalLatenteEur() juste au-dessus.
+function totalVariationJourEur() {
+  return totalValeurPortefeuille() - totalValeurVeillePortefeuille();
 }
 
 function totalVariationJourPct() {

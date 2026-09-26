@@ -6,6 +6,31 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
+**0/5** — Revue n°11 (2026-09-26), déclenchée par le compteur atteignant
+5/5 à l'issue de la Session 66 (`METHOD.md` §0.2). Diff cumulé depuis la
+clôture de la Revue n°10 (`cafb207`) jusqu'à `HEAD` (`9947a96`), Sessions
+62 à 66. `/simplify` (4 agents en parallèle : réutilisation,
+simplification, efficacité, altitude). Correctifs appliqués (risque
+faible, comportement inchangé, pas d'incrément de version — voir
+`METHOD.md` §5.5) : `VALEUR_CORRESPONDANTE` partagée dans la requête de
+`checkAlerts()` (`server/jobs/alerts.js`, remplace trois copies
+littérales de la condition de corrélation `valeurs`/`alertes`),
+`totalVariationJourEur()` réécrite comme différence de deux totaux déjà
+calculés plutôt qu'un troisième `reduce()` (`public/app.js`),
+`parseSeuilsEtNote()` partagé entre `POST`/`PUT /api/alertes`
+(`server/routes/alertes.js`). Correctifs reportés (voir `CLAUDE.md` §
+Historique des revues, Revue n°11, pour le détail complet) : fusion
+`openAlerteModal()`/`ouvrirEditionAlerte()`, hook JS dédié pour
+`.btn-periode` (indépendant du sélecteur de portefeuilles), colonne
+`cours_veille` persistée pour une position de portefeuille (migration de
+schéma) — les trois nécessitant un test manuel/Playwright dédié ou une
+migration SQLite, hors périmètre d'un correctif à risque faible ce
+cycle. Vérifié par `node --test test/*.test.js` (83/83 avant/après), un
+démarrage réel du serveur et une comparaison programmatique dédiée de
+`totalVariationJourEur()` ancien/nouveau.
+
+Compteur avant cette revue :
+
 **5/5** — Session 66 (2026-09-24, v1.10.14), correctif : l'objet des
 emails d'alerte affichait le ticker brut de la valeur (ex. "Alerte
 BASSE : ACA.PA") au lieu de son nom lisible (retour utilisateur
