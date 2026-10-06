@@ -6,7 +6,7 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**0/5** — Revue n°11 (2026-09-26), déclenchée par le compteur atteignant
+**1/5** — Session 68 (2026-10-06, v1.10.15), modification d'une position de portefeuille (quantite/prix de revient + calculateur d'achat complementaire), voir `CHANGELOG.md` 1.10.15. Precedemment : **0/5** — Revue n°11 (2026-09-26), déclenchée par le compteur atteignant
 5/5 à l'issue de la Session 66 (`METHOD.md` §0.2). Diff cumulé depuis la
 clôture de la Revue n°10 (`cafb207`) jusqu'à `HEAD` (`9947a96`), Sessions
 62 à 66. `/simplify` (4 agents en parallèle : réutilisation,

@@ -1015,6 +1015,72 @@ async function ajouterPosition() {
   }, 'Erreur ajout de la valeur');
 }
 
+// Modification d'une position existante (quantite/prix de revient), avec
+// un calculateur optionnel d'achat complementaire : les titres achetes en
+// plus et leur prix recalculent la quantite totale et le prix de revient
+// moyen pondere. Voir DESIGN.md § Portefeuilles.
+let positionEnEdition = null;
+let baseAchatComplementaire = null;
+
+function ouvrirEditionPosition(position) {
+  positionEnEdition = position;
+  baseAchatComplementaire = { quantite: position.quantite, prixRevient: position.prixRevient };
+  document.getElementById('modalEditPositionTitre').textContent = `Modifier ${position.nom || position.ticker}`;
+  document.getElementById('inputQuantiteEdition').value = position.quantite;
+  document.getElementById('inputPrixRevientEdition').value = position.prixRevient;
+  document.getElementById('inputAchatQuantite').value = '';
+  document.getElementById('inputAchatPrix').value = '';
+  openModal('modalEditPosition');
+}
+
+function appliquerAchatComplementaire() {
+  const achatQte = parseFloat(document.getElementById('inputAchatQuantite').value);
+  const achatPrix = parseFloat(document.getElementById('inputAchatPrix').value);
+  const { quantite, prixRevient } = baseAchatComplementaire;
+
+  if (!(achatQte > 0) || !(achatPrix >= 0)) {
+    document.getElementById('inputQuantiteEdition').value = quantite;
+    document.getElementById('inputPrixRevientEdition').value = prixRevient;
+    return;
+  }
+
+  const nouvelleQuantite = quantite + achatQte;
+  const nouveauPru = (quantite * prixRevient + achatQte * achatPrix) / nouvelleQuantite;
+  document.getElementById('inputQuantiteEdition').value = Math.round(nouvelleQuantite * 10000) / 10000;
+  document.getElementById('inputPrixRevientEdition').value = Math.round(nouveauPru * 10000) / 10000;
+}
+
+async function enregistrerPosition() {
+  const quantite = parseFloat(document.getElementById('inputQuantiteEdition').value);
+  const prixRevient = parseFloat(document.getElementById('inputPrixRevientEdition').value);
+
+  if (!(quantite > 0)) {
+    showToast('Quantite requise', 'warning');
+    return;
+  }
+  if (!(prixRevient >= 0)) {
+    showToast('Prix de revient requis', 'warning');
+    return;
+  }
+
+  const position = positionEnEdition;
+  await executerAction(async () => {
+    const portefeuilleId = Alpine.store('portfolio').portefeuilleSelectionneId;
+    const res = await apiFetch(`/api/portefeuilles/${portefeuilleId}/positions/${position.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ quantite, prixRevient })
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Erreur modification de la valeur');
+    }
+
+    await chargerPositionsPortefeuille();
+    showToast(`${position.ticker} mis a jour`, 'success');
+    closeAllModals();
+  }, 'Erreur modification de la valeur');
+}
+
 async function supprimerPosition(position) {
   const ok = await showConfirm(`Supprimer ${position.ticker} de ce portefeuille ?`, 'Supprimer la valeur');
   if (!ok) return;

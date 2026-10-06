@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.15
+
+- **Nouveau** : dans l'onglet "Portefeuilles", une position peut
+  desormais etre modifiee (bouton crayon sur chaque carte). La modale
+  permet de corriger directement la quantite et le prix de revient, ou de
+  saisir un achat complementaire (titres achetes en plus + prix d'achat) :
+  la nouvelle quantite et le prix de revient moyen pondere sont alors
+  recalcules automatiquement. Utilise l'endpoint existant
+  `PUT /api/portefeuilles/:id/positions/:positionId`, aucun changement
+  cote serveur.
+
 ## 1.10.14
 
 - **Correctif** : l'objet des emails d'alerte affichait le ticker brut de

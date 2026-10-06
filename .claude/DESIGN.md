@@ -1021,6 +1021,16 @@ délibéré antérieur, non remis en cause).
     `--success`/`--danger`). Bouton `icon-trash` en surimpression coin
     haut-droit (`.portefeuille-position-supprimer`, `position: absolute`)
     pour retirer une position, avec confirmation (`showConfirm()`).
+    **Modification d'une position** (session 2026-10-06, demande
+    explicite utilisateur : mettre a jour le nombre de titres et le prix
+    de revient apres un achat complementaire) : bouton `icon-pencil`
+    (`.portefeuille-position-modifier`) sous le bouton supprimer, qui
+    ouvre `#modalEditPosition` (quantite et prix de revient pre-remplis,
+    modifiables) completee d'un calculateur d'achat complementaire
+    optionnel (titres achetes + prix d'achat) : quantite totale et prix de
+    revient moyen pondere `(q*pru + a*p)/(q+a)` recalcules en direct
+    (`appliquerAchatComplementaire()`), valides par `PUT
+    /api/portefeuilles/:id/positions/:positionId`.
     **Réordonnancement par glisser-déposer** (SortableJS, même
     bibliothèque vendorisée que la liste des valeurs suivies) :
     contrairement aux sections (plusieurs listes de valeurs visibles

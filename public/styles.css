@@ -907,6 +907,14 @@ body {
   right: 6px;
 }
 
+/* Sous le bouton supprimer, dans la marge droite deja reservee par le
+   padding de la carte. */
+.portefeuille-position-modifier {
+  position: absolute;
+  top: 34px;
+  right: 6px;
+}
+
 .portefeuille-position-header {
   display: flex;
   align-items: center;

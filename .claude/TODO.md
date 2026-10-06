@@ -3212,3 +3212,16 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   0/5).
 - **Version** : aucun increment - correctifs internes sans changement de
   comportement observable par l'utilisateur (`METHOD.md` §5.5).
+
+## 2026-10-06 — Session 68, modification d'une position de portefeuille (v1.10.15)
+
+- **Demande** : pouvoir modifier une ligne de portefeuille (quantite et
+  prix de revient) apres un achat complementaire.
+- **Implementation** : `#modalEditPosition` + `ouvrirEditionPosition()`/
+  `appliquerAchatComplementaire()`/`enregistrerPosition()`
+  (`public/app.js`), bouton crayon sur `.portefeuille-position-card`,
+  endpoint `PUT .../positions/:positionId` existant (aucun changement
+  serveur). Prix de revient moyen pondere calcule cote client.
+- **Verification** : `node --test test/*.test.js` 83/83, `node --check`
+  sur `public/app.js`. Pas de parcours navigateur (CDN Chart.js bloque).
+- **Version** : 1.10.14 -> 1.10.15 (`package.json`, lock, `config.yaml`).
