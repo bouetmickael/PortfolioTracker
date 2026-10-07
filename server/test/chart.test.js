@@ -55,3 +55,28 @@ test('GET /api/chart/:ticker renvoie la cloture de la veille (previousClose)', a
   // Mock Yahoo Finance (server/test/support/helpers.js) : meta.previousClose = 100.
   assert.equal(body.previousClose, 100);
 });
+
+test('GET /api/chart/:ticker renvoie 404 propre quand Yahoo ne fournit aucune bougie', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'chart-sansdonnees@test.local');
+
+  const fetchOriginal = global.fetch;
+  global.fetch = (url, options) => {
+    if (typeof url === 'string' && url.includes('/v8/finance/chart/SANSBOUGIE')) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ chart: { result: [{ meta: { previousClose: 100 }, indicators: { quote: [{}] } }] } })
+      });
+    }
+    return fetchOriginal(url, options);
+  };
+
+  try {
+    const res = await fetch(`${baseUrl}/api/chart/SANSBOUGIE?period=1W`, { headers: { Cookie: cookie } });
+    assert.equal(res.status, 404);
+    const body = await res.json();
+    assert.equal(body.error, 'Aucune donnee disponible pour cette periode');
+  } finally {
+    global.fetch = fetchOriginal;
+  }
+});

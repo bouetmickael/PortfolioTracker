@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.16
+
+- **Correctif** : le graphique d'une valeur affichait "Erreur chargement
+  des donnees - Cannot read properties of undefined (reading 'map')" sur
+  certaines periodes (ex. 1S). Yahoo Finance omet `timestamp`/`quote`
+  quand aucune bougie n'existe sur la fenetre demandee (valeur peu
+  liquide, intervalle 15m) et `GET /api/chart/:ticker` plantait sur
+  `timestamps.map`. La route renvoie desormais un 404 avec le message
+  "Aucune donnee disponible pour cette periode", affiche tel quel par le
+  graphique.
+
 ## 1.10.15
 
 - **Nouveau** : dans l'onglet "Portefeuilles", une position peut

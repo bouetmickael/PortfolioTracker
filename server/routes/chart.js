@@ -84,7 +84,14 @@ router.get('/:ticker', async (req, res) => {
 
     const result = json.chart.result[0];
     const timestamps = result.timestamp;
-    const quotes = result.indicators.quote[0];
+    const quotes = result.indicators && result.indicators.quote && result.indicators.quote[0];
+
+    // Yahoo Finance omet `timestamp`/`quote` quand aucune bougie n'existe
+    // sur la fenetre demandee (ex. valeur peu liquide en 1S/15m) : message
+    // clair plutot qu'un TypeError sur `.map`.
+    if (!Array.isArray(timestamps) || !quotes || !Array.isArray(quotes.close)) {
+      return res.status(404).json({ error: 'Aucune donnee disponible pour cette periode' });
+    }
 
     const chartData = timestamps
       .map((timestamp, i) => ({

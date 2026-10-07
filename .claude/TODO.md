@@ -3225,3 +3225,13 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Verification** : `node --test test/*.test.js` 83/83, `node --check`
   sur `public/app.js`. Pas de parcours navigateur (CDN Chart.js bloque).
 - **Version** : 1.10.14 -> 1.10.15 (`package.json`, lock, `config.yaml`).
+
+## 2026-10-07 — Session 69, correctif graphique sans donnees (v1.10.16)
+
+- **Retour utilisateur** : capture d'ecran, graphique 1S en erreur
+  "Cannot read properties of undefined (reading 'map')".
+- **Cause** : `server/routes/chart.js` supposait `result.timestamp` et
+  `indicators.quote[0].close` toujours presents ; Yahoo les omet sans
+  bougie sur la fenetre.
+- **Correctif** : garde -> 404 + message clair ; test ajoute
+  (`chart.test.js`), 84/84. Version 1.10.15 -> 1.10.16.
