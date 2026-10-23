@@ -64,13 +64,16 @@ test('aucune cloture precedente disponible : variation a 0 plutot qu une erreur'
 // (horaires Unix de la session avant-bourse du jour, bien present sur cet
 // endpoint) et un second appel a interval=1m&includePrePost=true pour lire
 // le dernier prix reellement echange.
-function mockMetaEtPreMarket(meta, closesPreMarket) {
+function mockMetaEtPreMarket(meta, closesPreMarket, timestampsPreMarket) {
+  // Par defaut, tous les points tombent dans la fenetre avant-bourse du jour.
+  const debutFenetre = meta.currentTradingPeriod && meta.currentTradingPeriod.pre.start;
+  const timestamps = timestampsPreMarket || closesPreMarket.map(() => debutFenetre + 1);
   global.fetch = (url) => {
     if (typeof url === 'string' && url.includes('interval=1m')) {
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: async () => ({ chart: { result: [{ indicators: { quote: [{ close: closesPreMarket }] } }] } })
+        json: async () => ({ chart: { result: [{ timestamp: timestamps, indicators: { quote: [{ close: closesPreMarket }] } }] } })
       });
     }
     return Promise.resolve({
@@ -101,6 +104,29 @@ test('fenetre avant-bourse active et dernier prix disponible : cours et variatio
   // cloture de la veille pendant que le marche est en pre-ouverture), pas
   // previousClose (une seance plus tot) - voir server/jobs/prices.js.
   assert.equal(priceData.avantBourseVariation, ((99 - 100) / 100) * 100);
+});
+
+test("points de la seance precedente uniquement (indice sans cotation avant-bourse) : avant-bourse absent, pas de 0.00%", async () => {
+  const maintenant = Math.floor(Date.now() / 1000);
+  const debut = maintenant - 60;
+  mockMetaEtPreMarket(
+    {
+      regularMarketPrice: 100,
+      previousClose: 98,
+      regularMarketVolume: 1000,
+      currency: 'USD',
+      currentTradingPeriod: { pre: { start: debut, end: maintenant + 3600 } }
+    },
+    [99.5, 100],
+    // Points d'hier : la serie range=1d renvoie la seance precedente tant
+    // qu'aucun echange avant-bourse n'a eu lieu aujourd'hui.
+    [debut - 86400, debut - 86400 + 60]
+  );
+
+  const priceData = await fetchYahooFinance('TEST');
+
+  assert.equal(priceData.avantBourseCours, null);
+  assert.equal(priceData.avantBourseVariation, null);
 });
 
 test('en dehors de la fenetre avant-bourse : avant-bourse absent, aucun appel supplementaire', async () => {

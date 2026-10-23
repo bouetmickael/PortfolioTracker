@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.18
+
+- **Correctif** : la ligne "Avant-bourse" affichait le meme cours que le
+  cours normal avec "(-0.00%)" (ex. NASDAQ-100, S&P 500). Cause :
+  `range=1d` renvoie la seance precedente tant qu'aucun echange
+  avant-bourse n'a eu lieu aujourd'hui (cas permanent des indices) ; le
+  "dernier point valide" etait la cloture d'hier. Seuls les points
+  horodates dans la fenetre avant-bourse du jour sont desormais retenus
+  (`fetchDernierPrixPreMarket()`, `server/jobs/prices.js`) : sans point,
+  la ligne n'est pas affichee.
+
 ## 1.10.17
 
 - **Correctif** : les tuiles d'indices du haut de l'ecran debordaient de

@@ -3245,3 +3245,14 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Correctif** : `minmax(0, 1fr)`, `.stat-card { min-width: 0 }`, nowrap
   retire de `.stat-avant-bourse`. Verifie sous Chromium a 393px : trois
   tuiles egales, pas de debordement. Tests 84/84. Version 1.10.16 -> 1.10.17.
+
+## 2026-10-23 — Session 70 (suite), avant-bourse a 0.00% (v1.10.18)
+
+- **Retour utilisateur** : "Avant-bourse 28958.69 USD (-0.00%)" identique
+  au cours, sur les tuiles d'indices.
+- **Cause** : le dernier point de `interval=1m&range=1d&includePrePost`
+  etait un point de la seance precedente (aucun echange avant-bourse
+  aujourd'hui, permanent pour les indices).
+- **Correctif** : filtre sur `timestamp` dans la fenetre `pre` du jour ;
+  test ajoute (`prices.test.js`), mocks mis a jour avec timestamps. 85/85.
+  Version 1.10.17 -> 1.10.18.

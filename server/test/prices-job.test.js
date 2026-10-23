@@ -41,7 +41,7 @@ function mockPreMarketPour(tickerCible, { previousClose, regularMarketPrice, cur
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: async () => ({ chart: { result: [{ indicators: { quote: [{ close: [null, dernierPrixPreMarket] }] } }] } })
+        json: async () => ({ chart: { result: [{ timestamp: [maintenant - 30, maintenant - 20], indicators: { quote: [{ close: [null, dernierPrixPreMarket] }] } }] } })
       });
     }
     if (typeof url === 'string' && url.includes(`/chart/${tickerCible}?`)) {

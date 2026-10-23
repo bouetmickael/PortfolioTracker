@@ -32,7 +32,13 @@ function extraireResultatChart(data) {
 // fetchYahooFinance() (aucun jeton de session requis), simple appel
 // supplementaire, uniquement declenche quand la fenetre avant-bourse est
 // active (voir appelant).
-async function fetchDernierPrixPreMarket(ticker) {
+//
+// Seuls les points horodates dans la fenetre avant-bourse du jour sont
+// retenus : range=1d renvoie la seance precedente tant qu'aucun echange
+// avant-bourse n'a eu lieu aujourd'hui (cas permanent des indices, qui ne
+// cotent pas avant l'ouverture). Sans ce filtre, le "dernier point" etait la
+// cloture d'hier, egale au cours affiche, d'ou un avant-bourse a 0.00%.
+async function fetchDernierPrixPreMarket(ticker, fenetre) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1m&range=1d&includePrePost=true`;
 
   const data = await fetchYahooFinanceJson(url);
@@ -41,9 +47,15 @@ async function fetchDernierPrixPreMarket(ticker) {
     return null;
   }
 
-  const quotes = result.indicators.quote[0];
-  const closesValides = (quotes.close || []).filter((c) => c !== null && c !== undefined);
-  return closesValides.length > 0 ? closesValides[closesValides.length - 1] : null;
+  const timestamps = result.timestamp || [];
+  const closes = result.indicators.quote[0].close || [];
+  for (let i = Math.min(timestamps.length, closes.length) - 1; i >= 0; i--) {
+    const c = closes[i];
+    if (c !== null && c !== undefined && timestamps[i] >= fenetre.start && timestamps[i] < fenetre.end) {
+      return c;
+    }
+  }
+  return null;
 }
 
 async function fetchYahooFinance(ticker) {
@@ -83,7 +95,7 @@ async function fetchYahooFinance(ticker) {
   const fenetrePreMarket = meta.currentTradingPeriod && meta.currentTradingPeriod.pre;
   if (fenetrePreMarket && estDansFenetre(fenetrePreMarket)) {
     try {
-      const dernierPrix = await fetchDernierPrixPreMarket(ticker);
+      const dernierPrix = await fetchDernierPrixPreMarket(ticker, fenetrePreMarket);
       if (dernierPrix) {
         avantBourseCours = dernierPrix;
         // Variation par rapport a `price` (derniere cloture de seance
