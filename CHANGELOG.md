@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.17
+
+- **Correctif** : les tuiles d'indices du haut de l'ecran debordaient de
+  l'ecran quand la ligne "Avant-bourse" etait affichee. Cause : colonnes
+  de grille `1fr` (minimum implicite = largeur du contenu) combinees a
+  `white-space: nowrap` sur cette ligne, qui elargissait la colonne au
+  lieu de la laisser se resserrer. Colonnes `minmax(0, 1fr)`, tuiles
+  `min-width: 0` et retour a la ligne autorise sur la ligne avant-bourse.
+
 ## 1.10.16
 
 - **Correctif** : le graphique d'une valeur affichait "Erreur chargement

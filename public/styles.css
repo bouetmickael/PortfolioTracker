@@ -353,12 +353,13 @@ body {
 
 .stats-container {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
   padding: 8px 10px;
 }
 
 .stat-card {
+  min-width: 0;
   background: var(--bg);
   padding: 5px 4px;
   border-radius: 6px;
@@ -419,7 +420,6 @@ body {
   line-height: 1.2;
   font-weight: 500;
   margin-top: 1px;
-  white-space: nowrap;
 }
 
 /* SECTIONS */

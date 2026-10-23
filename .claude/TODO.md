@@ -3235,3 +3235,13 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   bougie sur la fenetre.
 - **Correctif** : garde -> 404 + message clair ; test ajoute
   (`chart.test.js`), 84/84. Version 1.10.15 -> 1.10.16.
+
+## 2026-10-23 — Session 70, correctif debordement des tuiles d'indices (v1.10.17)
+
+- **Retour utilisateur** : capture d'ecran, tuiles d'indices (NASDAQ-100,
+  S&P 500) depassant de l'ecran quand l'avant-bourse est ouvert.
+- **Cause** : `repeat(3, 1fr)` + `white-space: nowrap` sur
+  `.stat-avant-bourse` -> la colonne grandit a la largeur du texte.
+- **Correctif** : `minmax(0, 1fr)`, `.stat-card { min-width: 0 }`, nowrap
+  retire de `.stat-avant-bourse`. Verifie sous Chromium a 393px : trois
+  tuiles egales, pas de debordement. Tests 84/84. Version 1.10.16 -> 1.10.17.
