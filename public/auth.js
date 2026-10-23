@@ -6,8 +6,18 @@
 // CONNEXION EMAIL / MOT DE PASSE
 // ========================================
 
+// Garde contre le double envoi (auto-remplissage iOS + appui sur le bouton,
+// double tap) : sans elle, une seconde requete encore en vol au moment de la
+// redirection est annulee par le navigateur et Safari la rejette avec le
+// message brut "Load failed", affiche tel quel dans une alerte alors que la
+// connexion a reussi.
+let connexionEnCours = false;
+let redirectionEnCours = false;
+
 document.getElementById('emailSignInForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (connexionEnCours) return;
+  connexionEnCours = true;
 
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
@@ -23,10 +33,15 @@ document.getElementById('emailSignInForm')?.addEventListener('submit', async (e)
       throw new Error(data.error || 'Erreur de connexion');
     }
 
+    redirectionEnCours = true;
     window.location.href = '/';
   } catch (error) {
     console.error('Erreur connexion:', error);
-    alert('Erreur : ' + error.message);
+    connexionEnCours = false;
+    // Echec reseau (TypeError : "Load failed" sur Safari) ou requete annulee
+    // par la redirection en cours : pas d'alerte brute en anglais.
+    if (redirectionEnCours) return;
+    alert(error instanceof TypeError ? 'Erreur : serveur injoignable, reessayez.' : 'Erreur : ' + error.message);
   }
 });
 

@@ -6,7 +6,7 @@
 
 ## Compteur de sessions depuis la dernière revue de dette technique
 
-**3/5** — Session 70 (2026-10-23, v1.10.17-1.10.18), correctif debordement des tuiles d'indices avec la ligne avant-bourse + avant-bourse a 0.00% (points de la seance precedente filtres), voir `CHANGELOG.md`. Precedemment : **2/5** — Session 69 (2026-10-07, v1.10.16), correctif graphique sans donnees (voir `CHANGELOG.md`). Precedemment : **1/5** — Session 68 (2026-10-06, v1.10.15), modification d'une position de portefeuille (quantite/prix de revient + calculateur d'achat complementaire), voir `CHANGELOG.md` 1.10.15. Precedemment : **0/5** — Revue n°11 (2026-09-26), déclenchée par le compteur atteignant
+**3/5** — Session 70 (2026-10-23, v1.10.17-1.10.19), correctif debordement des tuiles d'indices avec la ligne avant-bourse + avant-bourse a 0.00% (points de la seance precedente filtres) + garde anti double envoi du login ("Load failed"), voir `CHANGELOG.md`. Precedemment : **2/5** — Session 69 (2026-10-07, v1.10.16), correctif graphique sans donnees (voir `CHANGELOG.md`). Precedemment : **1/5** — Session 68 (2026-10-06, v1.10.15), modification d'une position de portefeuille (quantite/prix de revient + calculateur d'achat complementaire), voir `CHANGELOG.md` 1.10.15. Precedemment : **0/5** — Revue n°11 (2026-09-26), déclenchée par le compteur atteignant
 5/5 à l'issue de la Session 66 (`METHOD.md` §0.2). Diff cumulé depuis la
 clôture de la Revue n°10 (`cafb207`) jusqu'à `HEAD` (`9947a96`), Sessions
 62 à 66. `/simplify` (4 agents en parallèle : réutilisation,

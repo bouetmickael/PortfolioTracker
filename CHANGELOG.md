@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.10.19
+
+- **Correctif** : deux alertes "Load failed" apparaissaient parfois apres
+  la connexion, avant l'affichage de la page principale. "Load failed" est
+  le message brut de Safari pour un `fetch` annule ou en echec ; seule la
+  page de connexion (`public/auth.js`) affiche ce genre de message (via
+  `alert`). Hypothese (non reproduite) : double envoi du formulaire
+  (auto-remplissage iOS, double tap) dont une requete encore en vol est
+  annulee par la redirection. Garde contre le double envoi, alerte ignoree
+  si la redirection est deja lancee, message francais "serveur injoignable"
+  pour une vraie erreur reseau.
+
 ## 1.10.18
 
 - **Correctif** : la ligne "Avant-bourse" affichait le meme cours que le

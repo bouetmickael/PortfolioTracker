@@ -3256,3 +3256,17 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
 - **Correctif** : filtre sur `timestamp` dans la fenetre `pre` du jour ;
   test ajoute (`prices.test.js`), mocks mis a jour avec timestamps. 85/85.
   Version 1.10.17 -> 1.10.18.
+
+## 2026-10-23 — Session 70 (suite 2), "Load failed" apres login (v1.10.19)
+
+- **Retour utilisateur** : deux messages "Load failed" de temps en temps
+  apres le login, avant la page principale.
+- **Investigation** : aucun toast d'erreur au chargement de l'app
+  principale (les chargements de polling ne font que `console.error`) ;
+  seules les `alert('Erreur : ' + error.message)` de `public/auth.js`
+  peuvent afficher ce texte (message Safari d'un fetch en echec/annule).
+- **Cause probable, non reproduite** : double envoi du formulaire / requete
+  en vol annulee par la redirection. Correctif defensif dans `auth.js`.
+  Pas de test automatise (code client sans harnais). Tests serveur 85/85.
+  Si le message persiste, relever lequel (alerte native ou toast) et a quel
+  moment pour cibler la vraie cause. Version 1.10.18 -> 1.10.19.
