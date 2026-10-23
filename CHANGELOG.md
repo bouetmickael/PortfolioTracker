@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.20
+
+- **Correctif** : la cloche d'alerte d'une valeur en avant-bourse (ex.
+  NVIDIA) etait coupee. La ligne "Avant-bourse ..." en `nowrap` elargissait
+  `.valeur-chiffres` (`flex-shrink: 0`), qui ecrasait la zone nom/badges a
+  gauche (`overflow: hidden` sur `.valeur-sousligne`). `.valeur-chiffres`
+  est plafonne a 42% de la ligne et la ligne avant-bourse peut passer a la
+  ligne. Verifie sous Chromium a 393px : badge cloche entierement visible.
+
 ## 1.10.19
 
 - **Correctif** : deux alertes "Load failed" apparaissaient parfois apres

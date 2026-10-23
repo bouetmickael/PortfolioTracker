@@ -727,6 +727,10 @@ body {
 
 .valeur-chiffres {
   flex-shrink: 0;
+  /* Plafond : sans lui, la ligne "Avant-bourse ..." (la plus longue de la
+     colonne) l'elargissait et ecrasait la zone nom/badges a gauche, qui
+     perdait la cloche d'alerte (overflow cache de .valeur-sousligne). */
+  max-width: 42%;
   text-align: right;
 }
 
@@ -756,7 +760,6 @@ body {
   font-size: 9px;
   line-height: 1.25;
   font-weight: 500;
-  white-space: nowrap;
 }
 
 .valeur-actions {

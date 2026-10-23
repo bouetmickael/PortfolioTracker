@@ -3270,3 +3270,12 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   Pas de test automatise (code client sans harnais). Tests serveur 85/85.
   Si le message persiste, relever lequel (alerte native ou toast) et a quel
   moment pour cibler la vraie cause. Version 1.10.18 -> 1.10.19.
+
+## 2026-10-23 — Session 70 (suite 3), cloche coupee en avant-bourse (v1.10.20)
+
+- **Retour utilisateur** : capture, cloche du badge d'alerte de NVIDIA
+  partiellement masquee.
+- **Cause** : `.valeur-avant-bourse` nowrap -> `.valeur-chiffres` (non
+  retrecissable) trop large -> `.valeur-main` ecrase, badge rogne.
+- **Correctif** : `max-width: 42%` sur `.valeur-chiffres`, nowrap retire.
+  Tests serveur 85/85 (CSS uniquement). Version 1.10.19 -> 1.10.20.
