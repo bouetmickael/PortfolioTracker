@@ -397,7 +397,7 @@
 
         <div class="portefeuille-positions" x-init="initSortablePositions($el)">
           <template x-for="position in [...$store.portfolio.portefeuillePositions].sort((a, b) => (a.ordre || 0) - (b.ordre || 0))" :key="position.id">
-            <div class="portefeuille-position-card" :data-position-id="position.id" @click="openGraphique(position.ticker, position.nom)">
+            <div class="portefeuille-position-card" :data-position-id="position.id" @click="openGraphique(position.ticker, position.nom, true)">
               <button class="btn-icon-small btn-icon-xs portefeuille-position-supprimer" @click.stop="supprimerPosition(position)" title="Supprimer" aria-label="Supprimer">
                 <svg class="icon icon-sm"><use href="#icon-trash"></use></svg>
               </button>
@@ -587,11 +587,11 @@
   </div>
 
   <div id="modalCreateAlerte" class="modal">
-    <div class="modal-backdrop" onclick="closeAllModals()"></div>
+    <div class="modal-backdrop" onclick="fermerModaleAlerte()"></div>
     <div class="modal-content">
       <div class="modal-header">
         <h3 id="modalCreateAlerteTitre">Creer une alerte</h3>
-        <button class="btn-close" onclick="closeAllModals()" aria-label="Fermer"><svg class="icon icon-sm"><use href="#icon-x"></use></svg></button>
+        <button class="btn-close" onclick="fermerModaleAlerte()" aria-label="Fermer"><svg class="icon icon-sm"><use href="#icon-x"></use></svg></button>
       </div>
       <div class="modal-body">
         <label class="label">Ticker</label>
@@ -632,7 +632,7 @@
         <small class="help-text">Affichee sur la carte d'alerte et reprise dans l'email lors du declenchement</small>
       </div>
       <div class="modal-footer">
-        <button onclick="closeAllModals()" class="btn btn-secondary">Annuler</button>
+        <button onclick="fermerModaleAlerte()" class="btn btn-secondary">Annuler</button>
         <button id="btnValiderAlerte" onclick="creerAlerte()" class="btn btn-primary">Creer</button>
       </div>
     </div>

@@ -3279,3 +3279,19 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   retrecissable) trop large -> `.valeur-main` ecrase, badge rogne.
 - **Correctif** : `max-width: 42%` sur `.valeur-chiffres`, nowrap retire.
   Tests serveur 85/85 (CSS uniquement). Version 1.10.19 -> 1.10.20.
+
+## 2026-10-29 — Session 70 (suite 4), alertes depuis le graphique de portefeuille + note a la creation (v1.10.21)
+
+- **Demande** : pouvoir creer une alerte depuis le graphique d'une position
+  de portefeuille ; creation par glisser-deposer avec la meme fenetre que la
+  modification (note).
+- **Cause de l'ecart** : `openGraphique(..., alertable)` n'etait passe qu'en
+  vue Suivi (regle BUSINESS_RULES : `checkAlerts()` ne rejoignait que
+  `valeurs`).
+- **Realisation** : repli `portefeuille_lignes` dans `checkAlerts()`
+  (`COALESCE`), `supprimerAlertesOrphelines()` tient compte des positions
+  (suppression d'une position/portefeuille), `confirmerPlacementAlerte()` ->
+  `openAlerteModal(ticker, seuilHaut, seuilBas)`, `fermerModaleAlerte()`,
+  `#modalCreateAlerte` z-index 1100. Test `alerts-job.test.js` (86/86).
+  Verifie sous Playwright/Chromium 393px (Chart.js local, route mockee) :
+  cloche visible, modale pre-remplie, note enregistree, graphique conserve.

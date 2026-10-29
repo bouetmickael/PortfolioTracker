@@ -1035,6 +1035,13 @@ body {
   justify-content: center;
 }
 
+/* Ouverte aussi par-dessus #modalGraphique (validation d'une alerte posee
+   sur le graphique) : meme z-index que les autres modales, elle serait
+   masquee par celle-ci, placee apres elle dans le DOM. */
+#modalCreateAlerte {
+  z-index: 1100;
+}
+
 .modal.active {
   display: flex;
 }

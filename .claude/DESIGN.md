@@ -623,7 +623,7 @@ délibéré antérieur, non remis en cause).
   veille » équivalente sur ces échelles de temps.
 - **Alerte depuis le graphique** (session 2026-07-25, demande explicite
   utilisateur, inspirée du geste de glisser-déposer de TradingView) :
-  sur le graphique d'une valeur de ma propre liste "Valeurs suivies"
+  sur le graphique d'une valeur de ma propre liste "Valeurs suivies" ou d'une position de mes portefeuilles (session 2026-10-29)
   (jamais un indice de marché ni une valeur d'une section partagée avec
   moi — même périmètre que le bouton cloche existant sur la ligne, voir
   `BUSINESS_RULES.md` § Alertes de seuil pour la raison technique), un
@@ -643,9 +643,12 @@ délibéré antérieur, non remis en cause).
   (`getValueForPixel`/`getPixelForValue`, pas de plugin d'annotation
   supplémentaire). Le bouton `icon-bell` est remplacé par un bouton
   `icon-x` (annuler, même emplacement bas-gauche) ; un bouton rond doré
-  `icon-check` apparaît en bas-droite pour valider. Au tap sur la coche,
-  l'alerte est créée immédiatement (`POST /api/alertes`, sans repasser
-  par `#modalCreateAlerte`) avec `seuilHaut` si le seuil glissé est
+  `icon-check` apparaît en bas-droite pour valider. Au tap sur la coche (session 2026-10-29), `#modalCreateAlerte` s'ouvre
+  par-dessus le graphique (même modale que la cloche d'une ligne, titre
+  « Créer une alerte », seuil glissé arrondi au centime pré-rempli, note
+  optionnelle) ; valider ou fermer ne ferme que cette modale. Disponible
+  aussi sur le graphique d'une position de portefeuille. Le seuil
+  est pré-rempli en `seuilHaut` si le seuil glissé est
   au-dessus du cours actuel de la valeur, `seuilBas` sinon — l'utilisateur
   reste sur le graphique (peut poser une seconde alerte dans la foulée).
   Annuler ferme le mode placement sans rien créer. Le formulaire complet

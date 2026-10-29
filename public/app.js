@@ -1351,7 +1351,7 @@ async function creerAlerte() {
     : await creerAlerteAPI(ticker, seuilHaut, seuilBas, note);
 
   if (success) {
-    closeAllModals();
+    fermerModaleAlerte();
     document.getElementById('inputSeuilHaut').value = '';
     document.getElementById('inputSeuilBas').value = '';
     document.getElementById('inputNoteAlerte').value = '';
@@ -1479,12 +1479,20 @@ function alerteOnPointerUp() {
   dragRect = null;
 }
 
+// Cours courant d'un ticker pour le placement d'alerte : ma liste "Valeurs
+// suivies" d'abord, sinon une position de portefeuille (le graphique d'une
+// position est alertable depuis la Session 70, voir checkAlerts()).
+function coursConnu(ticker) {
+  const store = Alpine.store('portfolio');
+  const source = store.valeurs.find((v) => v.ticker === ticker) || store.portefeuillePositions.find((p) => p.ticker === ticker);
+  return source ? source.cours : null;
+}
+
 function ouvrirPlacementAlerte() {
   if (!chartInstance || placementAlerteActif) return;
 
-  const valeurStore = Alpine.store('portfolio').valeurs.find((v) => v.ticker === graphiqueState.ticker);
   const { min, max } = chartInstance.scales.y;
-  const depart = (valeurStore && valeurStore.cours) || (min + max) / 2;
+  const depart = coursConnu(graphiqueState.ticker) || (min + max) / 2;
 
   graphiqueState.valeurPlacement = depart;
   placementAlerteActif = true;
@@ -1521,15 +1529,18 @@ async function confirmerPlacementAlerte() {
   if (!placementAlerteActif) return;
 
   const ticker = graphiqueState.ticker;
-  const valeurChoisie = graphiqueState.valeurPlacement;
-  const valeurStore = Alpine.store('portfolio').valeurs.find((v) => v.ticker === ticker);
-  const coursActuel = valeurStore ? valeurStore.cours : valeurChoisie;
+  // Arrondi au centime : le seuil est desormais affiche dans le champ de la modale.
+  const valeurChoisie = Math.round(graphiqueState.valeurPlacement * 100) / 100;
+  const coursActuel = coursConnu(ticker) ?? valeurChoisie;
 
   const seuilHaut = valeurChoisie >= coursActuel ? valeurChoisie : null;
   const seuilBas = valeurChoisie < coursActuel ? valeurChoisie : null;
 
   fermerPlacementAlerte();
-  await creerAlerteAPI(ticker, seuilHaut, seuilBas);
+  // Meme modale que la creation par la cloche d'une ligne / l'edition
+  // (note optionnelle, ajustement des seuils) plutot qu'une creation
+  // directe sans note ; le seuil glisse est pre-rempli.
+  openAlerteModal(ticker, seuilHaut, seuilBas);
 }
 
 // ========================================
@@ -2317,6 +2328,14 @@ function openModal(modalId) {
   document.body.style.overflow = 'hidden';
 }
 
+// Ferme uniquement la modale d'alerte : elle peut etre ouverte par-dessus la
+// modale du graphique (validation du placement d'une alerte), que
+// l'utilisateur doit retrouver intacte (voir #modalCreateAlerte, styles.css).
+function fermerModaleAlerte() {
+  document.getElementById('modalCreateAlerte').classList.remove('active');
+  if (!document.querySelector('.modal.active')) document.body.style.overflow = '';
+}
+
 function closeAllModals() {
   fermerPlacementAlerte();
   if (rechercheTickerValeur) rechercheTickerValeur.masquer();
@@ -2327,12 +2346,12 @@ function closeAllModals() {
   document.body.style.overflow = '';
 }
 
-function openAlerteModal(ticker) {
+function openAlerteModal(ticker, seuilHaut = null, seuilBas = null) {
   alerteEnEdition = null;
   document.getElementById('modalCreateAlerteTitre').textContent = 'Creer une alerte';
   document.getElementById('inputTickerAlerte').value = ticker;
-  document.getElementById('inputSeuilHaut').value = '';
-  document.getElementById('inputSeuilBas').value = '';
+  document.getElementById('inputSeuilHaut').value = seuilHaut ?? '';
+  document.getElementById('inputSeuilBas').value = seuilBas ?? '';
   document.getElementById('inputNoteAlerte').value = '';
   document.getElementById('btnValiderAlerte').textContent = 'Creer';
   openModal('modalCreateAlerte');

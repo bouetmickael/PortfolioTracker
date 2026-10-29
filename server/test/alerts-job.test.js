@@ -230,3 +230,37 @@ test("checkAlerts() replie sur le ticker dans l'objet de l'email quand la valeur
 
   assert.equal(sujetEnvoye, 'Alerte HAUTE : AAPL');
 });
+
+// Alerte posee depuis le graphique d'une position de portefeuille (Session
+// 70) : ticker absent de "Valeurs suivies", detenu seulement dans un
+// portefeuille - checkAlerts() doit s'y replier sur portefeuille_lignes.
+test('checkAlerts() evalue une alerte sur un ticker detenu seulement dans un portefeuille', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alerts-job-portefeuille@test.local');
+  const headers = { 'Content-Type': 'application/json', Cookie: cookie };
+
+  const pf = await (
+    await fetch(`${baseUrl}/api/portefeuilles`, { method: 'POST', headers, body: JSON.stringify({ nom: 'PF' }) })
+  ).json();
+  const add = await fetch(`${baseUrl}/api/portefeuilles/${pf.id}/positions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ ticker: 'AAPL', quantite: 1, prixRevient: 90 })
+  });
+  assert.equal(add.status, 201);
+  await fetch(`${baseUrl}/api/alertes`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ ticker: 'AAPL', seuilHaut: 100 })
+  });
+
+  await checkAlerts();
+
+  const alerte = parTicker(await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json(), 'AAPL');
+  assert.ok(alerte.derniereAlerte, 'l alerte doit etre evaluee via portefeuille_lignes');
+
+  // Supprimer la position retire l'alerte devenue orpheline.
+  const positions = await (await fetch(`${baseUrl}/api/portefeuilles/${pf.id}/positions`, { headers: { Cookie: cookie } })).json();
+  await fetch(`${baseUrl}/api/portefeuilles/${pf.id}/positions/${positions[0].id}`, { method: 'DELETE', headers: { Cookie: cookie } });
+  const apres = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json();
+  assert.equal(parTicker(apres, 'AAPL'), undefined);
+});

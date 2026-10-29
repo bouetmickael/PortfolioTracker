@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.10.21
+
+- **Evolution** : le graphique d'une position de portefeuille permet
+  desormais de poser une alerte (cloche de placement), comme depuis
+  "Suivi". `checkAlerts()` se replie sur `portefeuille_lignes` (cours/nom)
+  pour un ticker absent de "Valeurs suivies" ; une alerte est supprimee
+  quand plus aucune valeur suivie ni position ne porte son ticker.
+- **Evolution** : valider le placement d'une alerte sur le graphique
+  ouvre la modale d'alerte (la meme que la cloche d'une ligne / l'edition),
+  seuil glisse pre-rempli (arrondi au centime), pour pouvoir saisir une
+  note ou le second seuil. Le graphique reste ouvert dessous.
 ## 1.10.20
 
 - **Correctif** : la cloche d'alerte d'une valeur en avant-bourse (ex.

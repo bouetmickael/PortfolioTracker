@@ -94,11 +94,18 @@ function supprimerValeur(db, valeurId) {
 
 // Supprime les alertes actives d'un ticker si plus aucune section de
 // l'utilisateur ne le suit (une alerte est liee au ticker, pas a une ligne
-// valeurs precise - voir BUSINESS_RULES.md § Valeurs suivies).
+// valeurs precise - voir BUSINESS_RULES.md § Valeurs suivies). Une position
+// de portefeuille portant le meme ticker garde aussi l'alerte en vie
+// (checkAlerts() s'y replie, voir server/jobs/alerts.js).
 function supprimerAlertesOrphelines(db, userId, ticker) {
-  const autreOccurrence = db
-    .prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?')
-    .get(userId, ticker);
+  const autreOccurrence =
+    db.prepare('SELECT id FROM valeurs WHERE user_id = ? AND ticker = ?').get(userId, ticker) ||
+    db
+      .prepare(
+        `SELECT l.id FROM portefeuille_lignes l JOIN portefeuilles p ON p.id = l.portefeuille_id
+         WHERE p.user_id = ? AND l.ticker = ?`
+      )
+      .get(userId, ticker);
 
   if (!autreOccurrence) {
     db.prepare('DELETE FROM alertes WHERE user_id = ? AND ticker = ?').run(userId, ticker);

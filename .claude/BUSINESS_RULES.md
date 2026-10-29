@@ -218,12 +218,13 @@
   regle d'integrite des cours que le reste de l'application (voir §
   Integrite des cours ci-dessous) : aucune donnee inventee en cas
   d'echec.
-- **Aucune alerte de seuil sur une position de portefeuille** : le
-  formulaire/le glisser-depose de creation d'alerte restent reserves aux
-  valeurs de la liste "Valeurs suivies" de l'utilisateur (voir §
-  Alertes de seuil ci-dessous, meme raison technique -
-  `checkAlerts()` ne rejoint que la table `valeurs`, jamais
-  `portefeuille_lignes`) - non demande, pas implemente.
+- **Alerte de seuil sur une position de portefeuille** (Session 70,
+  v1.10.21) : le graphique d'une position est alertable comme celui d'une
+  valeur suivie. `checkAlerts()` se replie sur `portefeuille_lignes`
+  (jointure `portefeuilles.user_id`) quand le ticker n'est pas dans
+  `valeurs` ; une alerte n'est supprimee (`supprimerAlertesOrphelines()`)
+  que si plus aucune valeur suivie ni position de l'utilisateur ne porte
+  son ticker.
 
 ## Alertes de seuil
 
@@ -257,8 +258,9 @@
   `DESIGN.md` § Alerte depuis le graphique) : `checkAlerts()`
   (`server/jobs/alerts.js`) n'évalue une alerte que via une jointure
   stricte `valeurs.user_id = alertes.user_id AND valeurs.ticker =
-  alertes.ticker`. Une alerte créée sur un ticker absent de `valeurs`
-  pour l'utilisateur courant (un indice de marché, ou la valeur d'un
+  alertes.ticker`, avec repli sur `portefeuille_lignes` (Session 70). Une
+  alerte créée sur un ticker absent de `valeurs` et des portefeuilles
+  de l'utilisateur courant (un indice de marché, ou la valeur d'un
   autre compte via une section partagée) n'est donc **jamais évaluée** —
   silencieusement morte, pas une erreur visible. Toute nouvelle UI de
   création d'alerte doit donc rester restreinte aux valeurs de ma propre

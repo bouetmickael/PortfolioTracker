@@ -3,7 +3,7 @@ const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
 const { nextOrdre } = require('../ordre');
-const { verifierTickerExiste } = require('../valeurs');
+const { verifierTickerExiste, supprimerAlertesOrphelines } = require('../valeurs');
 const { toPositionsArray, creerPosition } = require('../portefeuilles');
 const { asyncHandler } = require('../middleware/asyncHandler');
 
@@ -70,7 +70,12 @@ router.delete('/:id', (req, res) => {
   // lignes qu'il contient, pas de transaction/suppression manuelle
   // necessaire contrairement a une section (qui reassigne ses valeurs
   // plutot que de les supprimer, voir server/routes/sections.js).
+  const tickers = db
+    .prepare('SELECT ticker FROM portefeuille_lignes WHERE portefeuille_id = ?')
+    .all(portefeuille.id)
+    .map((l) => l.ticker);
   db.prepare('DELETE FROM portefeuilles WHERE id = ?').run(portefeuille.id);
+  tickers.forEach((t) => supprimerAlertesOrphelines(db, req.session.userId, t));
 
   res.json({ success: true });
 });
@@ -186,7 +191,11 @@ router.delete('/:id/positions/:positionId', (req, res) => {
     return res.status(404).json({ error: 'Portefeuille introuvable' });
   }
 
+  const ligne = db
+    .prepare('SELECT ticker FROM portefeuille_lignes WHERE id = ? AND portefeuille_id = ?')
+    .get(req.params.positionId, portefeuille.id);
   db.prepare('DELETE FROM portefeuille_lignes WHERE id = ? AND portefeuille_id = ?').run(req.params.positionId, portefeuille.id);
+  if (ligne) supprimerAlertesOrphelines(db, req.session.userId, ligne.ticker);
 
   res.json({ success: true });
 });

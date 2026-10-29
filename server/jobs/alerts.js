@@ -10,6 +10,14 @@ const { traiterEnParallele } = require('./parallel');
 // plutot que trois copies litterales identiques.
 const VALEUR_CORRESPONDANTE = 'valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker';
 
+// Repli pour un ticker absent de "Valeurs suivies" mais detenu dans un
+// portefeuille de l'utilisateur (alerte posee depuis le graphique d'une
+// position, voir BUSINESS_RULES.md § Alertes de seuil). Jointure via
+// portefeuilles.user_id : portefeuille_lignes n'a pas de user_id propre.
+const LIGNE_CORRESPONDANTE =
+  'portefeuille_lignes.portefeuille_id = portefeuilles.id AND portefeuilles.user_id = alertes.user_id AND portefeuille_lignes.ticker = alertes.ticker';
+const LIGNE_PORTEFEUILLE = `FROM portefeuille_lignes JOIN portefeuilles ON ${LIGNE_CORRESPONDANTE}`;
+
 async function checkAlerts() {
   console.log('Demarrage verification alertes');
 
@@ -25,12 +33,19 @@ async function checkAlerts() {
   const rows = db
     .prepare(
       `SELECT alertes.*, users.email AS user_email,
-         (SELECT valeurs.cours FROM valeurs WHERE ${VALEUR_CORRESPONDANTE} LIMIT 1) AS cours,
-         (SELECT valeurs.nom FROM valeurs WHERE ${VALEUR_CORRESPONDANTE} LIMIT 1) AS nom
+         COALESCE(
+           (SELECT valeurs.cours FROM valeurs WHERE ${VALEUR_CORRESPONDANTE} LIMIT 1),
+           (SELECT portefeuille_lignes.cours ${LIGNE_PORTEFEUILLE} LIMIT 1)
+         ) AS cours,
+         COALESCE(
+           (SELECT valeurs.nom FROM valeurs WHERE ${VALEUR_CORRESPONDANTE} LIMIT 1),
+           (SELECT portefeuille_lignes.nom ${LIGNE_PORTEFEUILLE} LIMIT 1)
+         ) AS nom
        FROM alertes
        JOIN users ON users.id = alertes.user_id
        WHERE alertes.active = 1
-         AND EXISTS(SELECT 1 FROM valeurs WHERE ${VALEUR_CORRESPONDANTE})`
+         AND (EXISTS(SELECT 1 FROM valeurs WHERE ${VALEUR_CORRESPONDANTE})
+              OR EXISTS(SELECT 1 ${LIGNE_PORTEFEUILLE}))`
     )
     .all();
 
