@@ -359,13 +359,10 @@ délibéré antérieur, non remis en cause).
   changer un seuil ne doit pas rouvrir la fenêtre à une notification
   immédiate si le cours a déjà franchi l'ancien seuil sans avoir
   redescendu en dessous. Le formulaire complet (icône cloche sur la
-  ligne d'une valeur suivie, `openAlerteModal()`) reste le seul point
-  d'entrée en **mode création** ; le mode placement d'une alerte
-  directement sur le graphique (voir § Alerte depuis le graphique
-  ci-dessus) crée toujours une alerte sans note (`creerAlerteAPI(ticker,
-  seuilHaut, seuilBas)`, note omise) — ajouter une note à une alerte
-  posée depuis le graphique se fait après coup, en rouvrant sa carte
-  depuis « Alertes actives ».
+  ligne d'une valeur suivie, `openAlerteModal()`) reste le point d'entrée
+  de la **création** ; le mode placement sur le graphique (voir § Alerte
+  depuis le graphique ci-dessus) y aboutit aussi depuis la session
+  2026-10-29 (même modale, seuil glissé pré-rempli, note possible).
 - **Partage de section** (Session D de `BACKLOG.md`, voir
   `BUSINESS_RULES.md` § Partage de section pour les règles d'accès) :
   - Bouton `icon-share` dans l'en-tête de chaque section possédée ouvre
@@ -1067,12 +1064,11 @@ délibéré antérieur, non remis en cause).
     `updatePortefeuilleLignes()`, `server/jobs/prices.js`) — aucune
     donnée inventée en cas d'échec (voir `BUSINESS_RULES.md` § Intégrité
     des cours), même mécanisme que les deux jobs existants.
-  - Pas de bouton d'alerte sur une position de portefeuille (contrairement
-    à une ligne de la liste « Valeurs suivies ») : `checkAlerts()` ne
-    rejoint que sur la table `valeurs`, une alerte posée sur une position
-    de portefeuille non par ailleurs suivie ne serait donc jamais évaluée
-    — même restriction de périmètre que les composants « Alerte(s)… sur
-    le graphique », voir `BUSINESS_RULES.md` § Alertes de seuil.
+  - Alerte sur une position (session 2026-10-29) : le graphique d'une
+    position est alertable (cloche de placement, voir § Alerte depuis le
+    graphique). Pas de bouton cloche sur la carte elle-même.
+    `checkAlerts()` se replie sur `portefeuille_lignes` quand le ticker
+    n'est pas dans `valeurs`, voir `BUSINESS_RULES.md` § Alertes de seuil.
 
 ## Responsive
 
