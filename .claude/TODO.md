@@ -3306,3 +3306,15 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   et reutilisee par `checkAlerts()`. `createAlerteCard()` affiche
   `alerte.nom` (echappe) ; ellipse CSS pour les noms longs.
 - Test ajoute (`alertes.test.js`), 87/87 OK. Compteur de revue 4/5.
+
+## 2026-11-04 — Session 72, popup des nouveautes (v1.10.23)
+
+- Demande utilisateur : toucher la version en haut de l'ecran ouvre une
+  popup listant les changements par version, en quelques mots, seulement
+  ceux parlants pour l'utilisateur.
+- `public/nouveautes.js` (`NOUVEAUTES`, curation manuelle depuis
+  `CHANGELOG.md`, sans les versions purement internes), `#modalNouveautes`
+  (`index.html`), `ouvrirNouveautes()` (`app.js`, textContent), `#appVersion`
+  devenu bouton, CSS `.nouveautes-*`. `sw.js` : cache v6 + nouveau fichier.
+- Test `nouveautes.test.js` (ordre/format/version <= package). 89/89 OK,
+  verifie sous Chromium a 393px. Compteur de revue 5/5.

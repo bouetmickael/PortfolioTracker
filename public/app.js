@@ -2322,6 +2322,26 @@ function repositionnerPlacementApresChargement() {
 // MODALS
 // ========================================
 
+// Popup des nouveautes (touche sur le numero de version de l'en-tete) :
+// construite avec textContent, la liste vient de public/nouveautes.js.
+function ouvrirNouveautes() {
+  const conteneur = document.getElementById('nouveautesListe');
+  conteneur.replaceChildren();
+  NOUVEAUTES.forEach(({ version, items }) => {
+    const titre = document.createElement('div');
+    titre.className = 'nouveautes-version';
+    titre.textContent = `v${version}`;
+    const ul = document.createElement('ul');
+    items.forEach((texte) => {
+      const li = document.createElement('li');
+      li.textContent = texte;
+      ul.appendChild(li);
+    });
+    conteneur.append(titre, ul);
+  });
+  openModal('modalNouveautes');
+}
+
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
   modal.classList.add('active');

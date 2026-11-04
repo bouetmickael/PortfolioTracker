@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.10.23
+
+- **Nouveau** : toucher le numero de version en haut de l'ecran ouvre une
+  popup "Nouveautes" listant, en quelques mots, les changements visibles
+  de chaque version. Source : `public/nouveautes.js` (curatee a la main,
+  seulement ce qui parle a l'utilisateur), test de coherence
+  `server/test/nouveautes.test.js`.
+
 ## 1.10.22
 
 - **Evolution** : les cartes de "Alertes actives" affichent desormais le

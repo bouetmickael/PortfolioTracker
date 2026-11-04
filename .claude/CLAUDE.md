@@ -62,6 +62,11 @@ technique au fil de la session comme d'habitude ; la fusion vers `main`
 et son push peuvent suivre automatiquement, sans étape de confirmation
 supplémentaire.
 
+**Popup des nouveautes.** Chaque session fonctionnelle qui change quelque
+chose de visible pour l'utilisateur ajoute une entree en tete de
+`public/nouveautes.js` (version + phrases courtes, sans jargon), en plus
+de `CHANGELOG.md`. Voir `DESIGN.md` § Popup des nouveautes.
+
 ## Règles métier
 
 Voir `BUSINESS_RULES.md` (isolation des données par utilisateur,

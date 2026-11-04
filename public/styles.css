@@ -136,6 +136,28 @@ body {
   font-size: 11px;
   font-weight: 400;
   color: var(--header-text-secondary);
+  background: none;
+  border: none;
+  padding: 4px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.nouveautes-liste {
+  padding: 8px 16px 16px;
+}
+
+.nouveautes-version {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary);
+  margin-top: 12px;
+}
+
+.nouveautes-liste ul {
+  margin: 2px 0 0 18px;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .header-actions {

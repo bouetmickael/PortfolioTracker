@@ -128,6 +128,14 @@ délibéré antérieur, non remis en cause).
   (`.header-actions`, icônes SVG) : bascule thème (`icon-moon`/
   `icon-sun`), actualiser (`icon-refresh`), menu utilisateur (`icon-
   user`).
+- **Popup des nouveautes** (v1.10.23, demande explicite utilisateur) : le
+  numero de version de l'en-tete (`#appVersion`, desormais un `<button>`
+  sans fond ni bordure, meme aspect qu'avant) ouvre `#modalNouveautes`
+  (gabarit de modale standard, defilement interne). Une entree par version
+  (`.nouveautes-version`, 13px/500, `--primary`) suivie d'une liste a
+  puces de phrases courtes (13px). Contenu dans `public/nouveautes.js`
+  (`NOUVEAUTES`, plus recent en premier) : uniquement les changements
+  parlants pour l'utilisateur, pas le detail technique de `CHANGELOG.md`.
 - **Cartes statistiques** (`.stats-container`/`.stat-card`, session
   2026-07-25 « suivi d'indices de marché ») : grille 3 colonnes égales,
   fond `--bg`, coins 6px, `--shadow`, **bordure supérieure colorée 2px**.

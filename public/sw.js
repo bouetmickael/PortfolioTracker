@@ -2,7 +2,7 @@
  * SERVICE WORKER - PORTFOLIO TRACKER
  */
 
-const CACHE_NAME = 'portfolio-tracker-v5';
+const CACHE_NAME = 'portfolio-tracker-v6';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,6 +10,7 @@ const urlsToCache = [
   '/styles.css',
   '/api.js',
   '/app.js',
+  '/nouveautes.js',
   '/auth.js',
   '/manifest.json',
   '/vendor/alpine.min.js',
