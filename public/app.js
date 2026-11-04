@@ -381,7 +381,7 @@ function createAlerteCard(id, alerte) {
 
   div.innerHTML = `
     <div class="alerte-info">
-      <div class="alerte-ticker">${pastille}${alerte.ticker}</div>
+      <div class="alerte-ticker">${pastille}${escapeHtml(alerte.nom || alerte.ticker)}</div>
       <div class="alerte-seuils">${seuils.join(' - ')}</div>
       ${note}
       <div class="alerte-derniere">${texteDerniereAlerte(alerte)}</div>

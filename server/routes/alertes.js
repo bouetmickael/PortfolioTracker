@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { normalizeTicker } = require('../ticker');
+const { NOM_VALEUR_SUBQUERY } = require('../alerteNom');
 
 const router = express.Router();
 
@@ -15,6 +16,8 @@ function toAlertesArray(rows) {
   return rows.map((row) => ({
     id: row.id,
     ticker: row.ticker,
+    // Nom lisible de la valeur (repli sur le ticker si aucun nom saisi).
+    nom: row.nom || row.ticker,
     seuilHaut: row.seuil_haut,
     seuilBas: row.seuil_bas,
     note: row.note,
@@ -42,7 +45,9 @@ function parseSeuilsEtNote(body) {
 }
 
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM alertes WHERE user_id = ?').all(req.session.userId);
+  const rows = db
+    .prepare(`SELECT alertes.*, ${NOM_VALEUR_SUBQUERY} AS nom FROM alertes WHERE alertes.user_id = ?`)
+    .all(req.session.userId);
   res.json(toAlertesArray(rows));
 });
 

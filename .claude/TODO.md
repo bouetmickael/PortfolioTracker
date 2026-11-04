@@ -3295,3 +3295,14 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   `#modalCreateAlerte` z-index 1100. Test `alerts-job.test.js` (86/86).
   Verifie sous Playwright/Chromium 393px (Chart.js local, route mockee) :
   cloche visible, modale pre-remplie, note enregistree, graphique conserve.
+
+## 2026-11-04 — Session 71, nom de la valeur sur les cartes d'alerte (v1.10.22)
+
+- Demande utilisateur (capture a l'appui) : la vue "Alertes actives"
+  affichait le ticker (ex. VK.PA) au lieu du nom, contrairement a la liste
+  des valeurs suivies.
+- `GET /api/alertes` expose `nom` (COALESCE valeurs/portefeuille_lignes,
+  repli ticker cote API) ; sous-requete extraite dans `server/alerteNom.js`
+  et reutilisee par `checkAlerts()`. `createAlerteCard()` affiche
+  `alerte.nom` (echappe) ; ellipse CSS pour les noms longs.
+- Test ajoute (`alertes.test.js`), 87/87 OK. Compteur de revue 4/5.

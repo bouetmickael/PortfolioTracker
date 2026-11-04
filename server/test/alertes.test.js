@@ -218,3 +218,25 @@ test('PUT /api/alertes/:id ne permet pas de modifier l alerte d un autre utilisa
   });
   assert.equal(res.status, 404);
 });
+
+test('GET /api/alertes expose le nom de la valeur, avec repli sur le ticker', async () => {
+  const { cookie } = await creerUtilisateur(baseUrl, 'alertes-nom@test.local');
+  const headers = { 'Content-Type': 'application/json', Cookie: cookie };
+
+  await fetch(`${baseUrl}/api/valeurs`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ ticker: 'AAPL', nom: 'Apple Inc.' })
+  });
+  for (const ticker of ['AAPL', 'MSFT']) {
+    await fetch(`${baseUrl}/api/alertes`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ticker, seuilHaut: 500 })
+    });
+  }
+
+  const alertes = await (await fetch(`${baseUrl}/api/alertes`, { headers: { Cookie: cookie } })).json();
+  assert.equal(parTicker(alertes, 'AAPL').nom, 'Apple Inc.');
+  assert.equal(parTicker(alertes, 'MSFT').nom, 'MSFT');
+});

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.22
+
+- **Evolution** : les cartes de "Alertes actives" affichent desormais le
+  nom de la valeur (ex. "Airbus SE") plutot que son ticker brut, comme la
+  liste des valeurs suivies ; repli sur le ticker si aucun nom n'est
+  connu. `GET /api/alertes` expose un champ `nom` (valeurs suivies, sinon
+  position de portefeuille), via une sous-requete partagee avec
+  `checkAlerts()` (`server/alerteNom.js`).
+
 ## 1.10.21
 
 - **Evolution** : le graphique d'une position de portefeuille permet

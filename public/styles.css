@@ -794,6 +794,7 @@ body {
 
 .alerte-info {
   flex: 1;
+  min-width: 0;
 }
 
 .alerte-ticker {
@@ -801,6 +802,9 @@ body {
   font-weight: 500;
   line-height: 1.25;
   margin-bottom: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .alerte-ticker .badge-notif-dot {

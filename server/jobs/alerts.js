@@ -5,18 +5,7 @@ const db = require('../db');
 const mailer = require('../mailer');
 const { traiterEnParallele } = require('./parallel');
 
-// Fragment de correlation partage par les trois usages ci-dessous (les deux
-// sous-requetes cours/nom et le EXISTS) : une seule condition a maintenir
-// plutot que trois copies litterales identiques.
-const VALEUR_CORRESPONDANTE = 'valeurs.user_id = alertes.user_id AND valeurs.ticker = alertes.ticker';
-
-// Repli pour un ticker absent de "Valeurs suivies" mais detenu dans un
-// portefeuille de l'utilisateur (alerte posee depuis le graphique d'une
-// position, voir BUSINESS_RULES.md § Alertes de seuil). Jointure via
-// portefeuilles.user_id : portefeuille_lignes n'a pas de user_id propre.
-const LIGNE_CORRESPONDANTE =
-  'portefeuille_lignes.portefeuille_id = portefeuilles.id AND portefeuilles.user_id = alertes.user_id AND portefeuille_lignes.ticker = alertes.ticker';
-const LIGNE_PORTEFEUILLE = `FROM portefeuille_lignes JOIN portefeuilles ON ${LIGNE_CORRESPONDANTE}`;
+const { VALEUR_CORRESPONDANTE, LIGNE_PORTEFEUILLE, NOM_VALEUR_SUBQUERY } = require('../alerteNom');
 
 async function checkAlerts() {
   console.log('Demarrage verification alertes');
@@ -37,10 +26,7 @@ async function checkAlerts() {
            (SELECT valeurs.cours FROM valeurs WHERE ${VALEUR_CORRESPONDANTE} LIMIT 1),
            (SELECT portefeuille_lignes.cours ${LIGNE_PORTEFEUILLE} LIMIT 1)
          ) AS cours,
-         COALESCE(
-           (SELECT valeurs.nom FROM valeurs WHERE ${VALEUR_CORRESPONDANTE} LIMIT 1),
-           (SELECT portefeuille_lignes.nom ${LIGNE_PORTEFEUILLE} LIMIT 1)
-         ) AS nom
+         ${NOM_VALEUR_SUBQUERY} AS nom
        FROM alertes
        JOIN users ON users.id = alertes.user_id
        WHERE alertes.active = 1

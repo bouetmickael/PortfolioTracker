@@ -274,7 +274,7 @@ délibéré antérieur, non remis en cause).
   utilisateur explicite : les cartes restaient nettement plus imposantes
   que les lignes `.valeur-row` une fois celles-ci compactées en v1.8.1) :
   padding `12px 16px` → `4px 10px`, espacement entre cartes
-  (`.alertes-liste`) 8px → 4px, `.alerte-ticker` sans taille explicite
+  (`.alertes-liste`) 8px → 4px, `.alerte-ticker` (affiche le nom de la valeur, repli sur le ticker, v1.10.22 ; tronque par ellipse s'il est trop long) sans taille explicite
   (héritait des 15-16px du corps) → 13px/500 (aligné sur `.valeur-nom`),
   `.alerte-seuils` 13px → 10px (aligné sur `.valeur-sousligne`),
   `line-height: 1.25` explicite sur les deux (même convention que
