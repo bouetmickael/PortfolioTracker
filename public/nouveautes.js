@@ -4,6 +4,7 @@
 // quelques mots - le detail technique reste dans CHANGELOG.md. Plus recent
 // en premier. Une entree par version fonctionnelle (voir CLAUDE.md).
 const NOUVEAUTES = [
+  { version: '1.10.24', items: ['Notifications push sur iPhone pour vos alertes : menu utilisateur > Activer les notifications.'] },
   { version: '1.10.23', items: ['Toucher le numero de version ouvre cette liste des nouveautes.'] },
   { version: '1.10.22', items: ['Alertes actives : le nom de la valeur s\'affiche a la place du ticker.'] },
   {

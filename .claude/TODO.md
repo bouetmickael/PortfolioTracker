@@ -3318,3 +3318,17 @@ cours, frequence de rafraichissement, contenu de chaque tuile.
   devenu bouton, CSS `.nouveautes-*`. `sw.js` : cache v6 + nouveau fichier.
 - Test `nouveautes.test.js` (ordre/format/version <= package). 89/89 OK,
   verifie sous Chromium a 393px. Compteur de revue 5/5.
+
+## 2026-11-11 — Session 73, notifications push iPhone (v1.10.24)
+
+- Demande utilisateur : recevoir les alertes sur iPhone ; l'app n'apparaissait
+  pas dans Reglages > Notifications (aucun code push, aucune demande
+  d'autorisation). Acces confirme en HTTPS public (DuckDNS). Approche A
+  retenue : Web Push/VAPID auto-heberge (`web-push`). Developpement lance
+  directement a la demande de l'utilisateur (spec/plan ecrits non produits).
+- Serveur : `push.js`, `routes/push.js`, tables `push_subscriptions`/
+  `push_config`, branchement dans `checkAlerts()` (push avant email,
+  canaux independants). Client : menu utilisateur, `sw.js` v7.
+- Tests `push.test.js` (envoi simule), 98/98 OK. Menu verifie sous
+  Chromium ; envoi reel vers Apple a valider sur iPhone (non testable ici).
+- Compteur de revue 6/5 : revue n°12 toujours a faire.

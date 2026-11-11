@@ -228,6 +228,18 @@
 
 ## Alertes de seuil
 
+**Notifications push (v1.10.24).** En plus de l'email, `checkAlerts()`
+envoie un Web Push a chaque appareil abonne de l'utilisateur proprietaire
+de l'alerte (jamais a un autre utilisateur ; les alertes restent privees).
+Le push est envoye apres l'ecriture de `derniere_alerte` (meme ordre de
+securite que l'email) et avant l'email ; les deux canaux sont independants :
+l'echec de l'un n'empeche ni l'autre ni l'enregistrement du declenchement.
+Anti-repetition inchangee (un push par franchissement de seuil). Abonnements
+expires (HTTP 404/410) supprimes automatiquement. Cles VAPID generees une
+seule fois et conservees en base (`push_config`) : les regenerer invaliderait
+tous les abonnements. `VAPID_SUBJECT` surcharge le contact du jeton (defaut :
+`MAIL_FROM`/`SMTP_USER`, sinon `mailto:admin@example.com`).
+
 - Une alerte doit définir au moins un seuil (`seuilHaut` ou `seuilBas`) ;
   refusée sinon (400).
 - **Anti-répétition** : une alerte ne se redéclenche que si le dernier

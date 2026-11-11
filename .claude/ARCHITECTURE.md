@@ -19,6 +19,7 @@
 - **Tâches planifiées** : `node-cron` (deux jobs toutes les 2 minutes, voir
   §3).
 - **Email** : `nodemailer` (SMTP optionnel).
+- **Notifications push** : `web-push` (Web Push/VAPID, `server/push.js`, `routes/push.js`).
 - **Configuration** : `dotenv` (mode Docker Compose) ou traduction de
   `/data/options.json` (mode Home Assistant Add-on) — voir
   `server/load-addon-options.js` et `DOCKER.md`.
@@ -121,6 +122,7 @@
     │   ├── users.js                  # /api/users (liste des comptes connus, pour le partage de section)
     │   ├── indices.js               # /api/indices (cours des indices de marche suivis)
     │   ├── portefeuilles.js         # /api/portefeuilles (CRUD portefeuilles + positions detenues)
+    │   ├── push.js                  # /api/push (cle VAPID, abonnement/desabonnement d'un appareil)
     │   └── chart.js                 # /api/chart/:ticker (historique Yahoo Finance, cache memoire 60s)
     ├── jobs/
     │   ├── prices.js               # mise à jour des cours des valeurs + des indices + des positions de portefeuille (cron 2 min)

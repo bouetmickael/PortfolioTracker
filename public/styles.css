@@ -1627,6 +1627,18 @@ textarea.input {
   background: var(--bg-secondary);
 }
 
+.menu-item-notif {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Cloche en or quand les notifications sont actives sur cet appareil :
+   meme convention de signal actif que .badge-alerte / .partage-actif. */
+.menu-item-notif.notif-actif .icon {
+  color: var(--primary);
+}
+
 /* TOAST NOTIFICATIONS */
 
 .toast {

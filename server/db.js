@@ -81,6 +81,25 @@ db.exec(`
     derniere_maj INTEGER
   );
 
+  -- Notifications push (Web Push, voir push.js) : une ligne par appareil
+  -- abonne. endpoint unique : un meme appareil ne peut appartenir qu'a un
+  -- utilisateur a la fois (reconnexion sous un autre compte).
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    cree_le INTEGER NOT NULL
+  );
+
+  -- Cles VAPID du serveur (une seule ligne, generee au premier usage).
+  CREATE TABLE IF NOT EXISTS push_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    public_key TEXT NOT NULL,
+    private_key TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS portefeuilles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -4,6 +4,7 @@ const db = require('../db');
 // chargement des modules (voir server/test/alerts-job.test.js).
 const mailer = require('../mailer');
 const { traiterEnParallele } = require('./parallel');
+const push = require('../push');
 
 const { VALEUR_CORRESPONDANTE, LIGNE_PORTEFEUILLE, NOM_VALEUR_SUBQUERY } = require('../alerteNom');
 
@@ -78,13 +79,28 @@ async function checkAlerts() {
       updateAlerte.run(cours, Date.now(), alerte.id);
       console.log(`Alerte declenchee : ${alerte.ticker} ${typeAlerte} pour ${alerte.user_email}`);
 
+      // Nom lisible de la valeur plutot que son ticker brut dans l'objet du
+      // mail et le titre de la notification (retour utilisateur du
+      // 2026-09-24, ex. "ACA.PA" illisible au premier coup d'oeil) - meme
+      // repli que le reste de l'UI quand aucun nom n'a ete saisi a l'ajout
+      // (voir DESIGN.md § Liste des valeurs suivies, "ticker en repli si le
+      // nom est absent").
+      const nomAffiche = alerte.nom || alerte.ticker;
+
+      // Push avant l'email : l'envoi SMTP peut bloquer jusqu'a son timeout.
+      // Les deux canaux sont independants : l'echec de l'un (pas
+      // d'abonnement, SMTP en panne) n'empeche jamais l'autre.
       try {
-        // Nom lisible de la valeur plutot que son ticker brut dans l'objet
-        // du mail (retour utilisateur du 2026-09-24, ex. "ACA.PA" illisible
-        // au premier coup d'oeil) - meme repli que le reste de l'UI quand
-        // aucun nom n'a ete saisi a l'ajout (voir DESIGN.md § Liste des
-        // valeurs suivies, "ticker en repli si le nom est absent").
-        const nomAffiche = alerte.nom || alerte.ticker;
+        await push.envoyerPushUtilisateur(alerte.user_id, {
+          title: `Alerte ${typeAlerte} : ${nomAffiche}`,
+          body: `Cours actuel : ${cours.toFixed(2)} EUR (seuil : ${seuil} EUR)`,
+          tag: `alerte-${alerte.id}`
+        });
+      } catch (error) {
+        console.error(`Erreur envoi push alerte pour ${alerte.user_email}:`, error.message);
+      }
+
+      try {
         const note = alerte.note ? `\n\nNote : ${alerte.note}` : '';
         await mailer.sendMail(
           alerte.user_email,

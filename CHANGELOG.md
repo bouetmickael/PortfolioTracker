@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.10.24
+
+- **Nouveau** : notifications push sur iPhone (Web Push, sans service
+  tiers). Menu utilisateur > "Activer les notifications" (geste volontaire
+  exige par iOS) : l'app apparait alors dans Reglages > Notifications et
+  chaque alerte de seuil declenchee envoie un push (titre "Alerte HAUTE :
+  <nom de la valeur>", cours et seuil), en plus de l'email. Une
+  notification de confirmation est envoyee a l'activation. Un abonnement par
+  appareil ; les abonnements expires (404/410) sont purges.
+  Serveur : `server/push.js`, `routes/push.js` (`GET /api/push/cle`,
+  `POST`/`DELETE /api/push/abonnement`), tables `push_subscriptions` et
+  `push_config` (cles VAPID generees au premier usage), dependance
+  `web-push`. Client : gestionnaires `push`/`notificationclick` dans
+  `public/sw.js` (cache v7). Prerequis iOS 16.4+, HTTPS valide, PWA
+  installee sur l'ecran d'accueil.
+
 ## 1.10.23
 
 - **Nouveau** : toucher le numero de version en haut de l'ecran ouvre une

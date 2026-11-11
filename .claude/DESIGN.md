@@ -136,6 +136,26 @@ délibéré antérieur, non remis en cause).
   puces de phrases courtes (13px). Contenu dans `public/nouveautes.js`
   (`NOUVEAUTES`, plus recent en premier) : uniquement les changements
   parlants pour l'utilisateur, pas le detail technique de `CHANGELOG.md`.
+- **Notifications push** (v1.10.24, demande explicite utilisateur : recevoir
+  les alertes de seuil sur iPhone). Ligne `.menu-item-notif` (icone
+  `icon-bell` en `.icon-sm` + libelle) dans le menu utilisateur, au-dessus
+  de « Deconnexion » : « Activer les notifications » / « Desactiver les
+  notifications » selon l'abonnement **de l'appareil en cours** (un
+  abonnement par appareil). Cloche en `--primary` (`.notif-actif`) quand
+  actif, meme convention de signal actif que `.badge-alerte`. L'activation
+  est toujours un geste volontaire : iOS n'affiche la demande
+  d'autorisation (et n'ajoute l'app a Reglages > Notifications) que si
+  `Notification.requestPermission()` est appele directement dans le
+  toucher, d'ou l'etat `notificationsActives` mis en cache. Messages
+  (toast `warning`) : app non installee sur l'ecran d'accueil (iOS :
+  `PushManager` absent d'un onglet Safari) -> « Ajoutez d'abord l'app a
+  l'ecran d'accueil... » ; autorisation refusee -> « Reactivez-les dans
+  Reglages > Notifications > Portfolio » ; navigateur sans push -> message
+  dedie. Une notification « Notifications activees » est envoyee par le
+  serveur a l'activation pour verifier la chaine de bout en bout. Contenu
+  d'une alerte : titre « Alerte HAUTE/BASSE : <nom> » (repli ticker), corps
+  « Cours actuel : X EUR (seuil : Y EUR) », `tag` par alerte ; un toucher
+  ouvre ou ramene l'app au premier plan (`public/sw.js`).
 - **Cartes statistiques** (`.stats-container`/`.stat-card`, session
   2026-07-25 « suivi d'indices de marché ») : grille 3 colonnes égales,
   fond `--bg`, coins 6px, `--shadow`, **bordure supérieure colorée 2px**.

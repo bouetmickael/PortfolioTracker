@@ -144,6 +144,7 @@ async function initApp() {
   setupEventListeners();
   initTheme();
   registerServiceWorker();
+  rafraichirEtatNotifications();
   chargerVersion();
 }
 
@@ -186,6 +187,115 @@ async function chargerVersion() {
   } catch (error) {
     console.error('Erreur chargement version:', error);
   }
+}
+
+// ========================================
+// NOTIFICATIONS PUSH
+// ========================================
+
+// Web Push (voir DESIGN.md § Notifications push). Etat de cet appareil : un
+// abonnement par appareil, pas par compte. Mis en cache pour que le geste
+// utilisateur appelle Notification.requestPermission() sans attendre une
+// promesse au prealable : iOS refuse la demande si elle n'est plus dans la
+// pile d'appel du toucher.
+let notificationsActives = false;
+
+function pushSupporte() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+function estIos() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function urlBase64VersUint8Array(base64) {
+  const rempli = (base64 + '='.repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  const brut = atob(rempli);
+  return Uint8Array.from(brut, (c) => c.charCodeAt(0));
+}
+
+function afficherEtatNotifications() {
+  document.getElementById('notifBtn').classList.toggle('notif-actif', notificationsActives);
+  document.getElementById('notifLabel').textContent = notificationsActives
+    ? 'Desactiver les notifications'
+    : 'Activer les notifications';
+}
+
+async function rafraichirEtatNotifications() {
+  if (!pushSupporte()) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const abonnement = await reg.pushManager.getSubscription();
+    notificationsActives = Boolean(abonnement) && Notification.permission === 'granted';
+    afficherEtatNotifications();
+  } catch (error) {
+    console.error('Erreur lecture abonnement push:', error);
+  }
+}
+
+async function basculerNotifications() {
+  if (!pushSupporte()) {
+    // Sur iPhone, PushManager n'existe que dans la PWA installee sur
+    // l'ecran d'accueil, pas dans un onglet Safari.
+    showToast(
+      estIos()
+        ? "Ajoutez d'abord l'app a l'ecran d'accueil (Partager > Sur l'ecran d'accueil), puis ouvrez-la depuis son icone."
+        : 'Ce navigateur ne gere pas les notifications.',
+      'warning'
+    );
+    return;
+  }
+
+  if (notificationsActives) {
+    await desactiverNotifications();
+    return;
+  }
+
+  // Appel direct dans le geste utilisateur, avant tout await.
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    showToast('Notifications refusees. Reactivez-les dans Reglages > Notifications > Portfolio.', 'warning');
+    return;
+  }
+  await activerNotifications();
+}
+
+async function activerNotifications() {
+  await executerAction(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    const resCle = await apiFetch('/api/push/cle');
+    if (!resCle.ok) throw new Error('Cle push indisponible');
+    const { publicKey } = await resCle.json();
+
+    const abonnement = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64VersUint8Array(publicKey)
+    });
+
+    const res = await apiFetch('/api/push/abonnement', { method: 'POST', body: JSON.stringify(abonnement.toJSON()) });
+    if (!res.ok) {
+      await abonnement.unsubscribe();
+      throw new Error('Enregistrement impossible');
+    }
+
+    notificationsActives = true;
+    afficherEtatNotifications();
+    showToast('Notifications activees', 'success');
+  }, "Erreur lors de l'activation des notifications");
+}
+
+async function desactiverNotifications() {
+  await executerAction(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    const abonnement = await reg.pushManager.getSubscription();
+    if (abonnement) {
+      await apiFetch('/api/push/abonnement', { method: 'DELETE', body: JSON.stringify({ endpoint: abonnement.endpoint }) });
+      await abonnement.unsubscribe();
+    }
+    notificationsActives = false;
+    afficherEtatNotifications();
+    showToast('Notifications desactivees', 'success');
+  }, 'Erreur lors de la desactivation des notifications');
 }
 
 // ========================================

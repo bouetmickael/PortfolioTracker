@@ -2,7 +2,7 @@
  * SERVICE WORKER - PORTFOLIO TRACKER
  */
 
-const CACHE_NAME = 'portfolio-tracker-v6';
+const CACHE_NAME = 'portfolio-tracker-v7';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -56,5 +56,41 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => caches.match(event.request))
+  );
+});
+
+// NOTIFICATIONS PUSH (alertes de seuil, voir server/push.js). Le serveur
+// envoie un JSON { title, body, tag, url } ; iOS exige qu'une notification
+// soit affichee a chaque message push recu (sinon l'abonnement est revoque).
+self.addEventListener('push', (event) => {
+  let donnees = {};
+  try {
+    donnees = event.data ? event.data.json() : {};
+  } catch (e) {
+    donnees = { title: 'Portfolio', body: event.data ? event.data.text() : '' };
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(donnees.title || 'Portfolio', {
+      body: donnees.body || '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: donnees.tag,
+      data: { url: donnees.url || '/' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((fenetres) => {
+      for (const fenetre of fenetres) {
+        if ('focus' in fenetre) return fenetre.focus();
+      }
+      return self.clients.openWindow(url);
+    })
   );
 });
